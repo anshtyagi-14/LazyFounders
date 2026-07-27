@@ -1,0 +1,33 @@
+{
+  "name": "@lazyfounders/scraper-service",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "start": "node dist/main.js",
+    "dev": "tsx watch src/main.ts",
+    "lint": "eslint src/ --ext .ts",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@lazyfounders/config": "*",
+    "@lazyfounders/shared": "*",
+    "@mozilla/readability": "^0.5.0",
+    "@prisma/client": "^6.0.0",
+    "bullmq": "^5.7.8",
+    "fastify": "^4.26.2",
+    "ioredis": "^5.11.1",
+    "jsdom": "^24.0.0",
+    "pino": "^8.19.0",
+    "playwright": "^1.42.1",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^21.1.6",
+    "@types/node": "^20.11.24",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3"
+  }
+}

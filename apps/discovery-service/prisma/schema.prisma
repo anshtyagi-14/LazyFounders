@@ -1,0 +1,258 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Registered news website sources for crawling
+model Source {
+  id                String    @id @default(uuid()) @db.Uuid
+  name              String
+  domain            String    @unique
+  baseUrl           String    @map("base_url")
+  crawlFrequency    String    @map("crawl_frequency") @default("0 */1 * * *")
+  enabled           Boolean   @default(true)
+  priority          Int       @default(5) @db.SmallInt
+  category          String?
+  customSitemapUrls String[]  @map("custom_sitemap_urls")
+  proxyEnabled      Boolean   @default(false) @map("proxy_enabled")
+  customHeaders     Json?     @map("custom_headers")
+  crawlPolicy       Json?     @map("crawl_policy")
+  customFilterRules Json?     @map("custom_filter_rules")
+  recencyWindowHours Int      @default(72) @map("recency_window_hours") @db.SmallInt
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  lastCrawledAt     DateTime? @map("last_crawled_at")
+
+  sitemaps          Sitemap[]
+  urlStates         UrlState[]
+  crawlRuns         CrawlRun[]
+
+  @@index([enabled, priority])
+  @@map("sources")
+}
+
+/// Discovered sitemap URLs per source
+model Sitemap {
+  id              String    @id @default(uuid()) @db.Uuid
+  sourceId        String    @map("source_id") @db.Uuid
+  url             String
+  type            String    /// urlset | sitemapindex | rss | atom
+  discoveryMethod String    @map("discovery_method") /// robots_txt | endpoint_probe | cms_detection | rss_feed | atom_feed | heuristic | manual
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  source          Source    @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  states          SitemapState[]
+
+  @@unique([sourceId, url])
+  @@map("sitemaps")
+}
+
+/// Per-sitemap fetch state tracking
+model SitemapState {
+  id              String    @id @default(uuid()) @db.Uuid
+  sitemapId       String    @map("sitemap_id") @db.Uuid
+  etag            String?
+  lastModified    String?   @map("last_modified")
+  contentHash     String?   @map("content_hash")
+  urlCount        Int       @default(0) @map("url_count")
+  lastFetchedAt   DateTime  @map("last_fetched_at")
+  fetchDurationMs Int?      @map("fetch_duration_ms")
+  httpStatus      Int?      @map("http_status") @db.SmallInt
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  sitemap         Sitemap   @relation(fields: [sitemapId], references: [id], onDelete: Cascade)
+
+  @@index([sitemapId, lastFetchedAt(sort: Desc)])
+  @@map("sitemap_states")
+}
+
+/// Per-URL state for the diff engine
+model UrlState {
+  id                  String    @id @default(uuid()) @db.Uuid
+  sourceId            String    @map("source_id") @db.Uuid
+  url                 String
+  urlHash             String    @unique @map("url_hash")
+  normalizedSlug      String?   @map("normalized_slug")
+  lastmod             DateTime?
+  etag                String?
+  contentHash         String?   @map("content_hash")
+  status              String    @default("new") /// new | active | removed | renamed
+  changeType          String?   @map("change_type") /// NEW | UPDATED | REMOVED | RENAMED
+  titleHint           String?   @map("title_hint")
+  newsPublicationDate DateTime? @map("news_publication_date")
+  priority            Float?    @db.Real
+  changeFreq          String?   @map("change_freq")
+  firstSeenAt         DateTime  @default(now()) @map("first_seen_at")
+  lastSeenAt          DateTime  @default(now()) @map("last_seen_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  source              Source    @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  slugHistory         SlugHistory[]
+  categorizationResult CategorizationResult?
+
+  @@index([sourceId, status])
+  @@index([normalizedSlug])
+  @@index([lastSeenAt])
+  @@map("url_states")
+}
+
+/// Slug change history for rename detection
+model SlugHistory {
+  id              String    @id @default(uuid()) @db.Uuid
+  urlStateId      String    @map("url_state_id") @db.Uuid
+  slug            String
+  normalizedSlug  String    @map("normalized_slug")
+  url             String
+  detectedAt      DateTime  @default(now()) @map("detected_at")
+
+  urlState        UrlState  @relation(fields: [urlStateId], references: [id], onDelete: Cascade)
+
+  @@index([normalizedSlug])
+  @@index([urlStateId])
+  @@map("slug_histories")
+}
+
+/// Crawl run execution logs
+model CrawlRun {
+  id                String    @id @default(uuid()) @db.Uuid
+  sourceId          String    @map("source_id") @db.Uuid
+  traceId           String    @map("trace_id")
+  status            String    @default("running") /// running | completed | failed | partial
+  totalUrls         Int       @default(0) @map("total_urls")
+  newUrls           Int       @default(0) @map("new_urls")
+  updatedUrls       Int       @default(0) @map("updated_urls")
+  removedUrls       Int       @default(0) @map("removed_urls")
+  renamedUrls       Int       @default(0) @map("renamed_urls")
+  unchangedUrls     Int       @default(0) @map("unchanged_urls")
+  errorCount        Int       @default(0) @map("error_count")
+  sitemapsProcessed Int       @default(0) @map("sitemaps_processed")
+  durationMs        Int?      @map("duration_ms")
+  startedAt         DateTime  @default(now()) @map("started_at")
+  completedAt       DateTime? @map("completed_at")
+
+  source            Source    @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  errors            CrawlError[]
+
+  @@index([sourceId, startedAt(sort: Desc)])
+  @@index([traceId])
+  @@map("crawl_runs")
+}
+
+/// Per-URL or per-sitemap error records
+model CrawlError {
+  id              String    @id @default(uuid()) @db.Uuid
+  crawlRunId      String    @map("crawl_run_id") @db.Uuid
+  url             String?
+  errorType       String    @map("error_type") /// fetch_error | parse_error | timeout | bot_block | rate_limit | unknown
+  errorMessage    String    @map("error_message")
+  httpStatus      Int?      @map("http_status") @db.SmallInt
+  strategy        String?
+  retryCount      Int       @default(0) @map("retry_count") @db.SmallInt
+  metadata        Json?
+  occurredAt      DateTime  @default(now()) @map("occurred_at")
+
+  crawlRun        CrawlRun  @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
+
+  @@index([crawlRunId])
+  @@index([errorType])
+  @@map("crawl_errors")
+}
+
+/// Content extraction results from scraper
+model ScrapeResult {
+  id                String    @id @default(uuid()) @db.Uuid
+  categorizationId  String    @unique @map("categorization_id") @db.Uuid
+  traceId           String    @map("trace_id")
+  title             String?
+  subtitle          String?
+  bodyText          String?   @map("body_text")
+  bodyHtml          String?   @map("body_html")
+  author            String?
+  publishedDate     DateTime? @map("published_date")
+  language          String?
+  wordCount         Int?      @map("word_count")
+  readingTimeMin    Float?    @map("reading_time_min") @db.Real
+  images            Json?
+  metaTags          Json?     @map("meta_tags")
+  openGraph         Json?     @map("open_graph")
+  twitterCard       Json?     @map("twitter_card")
+  canonicalUrl      String?   @map("canonical_url")
+  jsonLd            Json?     @map("json_ld")
+  articleSchema     Json?     @map("article_schema")
+  breadcrumbs       Json?
+  contentHash       String?   @map("content_hash")
+  extractionMethod  String?   @map("extraction_method")
+  fetchStrategy     String?   @map("fetch_strategy")
+  durationMs        Int?      @map("duration_ms")
+  status            String    @default("success") /// success | partial | failed
+  errorMessage      String?   @map("error_message")
+  rawHtmlSize       Int?      @map("raw_html_size")
+  scrapedAt         DateTime  @default(now()) @map("scraped_at")
+
+  categorization    CategorizationResult @relation(fields: [categorizationId], references: [id], onDelete: Cascade)
+
+  @@index([traceId])
+  @@index([scrapedAt(sort: Desc)])
+  @@map("scrape_results")
+}
+
+/// AI-generated categorization and metadata
+model CategorizationResult {
+  id                String    @id @default(uuid()) @db.Uuid
+  urlStateId        String    @unique @map("url_state_id") @db.Uuid
+  primaryCategory   String?   @map("primary_category")
+  tags              Json?
+  summary           String?
+  entities          Json?
+  sentiment         String?
+  confidenceScore   Float?    @map("confidence_score") @db.Real
+  categorizedAt     DateTime  @default(now()) @map("categorized_at")
+
+  urlState          UrlState @relation(fields: [urlStateId], references: [id], onDelete: Cascade)
+  scrapeResult      ScrapeResult?
+  intelligenceResult IntelligenceResult?
+
+  @@index([primaryCategory])
+  @@map("categorization_results")
+}
+
+/// Results of the Intelligence Engine deduplication
+model IntelligenceResult {
+  id                  String    @id @default(uuid()) @db.Uuid
+  categorizationId    String    @unique @map("categorization_id") @db.Uuid
+  isDuplicate         Boolean   @default(false) @map("is_duplicate")
+  duplicateOfId       String?   @map("duplicate_of_id") @db.Uuid
+  deduplicatedAt      DateTime  @default(now()) @map("deduplicated_at")
+  
+  categorization      CategorizationResult @relation(fields: [categorizationId], references: [id], onDelete: Cascade)
+  originalContent     OriginalContent?
+
+  @@index([isDuplicate])
+  @@map("intelligence_results")
+}
+
+/// The final LLM-rewritten, SEO-optimized original article
+model OriginalContent {
+  id                    String    @id @default(uuid()) @db.Uuid
+  intelligenceResultId  String    @unique @map("intelligence_result_id") @db.Uuid
+  seoTitle              String    @map("seo_title")
+  slug                  String    @unique
+  bodyHtml              String    @map("body_html")
+  metaDescription       String    @map("meta_description")
+  keywords              String[]
+  headerImage           String?   @map("header_image")
+  publishedToBlogAt     DateTime? @map("published_to_blog_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  intelligenceResult    IntelligenceResult @relation(fields: [intelligenceResultId], references: [id], onDelete: Cascade)
+
+  @@index([slug])
+  @@map("original_contents")
+}
