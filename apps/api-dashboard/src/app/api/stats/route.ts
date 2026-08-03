@@ -15,10 +15,13 @@ export async function GET() {
     }
 
     try {
-      const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+      const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+      const redis = new Redis(redisUrl, {
         maxRetriesPerRequest: 1,
         connectTimeout: 2000,
-        lazyConnect: true
+        lazyConnect: true,
+        family: 0, // Critical for Upstash DNS resolution on Vercel
+        tls: redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined
       });
       redis.on('error', () => {}); // Catch background connection errors
       const pingRes = await redis.ping();
