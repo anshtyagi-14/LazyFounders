@@ -1,18 +1,22 @@
 import sharp from 'sharp';
-import fs from 'fs';
-import path from 'path';
 import { Logger } from 'pino';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 export class ImageProcessor {
-  private readonly uploadsDir: string;
   private readonly logoSvg: Buffer;
+  private readonly supabase: SupabaseClient | null = null;
+  private readonly bucketName = 'lazyfounders-media';
 
   constructor(private readonly logger: Logger) {
-    // Create an uploads directory in the frontend's public folder to serve locally
-    // For local development, this ensures the Next.js app can serve them at /uploads
-    this.uploadsDir = path.join(process.cwd(), '..', 'api-dashboard', 'public', 'uploads');
-    if (!fs.existsSync(this.uploadsDir)) {
-      fs.mkdirSync(this.uploadsDir, { recursive: true });
+    // Initialize Supabase if env vars are present
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+
+    if (supabaseUrl && supabaseKey) {
+      this.supabase = createClient(supabaseUrl, supabaseKey);
+      this.logger.info('Supabase Storage client initialized');
+    } else {
+      this.logger.warn('SUPABASE_URL or SUPABASE_SERVICE_KEY missing. Image upload will fail if attempted.');
     }
 
     // Use the official Blogy logo SVG with paths (no fonts required)
@@ -37,11 +41,15 @@ export class ImageProcessor {
   }
 
   /**
-   * Downloads an image, adds the Blogy watermark, and saves it locally.
-   * Returns the local file path (or URL if we are serving it).
+   * Downloads an image, adds the Blogy watermark, and uploads it to Supabase Storage.
+   * Returns the public URL.
    */
   async processAndWatermark(imageUrl: string, articleId: string): Promise<string | null> {
     try {
+      if (!this.supabase) {
+        throw new Error('Supabase client not initialized. Cannot upload images.');
+      }
+
       this.logger.info({ imageUrl }, 'Downloading header image for watermarking');
       
       const response = await fetch(imageUrl);
@@ -52,12 +60,11 @@ export class ImageProcessor {
       const arrayBuffer = await response.arrayBuffer();
       const imageBuffer = Buffer.from(arrayBuffer);
 
-      const fileName = `header-${articleId}.jpg`;
-      const outputPath = path.join(this.uploadsDir, fileName);
+      const fileName = `header-${articleId}-${Date.now()}.jpg`;
 
       // We resize the original image to a standard max width (e.g., 1200px) 
       // and overlay the SVG logo at the bottom right.
-      await sharp(imageBuffer)
+      const processedBuffer = await sharp(imageBuffer)
         .resize({ width: 1200, withoutEnlargement: true })
         .composite([
           {
@@ -66,16 +73,34 @@ export class ImageProcessor {
           }
         ])
         .jpeg({ quality: 85 })
-        .toFile(outputPath);
+        .toBuffer();
 
-      this.logger.info({ outputPath }, 'Successfully watermarked and saved header image');
+      this.logger.info('Successfully watermarked image, uploading to Supabase...');
       
-      // For now, we return a local file URL or relative path so we know where it is.
-      // In Stage 6, the publishing engine can upload this local file to Ghost/WordPress.
-      return `/uploads/${fileName}`;
+      // Upload to Supabase Storage
+      const { data, error } = await this.supabase.storage
+        .from(this.bucketName)
+        .upload(fileName, processedBuffer, {
+          contentType: 'image/jpeg',
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (error) {
+         throw new Error(`Supabase upload failed: ${error.message}`);
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = this.supabase.storage
+        .from(this.bucketName)
+        .getPublicUrl(fileName);
+
+      this.logger.info({ publicUrl }, 'Successfully uploaded to Supabase Storage');
+      
+      return publicUrl;
 
     } catch (error: any) {
-      this.logger.error({ err: error.message, imageUrl }, 'Failed to process header image');
+      this.logger.error({ err: error.message, imageUrl }, 'Failed to process and upload header image');
       return null;
     }
   }

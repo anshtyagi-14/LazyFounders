@@ -13,6 +13,7 @@
     "@lazyfounders/config": "*",
     "@lazyfounders/shared": "*",
     "@prisma/client": "^6.19.3",
+    "@supabase/supabase-js": "^2.112.0",
     "bullmq": "^5.0.0",
     "fastify": "^4.25.0",
     "ioredis": "^5.3.2",
