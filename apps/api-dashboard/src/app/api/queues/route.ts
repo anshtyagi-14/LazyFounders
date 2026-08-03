@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 
+export const dynamic = 'force-dynamic';
+
 // Queues will be initialized lazily inside the handler to prevent top-level crashes if Redis is down
 
 

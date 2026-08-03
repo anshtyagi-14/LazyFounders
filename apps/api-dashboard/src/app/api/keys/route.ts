@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const keys = await prisma.apiKey.findMany({
