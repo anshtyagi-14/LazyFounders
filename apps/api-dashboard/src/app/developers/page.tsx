@@ -26,10 +26,18 @@ export default function DevelopersDashboard() {
     fetchKeys();
   }, []);
 
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState('');
+
   const handleCreateKey = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newKeyName.trim()) return;
+    setError('');
+    if (!newKeyName.trim()) {
+      setError('Please enter a key name first');
+      return;
+    }
     
+    setCreating(true);
     try {
       const res = await fetch('/api/keys', {
         method: 'POST',
@@ -40,9 +48,14 @@ export default function DevelopersDashboard() {
       if (data.success) {
         setNewKeyName('');
         fetchKeys();
+      } else {
+        setError(data.error || 'Failed to create key');
       }
-    } catch (e) {
+    } catch (e: any) {
+      setError(e.message || 'Network error');
       console.error(e);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -116,7 +129,7 @@ export default function DevelopersDashboard() {
         <section className="bg-slate-50 dark:bg-[#121820] rounded-2xl p-6 ring-1 ring-slate-200 dark:ring-white/10 mb-10">
           <h2 className="text-xl font-bold mb-6">Manage API Keys</h2>
           
-          <form onSubmit={handleCreateKey} className="flex gap-3 mb-8">
+          <form onSubmit={handleCreateKey} className="flex gap-3 mb-2">
             <input 
               type="text" 
               placeholder="Enter key name (e.g. Production Scraper)" 
@@ -125,10 +138,12 @@ export default function DevelopersDashboard() {
               className="flex-1 px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-teal-500"
               style={{ backgroundColor: '#1e293b', color: '#f8fafc', borderColor: '#334155' }}
             />
-            <button type="submit" className="px-6 py-2 bg-teal-600 text-white font-bold rounded-lg hover:bg-teal-700 transition-colors whitespace-nowrap">
-              Generate New Key
+            <button type="submit" disabled={creating} className="px-6 py-2 bg-teal-600 text-white font-bold rounded-lg hover:bg-teal-700 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
+              {creating ? 'Creating...' : 'Generate New Key'}
             </button>
           </form>
+          {error && <p className="text-red-400 text-sm mb-6">{error}</p>}
+          {!error && <div className="mb-6" />}
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
