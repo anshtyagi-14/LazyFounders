@@ -135,7 +135,7 @@ export default function DevelopersDashboard() {
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800">
                   <th className="py-3 px-2 text-sm font-semibold text-slate-500">NAME</th>
-                  <th className="py-3 px-2 text-sm font-semibold text-slate-500">API KEY</th>
+                  <th className="py-3 px-2 text-sm font-semibold text-slate-500 w-full">API KEY</th>
                   <th className="py-3 px-2 text-sm font-semibold text-slate-500">REQUESTS</th>
                   <th className="py-3 px-2 text-sm font-semibold text-slate-500">STATUS</th>
                   <th className="py-3 px-2 text-sm font-semibold text-slate-500 text-right">ACTION</th>

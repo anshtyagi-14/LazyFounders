@@ -78,8 +78,8 @@ function LogsManagementContent() {
           <table className="w-full text-left">
             <thead className="bg-slate-50 dark:bg-white/5 text-sm uppercase text-slate-500">
               <tr>
-                <th className="px-6 py-4 font-semibold">Started At</th>
-                <th className="px-6 py-4 font-semibold">Source</th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Started At</th>
+                <th className="px-6 py-4 font-semibold w-full">Source</th>
                 <th className="px-6 py-4 font-semibold">Status</th>
                 <th className="px-6 py-4 font-semibold">Found</th>
                 <th className="px-6 py-4 font-semibold">New</th>

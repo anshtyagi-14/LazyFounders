@@ -86,7 +86,7 @@ export default async function AdminOverview() {
           <table className="w-full text-left">
             <thead className="bg-slate-50 dark:bg-white/5 text-sm uppercase text-slate-500">
               <tr>
-                <th className="px-6 py-4 font-semibold">Title</th>
+                <th className="px-6 py-4 font-semibold w-full">Title</th>
                 <th className="px-6 py-4 font-semibold">Category</th>
                 <th className="px-6 py-4 font-semibold">Published</th>
                 <th className="px-6 py-4 font-semibold">Processed At</th>

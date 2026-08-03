@@ -67,7 +67,7 @@ export default function SourcesManagement() {
             <thead className="bg-slate-50 dark:bg-white/5 text-sm uppercase text-slate-500">
               <tr>
                 <th className="px-6 py-4 font-semibold">Domain</th>
-                <th className="px-6 py-4 font-semibold">Base URL</th>
+                <th className="px-6 py-4 font-semibold w-full">Base URL</th>
                 <th className="px-6 py-4 font-semibold">Status</th>
                 <th className="px-6 py-4 font-semibold">Cron Schedule</th>
                 <th className="px-6 py-4 font-semibold">Last Crawled</th>
