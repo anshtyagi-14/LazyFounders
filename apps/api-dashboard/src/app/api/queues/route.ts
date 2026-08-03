@@ -6,10 +6,8 @@ import Redis from 'ioredis';
 
 
 export async function GET() {
-    const redisHost = process.env.REDIS_HOST || '127.0.0.1';
-    const redisPort = process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT) : 6379;
-
-    const redis = new Redis(redisPort, redisHost, { 
+    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    const redis = new Redis(redisUrl, { 
       maxRetriesPerRequest: 1, 
       connectTimeout: 2000,
       lazyConnect: true // Prevent immediate crash if down
