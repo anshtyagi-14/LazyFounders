@@ -130,10 +130,10 @@ async function main(): Promise<void> {
   );
 
   // 6. Scheduler & Worker
-  const cronScheduler = new CronScheduler(prisma, pipelineOrchestrator, logger, 3600000);
+  const cronScheduler = new CronScheduler(prisma, pipelineOrchestrator, logger, 60000);
 
   // 7. Server Setup
-  const server = await createServer(container);
+  const server = await createServer(container, discoveryEngine);
   
   await server.register(metricsPlugin);
   await server.register(tracingPlugin);

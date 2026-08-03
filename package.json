@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "dev:all": "concurrently \"npm run dev -w apps/api-dashboard\" \"npm run dev -w apps/discovery-service\" \"npm run dev -w apps/scraper-service\" \"npm run dev -w apps/categorization-service\" \"npm run dev -w apps/intelligence-service\" \"npm run dev -w apps/publishing-service\"",
     "test": "npm run test --workspaces --if-present",
     "test:int": "npm run test:int --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",

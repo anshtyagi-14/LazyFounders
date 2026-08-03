@@ -1,16 +1,17 @@
 import { createServer } from './api/server.js';
 import { ScraperWorker } from './scraper/worker.js';
 import { loadConfig } from '@lazyfounders/config';
-import pino from 'pino';
+import { createLogger } from '@lazyfounders/logger';
 import { Redis } from 'ioredis';
 import { PrismaClient } from '@prisma/client';
 import { Queue } from 'bullmq';
 
 async function main(): Promise<void> {
   const config = loadConfig();
-  const logger = pino({
+  const logger = createLogger({
+    name: 'scraper-service',
     level: config.app.logLevel,
-    transport: { target: 'pino-pretty' }
+    prettyPrint: config.app.nodeEnv === 'development',
   });
 
   // Database & Redis
@@ -54,6 +55,15 @@ async function main(): Promise<void> {
 
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));
+  
+  process.on('unhandledRejection', (reason, promise) => {
+    const errorMsg = reason instanceof Error ? reason.message : String(reason);
+    if (errorMsg.includes('Target page, context or browser has been closed') || errorMsg.includes('cdpSession.send')) {
+      logger.warn('Ignored unhandled Playwright CDP rejection after timeout/close');
+    } else {
+      logger.error({ reason, promise }, 'Unhandled Rejection');
+    }
+  });
 
   try {
     await server.listen({

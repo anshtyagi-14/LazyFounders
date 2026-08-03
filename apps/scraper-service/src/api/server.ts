@@ -1,6 +1,7 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import { Logger } from 'pino';
 import { Queue } from 'bullmq';
+import { scrapeUrlStateless } from '../scraper/stateless.js';
 
 export async function createServer(logger: Logger, scraperQueue: Queue): Promise<FastifyInstance> {
   const server = Fastify({ logger: false });
@@ -30,6 +31,22 @@ export async function createServer(logger: Logger, scraperQueue: Queue): Promise
     } catch (err: any) {
       logger.error({ err, url }, 'Failed to enqueue manual scrape job');
       return reply.status(500).send({ error: 'Failed to enqueue job' });
+    }
+  });
+
+  server.post('/api/stateless/scrape', async (request, reply) => {
+    const { url } = request.body as any;
+    
+    if (!url) {
+      return reply.status(400).send({ error: 'url is required' });
+    }
+
+    try {
+      const data = await scrapeUrlStateless(url, logger);
+      return reply.send({ success: true, data });
+    } catch (err: any) {
+      logger.error({ err, url }, 'Failed stateless scrape');
+      return reply.status(500).send({ error: 'Failed to scrape url statelessly' });
     }
   });
 

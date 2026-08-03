@@ -66,7 +66,7 @@ export function createLogger(options: CreateLoggerOptions): Logger {
       frequency: 'daily',
       mkdir: true,
       limit: {
-        count: 1, // Keep only 1 older file (deletes after 1 day)
+        count: 3, // Keep only 3 older files (deletes after 3 days)
       },
     },
   });

@@ -51,20 +51,35 @@ export class CronScheduler {
 
     this.isRunning = true;
     try {
-      this.logger.debug('Running scheduler tick');
+      this.logger.info('Running scheduler tick');
       const activeSources = await this.prisma.source.findMany({
         where: {
           enabled: true,
         },
       });
+      this.logger.info(`Found ${activeSources.length} active sources`);
 
       const now = new Date();
 
       for (const source of activeSources) {
-        const intervalMinutes = source.discoveryIntervalMinutes || 60;
-        const lastRunAt = source.lastDiscoveryRunAt || new Date(0);
+        let intervalMinutes = source.discoveryIntervalMinutes || 60;
+        if (source.crawlFrequency) {
+          const parts = source.crawlFrequency.trim().split(/\s+/);
+          if (parts.length >= 5) {
+            if (parts[0].startsWith('*/')) {
+              intervalMinutes = parseInt(parts[0].substring(2), 10);
+            } else if (parts[1].startsWith('*/')) {
+              intervalMinutes = parseInt(parts[1].substring(2), 10) * 60;
+            } else if (parts[0] === '0' && parts[1] === '*') {
+              intervalMinutes = 60;
+            }
+          }
+        }
+        const lastRunAt = source.lastCrawledAt || new Date(0);
         
         const nextRunTime = new Date(lastRunAt.getTime() + intervalMinutes * 60000);
+        
+        this.logger.info(`Evaluating ${source.domain}: intervalMinutes=${intervalMinutes}, lastRunAt=${lastRunAt.toISOString()}, nextRunTime=${nextRunTime.toISOString()}, now=${now.toISOString()}`);
 
         if (now >= nextRunTime) {
           this.logger.info({ sourceId: source.id }, 'Triggering scheduled discovery for source');

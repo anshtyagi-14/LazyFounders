@@ -30,7 +30,7 @@ export class PipelineOrchestrator {
     private readonly prisma: PrismaClient
   ) {}
 
-  public async runDiscovery(sourceId: string): Promise<void> {
+  public async runDiscovery(sourceId: string): Promise<any> {
     this.logger.info({ sourceId }, 'Starting discovery pipeline');
     
     const source = await this.prisma.source.findUnique({
@@ -158,7 +158,7 @@ export class PipelineOrchestrator {
       this.logger.info({ sourceId, stats }, 'Discovery pipeline completed successfully');
 
       // 12. Update crawl run
-      await this.prisma.crawlRun.update({
+      const finalCrawlRun = await this.prisma.crawlRun.update({
         where: { id: crawlRunId },
         data: {
           status: 'completed',
@@ -173,6 +173,8 @@ export class PipelineOrchestrator {
           sitemapsProcessed: stats.sitemapsProcessed
         }
       });
+
+      return finalCrawlRun;
 
     } catch (error: any) {
       this.logger.error({ error, sourceId }, 'Error in discovery pipeline');
@@ -240,14 +242,28 @@ export class PipelineOrchestrator {
         if (parseResult.sitemaps.length > 0) {
           // Filter child sitemaps by recency to avoid downloading years of history!
           const recentSitemaps = parseResult.sitemaps.filter(s => {
-            if (!s.lastmod) return true; // Keep if no date
+            if (!s.lastmod) {
+              // If no date, try to extract a year from the URL (e.g. sitemap-2023.xml)
+              const yearMatch = s.loc.match(/20\d{2}/);
+              if (yearMatch) {
+                const year = parseInt(yearMatch[0], 10);
+                const currentYear = new Date().getFullYear();
+                return year >= currentYear - 1; // Only keep current or previous year
+              }
+              return true; // If no date at all, keep it
+            }
             const ageDays = (Date.now() - s.lastmod.getTime()) / (1000 * 60 * 60 * 24);
             return ageDays <= stats.maxAgeDays; 
           });
           
-          if (recentSitemaps.length > 0) {
-            const childSitemapUrls = recentSitemaps.map(s => s.loc);
-            await this.processSitemaps(childSitemapUrls, collectedUrls, stats, crawlRunId, visited);
+          // Failsafe: if we still have more than 10 sitemaps and none had dates, limit to 10
+          // to prevent scraping 142k URLs every 5 minutes.
+          const sitemapsToFetch = recentSitemaps.length > 10 && !recentSitemaps[0].lastmod 
+            ? recentSitemaps.slice(0, 10) 
+            : recentSitemaps;
+          
+          if (sitemapsToFetch.length > 0) {
+            await this.processSitemaps(sitemapsToFetch.map(s => s.loc), collectedUrls, stats, crawlRunId, visited);
           } else if (parseResult.sitemaps.length > 0) {
              this.logger.debug(`Skipped ${parseResult.sitemaps.length} older child sitemaps.`);
           }

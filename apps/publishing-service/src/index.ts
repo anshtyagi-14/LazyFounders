@@ -1,26 +1,52 @@
 import { Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
 import { PrismaClient } from '@prisma/client';
+import { createLogger } from '@lazyfounders/logger';
+import { loadConfig } from '@lazyfounders/config';
 
+const config = loadConfig();
 const prisma = new PrismaClient();
-const redis = new Redis({ host: 'localhost', port: 6379, maxRetriesPerRequest: null });
+const redis = new Redis({ host: config.redis.host, port: config.redis.port, maxRetriesPerRequest: null });
 
-console.log('Publishing Service started. Listening for jobs...');
+const logger = createLogger({
+  name: 'publishing-service',
+  level: config.app.logLevel,
+  prettyPrint: config.app.nodeEnv === 'development',
+});
+
+logger.info('Publishing Service started. Listening for jobs...');
 
 const worker = new Worker('publishing-jobs', async (job: Job) => {
-  console.log(`Processing publishing job ${job.id} for OriginalContent ID: ${job.data.originalContentId}`);
+  logger.info(`Processing publishing job ${job.id} for OriginalContent ID: ${job.data.originalContentId}`);
   
   try {
     const content = await prisma.originalContent.findUnique({
       where: { id: job.data.originalContentId },
+      include: {
+        intelligenceResult: {
+          include: {
+            categorization: {
+              include: {
+                urlState: {
+                  include: { source: true }
+                }
+              }
+            }
+          }
+        }
+      }
     });
+
+    const domain = content?.intelligenceResult?.categorization?.urlState?.source?.domain;
+    const url = content?.intelligenceResult?.categorization?.urlState?.url;
+    const jobLogger = logger.child({ domain, url });
 
     if (!content) {
       throw new Error(`OriginalContent not found for ID: ${job.data.originalContentId}`);
     }
 
     // SIMULATE PUBLISHING (e.g. API call to Shopify, WordPress, Webflow, etc.)
-    console.log(`Publishing "${content.seoTitle}" (slug: /${content.slug}) to CMS...`);
+    jobLogger.info(`Publishing "${content.seoTitle}" (slug: /${content.slug}) to CMS...`);
     
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -31,11 +57,11 @@ const worker = new Worker('publishing-jobs', async (job: Job) => {
       data: { publishedToBlogAt: new Date() },
     });
 
-    console.log(`Job ${job.id} complete. Article successfully published!`);
+    jobLogger.info(`Job ${job.id} complete. Article successfully published!`);
     
     return { success: true, publishedAt: new Date() };
   } catch (error: any) {
-    console.error(`Job ${job.id} failed:`, error.message);
+    logger.error({ err: error }, `Job ${job.id} failed: ${error.message}`);
     throw error;
   }
 }, {
@@ -44,5 +70,5 @@ const worker = new Worker('publishing-jobs', async (job: Job) => {
 });
 
 worker.on('error', (err) => {
-  console.error('BullMQ Worker Error:', err);
+  logger.error({ err }, 'BullMQ Worker Error');
 });

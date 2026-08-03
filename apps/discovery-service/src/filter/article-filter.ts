@@ -4,7 +4,8 @@
 export class ArticleFilter {
   private readonly nonArticlePaths = [
     '/category/', '/author/', '/tag/', '/login', '/register', 
-    '/cart', '/checkout', '/about', '/contact', '/privacy', '/terms'
+    '/cart', '/checkout', '/about', '/contact', '/privacy', '/terms',
+    '/industry/', '/location/', '/resources/', '/events/'
   ];
 
   private readonly nonHtmlExtensions = new Set([

@@ -2,8 +2,9 @@ import Fastify, { FastifyRequest, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import type { Container } from '../container.js';
 import type { Logger } from 'pino';
+import type { DiscoveryEngine } from '../discovery/discovery-engine.js';
 
-export async function createServer(container: Container) {
+export async function createServer(container: Container, discoveryEngine: DiscoveryEngine) {
   const { config, logger } = container;
 
   const server = Fastify({
@@ -60,6 +61,22 @@ export async function createServer(container: Container) {
     uptime: process.uptime(),
     version: process.env.npm_package_version || '0.1.0',
   }));
+
+  server.post('/api/stateless/discovery', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { url } = request.body as any;
+    if (!url) return reply.status(400).send({ error: 'url is required' });
+
+    try {
+      const results = await discoveryEngine.discover({
+        domain: new URL(url).hostname,
+        baseUrl: url
+      });
+      return reply.send({ success: true, data: results });
+    } catch (err) {
+      logger.error({ err }, 'Failed stateless discovery');
+      return reply.status(500).send({ error: 'Failed to discover statelessly' });
+    }
+  });
 
   // Readiness check (verifies DB + Redis)
   server.get('/ready', async (request: FastifyRequest, reply: FastifyReply) => {

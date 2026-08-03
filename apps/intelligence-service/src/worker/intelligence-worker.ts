@@ -71,7 +71,8 @@ export class IntelligenceWorker {
     const catResult = await this.prisma.categorizationResult.findUnique({
       where: { id: categorizationResultId },
       include: {
-        scrapeResult: true
+        scrapeResult: true,
+        urlState: { include: { source: true } }
       }
     });
 
@@ -79,10 +80,12 @@ export class IntelligenceWorker {
       throw new Error(`Data not found for categorizationResultId: ${categorizationResultId}`);
     }
 
-    const { scrapeResult, primaryCategory, summary } = catResult;
+    const { scrapeResult, primaryCategory, summary, urlState } = catResult;
+    const domain = urlState?.source?.domain;
+    const jobLogger = this.logger.child({ domain, url: urlState?.url });
 
     if (!scrapeResult.bodyText || !primaryCategory || !summary) {
-      this.logger.warn({ categorizationResultId }, 'Skipping due to missing bodyText, category, or summary');
+      jobLogger.warn({ categorizationResultId }, 'Skipping due to missing bodyText, category, or summary');
       return;
     }
 
@@ -114,7 +117,7 @@ export class IntelligenceWorker {
       summary: ro.intelligenceResult.categorization.summary || ''
     }));
 
-    this.logger.debug(`Checking deduplication against ${recentArticlesForLlm.length} recent articles in category ${primaryCategory}`);
+    jobLogger.debug(`Checking deduplication against ${recentArticlesForLlm.length} recent articles in category ${primaryCategory}`);
     
     const dedupResult = await this.bedrockClient.checkDuplicate(
       scrapeResult.title || 'Untitled',
@@ -152,7 +155,7 @@ export class IntelligenceWorker {
     // --- PHASE 3: EXTRACT & WATERMARK IMAGE ---
     let headerImageUrl = null;
     
-    this.logger.debug({ 
+    jobLogger.debug({ 
       openGraph: scrapeResult.openGraph, 
       images: scrapeResult.images,
       imagesIsArray: Array.isArray(scrapeResult.images)
@@ -178,36 +181,41 @@ export class IntelligenceWorker {
       }
     }
 
-    this.logger.info({ headerImageUrl }, 'Final extracted header image URL');
+    jobLogger.info({ headerImageUrl }, 'Final extracted header image URL');
 
     let watermarkedImagePath: string | null = null;
     if (headerImageUrl && typeof headerImageUrl === 'string' && headerImageUrl.startsWith('http')) {
       watermarkedImagePath = await this.imageProcessor.processAndWatermark(headerImageUrl, intelligenceResult.id);
     }
 
+    // Ensure slug is globally unique to prevent Prisma constraint errors
+    const uniqueSlug = `${rewritten.slug}-${intelligenceResult.id.split('-')[0]}`;
+
     // Save OriginalContent to DB (upsert for retries)
     const originalContent = await this.prisma.originalContent.upsert({
       where: { intelligenceResultId: intelligenceResult.id },
       update: {
         seoTitle: rewritten.seoTitle,
-        slug: rewritten.slug,
-        bodyHtml: rewritten.bodyHtml,
+        slug: uniqueSlug,
+        bodyHtml: rewritten.bodyMarkdown,
         metaDescription: rewritten.metaDescription,
         keywords: rewritten.keywords,
+        companies: rewritten.companies || [],
         headerImage: watermarkedImagePath
       },
       create: {
         intelligenceResultId: intelligenceResult.id,
         seoTitle: rewritten.seoTitle,
-        slug: rewritten.slug,
-        bodyHtml: rewritten.bodyHtml,
+        slug: uniqueSlug,
+        bodyHtml: rewritten.bodyMarkdown,
         metaDescription: rewritten.metaDescription,
         keywords: rewritten.keywords,
+        companies: rewritten.companies || [],
         headerImage: watermarkedImagePath
       }
     });
 
-    this.logger.info(`Successfully generated SEO content & watermarked image: ${originalContent.seoTitle}`);
+    jobLogger.info(`Successfully generated SEO content & watermarked image: ${originalContent.seoTitle}`);
 
     // Push to Publishing Queue
     await this.publishQueue.add('publish-article', {
@@ -218,7 +226,7 @@ export class IntelligenceWorker {
       backoff: { type: 'exponential', delay: 2000 }
     });
 
-    this.logger.info(`Pushed originalContentId ${originalContent.id} to publishing queue`);
+    jobLogger.info(`Pushed originalContentId ${originalContent.id} to publishing queue`);
   }
 
   async close(): Promise<void> {

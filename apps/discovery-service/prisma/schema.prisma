@@ -1,10 +1,12 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 /// Registered news website sources for crawling
@@ -213,6 +215,7 @@ model CategorizationResult {
   entities          Json?
   sentiment         String?
   confidenceScore   Float?    @map("confidence_score") @db.Real
+  embedding         Unsupported("vector(1024)")?
   categorizedAt     DateTime  @default(now()) @map("categorized_at")
 
   urlState          UrlState @relation(fields: [urlStateId], references: [id], onDelete: Cascade)

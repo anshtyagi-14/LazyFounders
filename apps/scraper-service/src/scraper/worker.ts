@@ -172,9 +172,7 @@ export class ScraperWorker {
       } else {
         // 2. Save the final extraction output
         const a = article as any;
-        const scrapeResult = await this.prisma.scrapeResult.create({
-          data: {
-            categorizationId,
+        const scrapeData = {
             traceId: job.id || 'unknown',
             title: a.title,
             bodyText: a.textContent ? a.textContent.substring(0, 50000) : null, 
@@ -188,6 +186,14 @@ export class ScraperWorker {
             status: 'success',
             extractionMethod: 'playwright+readability',
             rawHtmlSize: htmlContent.length
+        };
+
+        const scrapeResult = await this.prisma.scrapeResult.upsert({
+          where: { categorizationId },
+          update: scrapeData,
+          create: {
+            categorizationId,
+            ...scrapeData
           }
         });
 
