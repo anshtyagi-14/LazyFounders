@@ -105,6 +105,20 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     .replace(/!\[[^\]]*\]\(placeholder[^)]*\)/gi, '')
     .replace(/^\s*\n/gm, '\n'); // clean up empty lines left over
 
+  // Inject HTML wrappers for styling since the LLM now outputs pure Markdown headers
+  cleanBody = cleanBody.replace(
+    /###\s+30 SEC SUMMARY\s*\n([\s\S]*?)(?=\n### |$)/i,
+    '<div class="summary-box"><h3>30 SEC SUMMARY</h3>\n$1\n</div>\n\n'
+  );
+  cleanBody = cleanBody.replace(
+    /###\s+TABLE OF CONTENTS\s*\n([\s\S]*?)(?=\n### |$)/i,
+    '<div class="table-of-contents"><h3>TABLE OF CONTENTS</h3>\n$1\n</div>\n\n'
+  );
+  cleanBody = cleanBody.replace(
+    /###\s+KEY HIGHLIGHTS\s*\n([\s\S]*?)(?=\n### |$)/i,
+    '<div class="key-highlights"><h3>KEY HIGHLIGHTS</h3>\n$1\n</div>\n\n'
+  );
+
   return (
     <div className="App min-h-screen flex flex-col bg-white dark:bg-[#05070A]">
       <nav

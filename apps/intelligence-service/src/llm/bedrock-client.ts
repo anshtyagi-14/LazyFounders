@@ -116,9 +116,9 @@ HTML BODY STRUCTURE (All of this goes inside the "bodyMarkdown" JSON field):
 - Write the article in standard Markdown format instead of HTML. This is critical to save tokens.
 - IMPORTANT: Since the output is JSON, you MUST use explicit \`\\n\\n\` characters for line breaks. Do NOT output a single continuous string. Separate every heading, paragraph, and list with \`\\n\\n\`.
 - Featured Image: Start with an image markdown tag: \`![alt text](placeholder-featured.jpg)\`. Filename and ALT text must contain the focus keyword.
-- 30 SEC SUMMARY: Provide an 80-120 word bulleted summary. You MUST wrap this entire section in exactly: \`<div class="summary-box"><h3>30 SEC SUMMARY</h3><ul>...</ul></div>\`
-- TABLE OF CONTENTS: Add a table of contents with numbered links. You MUST wrap this entire section in exactly: \`<div class="table-of-contents"><h3>TABLE OF CONTENTS</h3><ol>...</ol></div>\`
-- KEY HIGHLIGHTS: Add a bulleted list of 3-5 key highlights. You MUST wrap this entire section in exactly: \`<div class="key-highlights"><h3>KEY HIGHLIGHTS</h3><ul>...</ul></div>\`
+- 30 SEC SUMMARY: Provide an 80-120 word bulleted summary under the heading: \`### 30 SEC SUMMARY\`.
+- TABLE OF CONTENTS: Add a table of contents with numbered links under the heading: \`### TABLE OF CONTENTS\`.
+- KEY HIGHLIGHTS: Add a bulleted list of 3-5 key highlights under the heading: \`### KEY HIGHLIGHTS\`.
 - Heading Hierarchy: Use # -> ## -> ### for the main article body. At least 1 subheading must contain the focus keyword.
 - Paragraphs: Write detailed, in-depth paragraphs (at least 6-8 lines or 150+ words per section) that fully explain the topic. Do NOT write short or thin content. Use active voice and maintain an engaging tone.
 - Table / Comparison Block: Include a minimum of 1 Markdown table.
@@ -130,7 +130,7 @@ HTML BODY STRUCTURE (All of this goes inside the "bodyMarkdown" JSON field):
 - Conclusion: 100-150 words.
 - Call-to-Action: Direct the reader to blogy.in at the very end.
 
-Output MUST be valid JSON in this exact structure:
+Output MUST be valid JSON in this exact structure. IMPORTANT: You must escape any double quotes (\") inside the strings to ensure the JSON is valid.
 {
   "seoTitle": "string",
   "slug": "string",
@@ -147,12 +147,13 @@ ${rawText}
 
 Rewrite this article and return the JSON.`;
 
+    let resultText = '';
     try {
-      const resultText = await this.invokeModel(systemPrompt, userPrompt);
-      const cleaned = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
+      resultText = await this.invokeModel(systemPrompt, userPrompt);
+      const cleaned = resultText.replace(/```json\n?/g, '').replace(/\n?```/g, '').trim();
       return JSON.parse(cleaned) as RewrittenArticle;
-    } catch (error) {
-      this.logger.error('Failed to parse rewrite JSON result.');
+    } catch (error: any) {
+      this.logger.error({ err: error.message, resultText }, 'Failed to parse rewrite JSON result.');
       throw new Error('Failed to generate original content');
     }
   }
