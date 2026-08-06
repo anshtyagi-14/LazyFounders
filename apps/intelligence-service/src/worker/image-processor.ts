@@ -1,6 +1,9 @@
 import sharp from 'sharp';
 import { Logger } from 'pino';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { config } from 'dotenv';
+
+config({ path: '../../.env' });
 
 export class ImageProcessor {
   private readonly logoSvg: Buffer;

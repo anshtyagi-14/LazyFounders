@@ -12,7 +12,7 @@ export interface CategorizationResult {
 
 export class BedrockClient {
   private client: BedrockRuntimeClient;
-  private readonly modelId = 'amazon.nova-micro-v1:0';
+  private readonly modelId = 'apac.amazon.nova-micro-v1:0';
 
   constructor(private readonly logger: Logger) {
     this.client = new BedrockRuntimeClient({

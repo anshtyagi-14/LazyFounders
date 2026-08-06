@@ -90,9 +90,13 @@ export function loadConfig(): AppConfig {
     return cachedConfig;
   }
 
-  // Load environment variables from .env file in the current working directory
-  dotenvConfig({ path: resolve(process.cwd(), '.env') });
-
+  // Load environment variables from .env file (supports running from root or apps/xyz)
+  const fs = require('fs');
+  let envPath = resolve(process.cwd(), '.env');
+  if (!fs.existsSync(envPath)) {
+    envPath = resolve(process.cwd(), '../../.env');
+  }
+  dotenvConfig({ path: envPath });
   const rawConfig = mapEnvToConfig();
   const result = rootConfigSchema.safeParse(rawConfig);
 

@@ -75,7 +75,7 @@ export class RedisRateLimiter implements IRateLimiter {
   }
 
   public async waitForSlot(domain: string, rpm: number = this.defaultRpm): Promise<void> {
-    const maxWaitMs = 30000;
+    const maxWaitMs = 3600000; // 1 hour max wait time for background workers
     const startTime = Date.now();
     let currentBackoff = 100;
 
