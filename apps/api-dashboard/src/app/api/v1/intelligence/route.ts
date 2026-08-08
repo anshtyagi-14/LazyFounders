@@ -14,7 +14,8 @@ export async function POST(request: Request) {
     }
 
     try {
-      const response = await fetch('http://localhost:3004/api/stateless/intelligence', {
+      const intelligenceServiceUrl = process.env.INTELLIGENCE_SERVICE_URL || 'http://localhost:3004';
+      const response = await fetch(`${intelligenceServiceUrl}/api/stateless/intelligence`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

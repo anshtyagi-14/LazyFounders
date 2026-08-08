@@ -14,7 +14,8 @@ export async function POST(request: Request) {
     }
 
     try {
-      const response = await fetch('http://localhost:3001/api/stateless/discovery', {
+      const discoveryServiceUrl = process.env.DISCOVERY_SERVICE_URL || 'http://localhost:3001';
+      const response = await fetch(`${discoveryServiceUrl}/api/stateless/discovery`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

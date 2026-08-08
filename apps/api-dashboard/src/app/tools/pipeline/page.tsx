@@ -18,7 +18,7 @@ export default function PipelinePage() {
     setFinalData(null);
 
     try {
-      const response = await fetch('http://localhost:3001/api/pipeline/trigger', {
+      const response = await fetch('/api/pipeline/trigger', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url })
@@ -42,7 +42,7 @@ export default function PipelinePage() {
     
     pollingRef.current = setInterval(async () => {
       try {
-        const response = await fetch(`http://localhost:3001/api/pipeline/status/${hash}`);
+        const response = await fetch(`/api/pipeline/status/${hash}`);
         const data = await response.json();
         
         setStatus(data.status);

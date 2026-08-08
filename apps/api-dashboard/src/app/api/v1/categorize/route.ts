@@ -14,7 +14,8 @@ export async function POST(request: Request) {
     }
 
     try {
-      const response = await fetch('http://localhost:3003/api/stateless/categorize', {
+      const categorizationServiceUrl = process.env.CATEGORIZATION_SERVICE_URL || 'http://localhost:3003';
+      const response = await fetch(`${categorizationServiceUrl}/api/stateless/categorize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

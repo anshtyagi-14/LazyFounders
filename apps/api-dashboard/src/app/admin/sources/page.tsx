@@ -24,7 +24,7 @@ export default function SourcesManagement() {
 
   const fetchSources = async () => {
     try {
-      const res = await fetch('http://localhost:3001/api/admin/sources');
+      const res = await fetch('/api/admin/sources');
       const data = await res.json();
       setSources(data.sources || []);
     } catch (err) {
@@ -36,7 +36,7 @@ export default function SourcesManagement() {
 
   const saveCron = async (id: string) => {
     try {
-      const res = await fetch(`http://localhost:3001/api/admin/sources/${id}`, {
+      const res = await fetch(`/api/admin/sources/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ crawlFrequency: editFreq })

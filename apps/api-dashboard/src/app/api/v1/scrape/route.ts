@@ -15,7 +15,8 @@ export async function POST(request: Request) {
 
     // Forward to the stateless microservice endpoint
     try {
-      const response = await fetch('http://localhost:3002/api/stateless/scrape', {
+      const scraperServiceUrl = process.env.SCRAPER_SERVICE_URL || 'http://localhost:3002';
+      const response = await fetch(`${scraperServiceUrl}/api/stateless/scrape`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
