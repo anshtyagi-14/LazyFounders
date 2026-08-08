@@ -167,8 +167,8 @@ export async function triggerDiscovery(url: string) {
       });
     }
 
-    // Trigger the discovery service REST API directly
-    await fetch(`http://localhost:3001/sources/${source.id}/discover`, {
+    const discoveryServiceUrl = process.env.DISCOVERY_SERVICE_URL || 'http://localhost:3001';
+    await fetch(`${discoveryServiceUrl}/sources/${source.id}/discover`, {
       method: 'POST'
     });
 

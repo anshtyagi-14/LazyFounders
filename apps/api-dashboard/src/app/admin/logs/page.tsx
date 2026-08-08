@@ -27,8 +27,8 @@ function LogsManagementContent() {
 
     // Connect SSE
     const sseUrl = domainFilter 
-      ? `http://localhost:3001/api/admin/live-logs?domain=${domainFilter}`
-      : 'http://localhost:3001/api/admin/live-logs';
+      ? `/api/admin/live-logs?domain=${domainFilter}`
+      : `/api/admin/live-logs`;
       
     const eventSource = new EventSource(sseUrl);
     eventSource.onmessage = (event) => {
@@ -57,7 +57,7 @@ function LogsManagementContent() {
 
   const fetchLogs = async () => {
     try {
-      const res = await fetch('http://localhost:3001/api/admin/logs');
+      const res = await fetch(`/api/admin/logs`);
       const data = await res.json();
       setLogs(data.runs || []);
     } catch (err) {

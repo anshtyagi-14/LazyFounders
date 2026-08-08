@@ -52,7 +52,7 @@ export default function ApiDashboard() {
     setFinalData(null);
 
     try {
-      const response = await fetch('http://localhost:3001/api/pipeline/trigger', {
+      const response = await fetch('/api/pipeline/trigger', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url })
@@ -97,7 +97,7 @@ export default function ApiDashboard() {
     setLogs([`> Initializing full site discovery for: ${url}`, `> Discovery service tracking sitemaps...`]);
     setFinalData(null);
     try {
-      const res = await fetch('http://localhost:3001/api/pipeline/discover-site', {
+      const res = await fetch('/api/pipeline/discover-site', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url })
@@ -136,7 +136,7 @@ export default function ApiDashboard() {
     
     pollingRef.current = setInterval(async () => {
       try {
-        const response = await fetch(`http://localhost:3001/api/pipeline/status/${hash}`);
+        const response = await fetch(`/api/pipeline/status/${hash}`);
         const data = await response.json();
         
         setStatus(data.status);
