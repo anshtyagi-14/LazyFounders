@@ -250,6 +250,7 @@ model OriginalContent {
   bodyHtml              String    @map("body_html")
   metaDescription       String    @map("meta_description")
   keywords              String[]
+  companies             String[]
   headerImage           String?   @map("header_image")
   publishedToBlogAt     DateTime? @map("published_to_blog_at")
   createdAt             DateTime  @default(now()) @map("created_at")
@@ -258,4 +259,17 @@ model OriginalContent {
 
   @@index([slug])
   @@map("original_contents")
+}
+
+/// Public API Keys for Developer Access
+model ApiKey {
+  id            String    @id @default(uuid()) @db.Uuid
+  key           String    @unique
+  name          String    @default("Default Key")
+  requestsCount Int       @default(0) @map("requests_count")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  lastUsedAt    DateTime? @map("last_used_at")
+
+  @@map("api_keys")
 }

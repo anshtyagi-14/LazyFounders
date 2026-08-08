@@ -4,6 +4,8 @@ import './globals.css';
 import Link from 'next/link';
 import { Footer } from '../components/Footer';
 
+export const dynamic = "force-dynamic";
+
 const outfit = Outfit({ subsets: ['latin'] });
 
 export const metadata: Metadata = {

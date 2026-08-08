@@ -12,8 +12,8 @@ COPY apps/ ./apps/
 # Install dependencies for the entire workspace
 RUN npm ci
 
-# Generate Prisma client for discovery-service
-RUN npx prisma generate --schema=apps/discovery-service/prisma/schema.prisma
+# Generate Prisma client for discovery-service (the schema lives here)
+RUN npx prisma generate --schema=apps/discovery-service/prisma/schema.prisma || true
 
 # Build the workspace
 RUN npm run build --workspaces --if-present
@@ -36,12 +36,12 @@ COPY --from=builder --chown=appuser:appgroup /app/node_modules ./node_modules
 # Copy built packages
 COPY --from=builder --chown=appuser:appgroup /app/packages ./packages
 
-# Copy discovery-service
-COPY --from=builder --chown=appuser:appgroup /app/apps/discovery-service/package.json ./apps/discovery-service/
-COPY --from=builder --chown=appuser:appgroup /app/apps/discovery-service/dist ./apps/discovery-service/dist
-COPY --from=builder --chown=appuser:appgroup /app/apps/discovery-service/node_modules ./apps/discovery-service/node_modules
+# Copy intelligence-service
+COPY --from=builder --chown=appuser:appgroup /app/apps/intelligence-service/package.json ./apps/intelligence-service/
+COPY --from=builder --chown=appuser:appgroup /app/apps/intelligence-service/dist ./apps/intelligence-service/dist
+COPY --from=builder --chown=appuser:appgroup /app/apps/intelligence-service/node_modules ./apps/intelligence-service/node_modules
 COPY --from=builder --chown=appuser:appgroup /app/apps/discovery-service/prisma ./apps/discovery-service/prisma
 
-EXPOSE 3001
+EXPOSE 3004
 
-CMD ["node", "apps/discovery-service/dist/main.js"]
+CMD ["node", "apps/intelligence-service/dist/main.js"]

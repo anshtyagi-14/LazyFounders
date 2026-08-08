@@ -69,7 +69,9 @@ export async function createServer(container: Container, discoveryEngine: Discov
     try {
       const results = await discoveryEngine.discover({
         domain: new URL(url).hostname,
-        baseUrl: url
+        baseUrl: url,
+        sourceId: 'stateless',
+        respectRobotsTxt: false
       });
       return reply.send({ success: true, data: results });
     } catch (err) {

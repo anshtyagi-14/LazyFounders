@@ -5,7 +5,8 @@ import { Redis } from 'ioredis';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-const redis = new Redis({ host: 'localhost', port: 6379 });
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const redis = new Redis(redisUrl);
 const categorizationQueue = new Queue('categorization-jobs', {
   connection: redis,
   prefix: 'lf',

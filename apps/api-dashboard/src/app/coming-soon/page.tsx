@@ -1,6 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export default function ComingSoonPage() {
   return (
     <div className="min-h-screen bg-[#030407] flex flex-col items-center justify-center p-4">

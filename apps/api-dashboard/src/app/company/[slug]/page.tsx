@@ -3,6 +3,8 @@ import { PrismaClient } from '@prisma/client';
 import Link from 'next/link';
 import { SafeImage } from '../../../components/SafeImage';
 
+export const dynamic = 'force-dynamic';
+
 const prisma = new PrismaClient();
 
 const UNICORNS = ["Zomato", "Zoho", "Zetwerk", "Zeta", "Zerodha", "Zepto", "Zenoti", "Yubi", "Xpressbees", "Vedantu", "Urban Company", "Upstox", "upGrad", "Uniphore", "Unacademy", "Udaan", "Swiggy", "Spinny", "Snapdeal", "Slice", "Shopclues", "Shiprocket", "ShareChat", "Rivigo", "ReNew Energy"];

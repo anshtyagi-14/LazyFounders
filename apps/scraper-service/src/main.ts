@@ -30,10 +30,10 @@ async function main(): Promise<void> {
   });
 
   // Start Background Worker
-  const scraperWorker = new ScraperWorker(workerRedis as any, prisma, logger);
+  const scraperWorker = new ScraperWorker(workerRedis as any, prisma, logger as any);
 
   // Start HTTP API
-  const server = await createServer(logger, scraperQueue);
+  const server = await createServer(logger as any, scraperQueue);
 
   // Graceful shutdown
   const shutdown = async (signal: string) => {

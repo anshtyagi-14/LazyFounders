@@ -48,7 +48,7 @@ export class ScraperWorker {
       {
         connection: this.redis,
         prefix: 'lf', // The prefix used in config
-        concurrency: 5, // Process up to 5 jobs concurrently
+        concurrency: parseInt(process.env.SCRAPER_CONCURRENCY || '2', 10), // Limit Playwright concurrency for memory-constrained instances
       }
     );
 

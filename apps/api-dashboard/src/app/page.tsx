@@ -1,4 +1,5 @@
 import React from "react";
+export const dynamic = 'force-dynamic';
 import { prisma } from "@/lib/prisma";
 import { FeaturedCard, ArticleProps } from "../components/FeaturedCard";
 import { ArticleCard } from "../components/ArticleCard";

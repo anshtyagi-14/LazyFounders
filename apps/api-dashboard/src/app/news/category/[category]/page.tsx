@@ -3,6 +3,8 @@ import { prisma } from "../../../../lib/prisma";
 import { ArticleCard } from "../../../../components/ArticleCard";
 import type { ArticleProps } from "../../../../components/FeaturedCard";
 
+export const dynamic = 'force-dynamic';
+
 function mapDbToArticleProps(dbArticle: any): ArticleProps {
   const scrapeResult = dbArticle.intelligenceResult?.categorization?.scrapeResult;
   

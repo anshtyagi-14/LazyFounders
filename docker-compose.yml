@@ -24,6 +24,104 @@ services:
       - lazyfounders-network
     restart: unless-stopped
 
+  api-dashboard:
+    build:
+      context: .
+      dockerfile: apps/api-dashboard/Dockerfile
+    ports:
+      - "3000:3000"
+    env_file: .env
+    networks:
+      - lazyfounders-network
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  discovery-service:
+    build:
+      context: .
+      dockerfile: apps/discovery-service/Dockerfile
+    env_file: .env
+    networks:
+      - lazyfounders-network
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  scraper-service:
+    build:
+      context: .
+      dockerfile: apps/scraper-service/Dockerfile
+    env_file: .env
+    networks:
+      - lazyfounders-network
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1536M # Higher limit for Playwright/Chromium
+
+  categorization-service:
+    build:
+      context: .
+      dockerfile: apps/categorization-service/Dockerfile
+    env_file: .env
+    networks:
+      - lazyfounders-network
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  intelligence-service:
+    build:
+      context: .
+      dockerfile: apps/intelligence-service/Dockerfile
+    env_file: .env
+    networks:
+      - lazyfounders-network
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  publishing-service:
+    build:
+      context: .
+      dockerfile: apps/publishing-service/Dockerfile
+    env_file: .env
+    networks:
+      - lazyfounders-network
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
 networks:
   lazyfounders-network:
     driver: bridge

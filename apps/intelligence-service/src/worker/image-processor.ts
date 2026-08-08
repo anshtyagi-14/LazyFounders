@@ -1,26 +1,21 @@
 import sharp from 'sharp';
 import { Logger } from 'pino';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { config } from 'dotenv';
 
 config({ path: '../../.env' });
 
 export class ImageProcessor {
   private readonly logoSvg: Buffer;
-  private readonly supabase: SupabaseClient | null = null;
-  private readonly bucketName = 'lazyfounders-media';
+  private readonly s3Client: S3Client;
+  private readonly bucketName = process.env.S3_BUCKET_NAME || 'lazyfounders-media';
+  private readonly region = process.env.AWS_REGION || 'eu-north-1';
 
   constructor(private readonly logger: Logger) {
-    // Initialize Supabase if env vars are present
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
-
-    if (supabaseUrl && supabaseKey) {
-      this.supabase = createClient(supabaseUrl, supabaseKey);
-      this.logger.info('Supabase Storage client initialized');
-    } else {
-      this.logger.warn('SUPABASE_URL or SUPABASE_SERVICE_KEY missing. Image upload will fail if attempted.');
-    }
+    // Initialize AWS S3 Client
+    // The AWS SDK will automatically pick up AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY from the environment
+    this.s3Client = new S3Client({ region: this.region });
+    this.logger.info('AWS S3 client initialized');
 
     // Use the official Blogy logo SVG with paths (no fonts required)
     const svgString = `
@@ -44,15 +39,11 @@ export class ImageProcessor {
   }
 
   /**
-   * Downloads an image, adds the Blogy watermark, and uploads it to Supabase Storage.
+   * Downloads an image, adds the Blogy watermark, and uploads it to Amazon S3.
    * Returns the public URL.
    */
   async processAndWatermark(imageUrl: string, articleId: string): Promise<string | null> {
     try {
-      if (!this.supabase) {
-        throw new Error('Supabase client not initialized. Cannot upload images.');
-      }
-
       this.logger.info({ imageUrl }, 'Downloading header image for watermarking');
       
       const response = await fetch(imageUrl);
@@ -78,27 +69,24 @@ export class ImageProcessor {
         .jpeg({ quality: 85 })
         .toBuffer();
 
-      this.logger.info('Successfully watermarked image, uploading to Supabase...');
+      this.logger.info('Successfully watermarked image, uploading to Amazon S3...');
       
-      // Upload to Supabase Storage
-      const { data, error } = await this.supabase.storage
-        .from(this.bucketName)
-        .upload(fileName, processedBuffer, {
-          contentType: 'image/jpeg',
-          cacheControl: '3600',
-          upsert: true
-        });
+      // Upload to Amazon S3
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: fileName,
+        Body: processedBuffer,
+        ContentType: 'image/jpeg',
+        CacheControl: 'max-age=3600',
+        // ACL: 'public-read' // Uncomment if bucket ACLs are enabled. Otherwise use Bucket Policy.
+      });
 
-      if (error) {
-         throw new Error(`Supabase upload failed: ${error.message}`);
-      }
+      await this.s3Client.send(command);
 
-      // Get public URL
-      const { data: { publicUrl } } = this.supabase.storage
-        .from(this.bucketName)
-        .getPublicUrl(fileName);
+      // Generate the public URL
+      const publicUrl = `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${fileName}`;
 
-      this.logger.info({ publicUrl }, 'Successfully uploaded to Supabase Storage');
+      this.logger.info({ publicUrl }, 'Successfully uploaded to Amazon S3');
       
       return publicUrl;
 

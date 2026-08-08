@@ -62,7 +62,7 @@ export function createLogger(options: CreateLoggerOptions): Logger {
   targets.push({
     target: 'pino-roll',
     options: {
-      file: `logs/${name}.log`,
+      file: process.env.NODE_ENV === 'production' ? `/tmp/logs/${name}.log` : `logs/${name}.log`,
       frequency: 'daily',
       mkdir: true,
       limit: {
