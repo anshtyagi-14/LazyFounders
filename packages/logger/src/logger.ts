@@ -56,6 +56,12 @@ export function createLogger(options: CreateLoggerOptions): Logger {
         ignore: 'pid,hostname',
       },
     });
+  } else {
+    // In production (like AWS ECS), we MUST log to stdout so CloudWatch can capture the logs!
+    targets.push({
+      target: 'pino/file',
+      options: { destination: 1 }, // 1 = stdout
+    });
   }
 
   // Always add pino-roll for daily log rotation and automatic cleanup

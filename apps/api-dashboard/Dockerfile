@@ -9,8 +9,10 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/ ./packages/
 COPY apps/ ./apps/
 
-# Install dependencies for the entire workspace
-RUN npm ci
+# Install dependencies for the entire workspace (with longer timeout and no audit to prevent EIDLETIMEOUT)
+RUN npm config set fetch-retry-maxtimeout 1200000 && \
+    npm config set fetch-retries 5 && \
+    npm ci --no-audit --no-fund --prefer-offline
 
 # Generate Prisma client
 # Assuming the Prisma schema is located in one of these directories. 

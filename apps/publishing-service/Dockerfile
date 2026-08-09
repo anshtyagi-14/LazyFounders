@@ -9,8 +9,10 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/ ./packages/
 COPY apps/ ./apps/
 
-# Install dependencies for the entire workspace
-RUN npm ci
+# Install dependencies for the entire workspace (robust against network drops)
+RUN npm config set fetch-retry-maxtimeout 1200000 && \
+    npm config set fetch-retries 5 && \
+    npm ci --no-audit --no-fund --prefer-offline
 
 # Generate Prisma client for discovery-service (the schema lives here)
 RUN npx prisma generate --schema=apps/discovery-service/prisma/schema.prisma || true
@@ -39,7 +41,8 @@ COPY --from=builder --chown=appuser:appgroup /app/packages ./packages
 # Copy publishing-service
 COPY --from=builder --chown=appuser:appgroup /app/apps/publishing-service/package.json ./apps/publishing-service/
 COPY --from=builder --chown=appuser:appgroup /app/apps/publishing-service/dist ./apps/publishing-service/dist
-COPY --from=builder --chown=appuser:appgroup /app/apps/publishing-service/node_modules ./apps/publishing-service/node_modules
+COPY --from=builder --chown=appuser:appgroup /app/apps/publishing-service/node_module[s] ./apps/publishing-service/node_modules
+
 COPY --from=builder --chown=appuser:appgroup /app/apps/discovery-service/prisma ./apps/discovery-service/prisma
 
 EXPOSE 3005

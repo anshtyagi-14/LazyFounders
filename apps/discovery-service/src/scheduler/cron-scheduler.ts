@@ -62,16 +62,22 @@ export class CronScheduler {
       const now = new Date();
 
       for (const source of activeSources) {
-        let intervalMinutes = source.discoveryIntervalMinutes || 60;
+        let intervalMinutes = source.discoveryIntervalMinutes ?? 60;
         if (source.crawlFrequency) {
-          const parts = source.crawlFrequency.trim().split(/\s+/);
-          if (parts.length >= 5) {
-            if (parts[0].startsWith('*/')) {
-              intervalMinutes = parseInt(parts[0].substring(2), 10);
-            } else if (parts[1].startsWith('*/')) {
-              intervalMinutes = parseInt(parts[1].substring(2), 10) * 60;
-            } else if (parts[0] === '0' && parts[1] === '*') {
-              intervalMinutes = 60;
+          const trimmed = source.crawlFrequency.trim();
+          if (/^\d+$/.test(trimmed)) {
+            // It's a plain number (e.g. "1440" or "0")
+            intervalMinutes = parseInt(trimmed, 10);
+          } else {
+            const parts = trimmed.split(/\s+/);
+            if (parts.length >= 5) {
+              if (parts[0].startsWith('*/')) {
+                intervalMinutes = parseInt(parts[0].substring(2), 10);
+              } else if (parts[1].startsWith('*/')) {
+                intervalMinutes = parseInt(parts[1].substring(2), 10) * 60;
+              } else if (parts[0] === '0' && parts[1] === '*') {
+                intervalMinutes = 60;
+              }
             }
           }
         }

@@ -39,7 +39,7 @@ COPY --from=builder --chown=appuser:appgroup /app/packages ./packages
 # Copy categorization-service
 COPY --from=builder --chown=appuser:appgroup /app/apps/categorization-service/package.json ./apps/categorization-service/
 COPY --from=builder --chown=appuser:appgroup /app/apps/categorization-service/dist ./apps/categorization-service/dist
-COPY --from=builder --chown=appuser:appgroup /app/apps/categorization-service/node_modules ./apps/categorization-service/node_modules
+
 COPY --from=builder --chown=appuser:appgroup /app/apps/discovery-service/prisma ./apps/discovery-service/prisma
 
 EXPOSE 3003
