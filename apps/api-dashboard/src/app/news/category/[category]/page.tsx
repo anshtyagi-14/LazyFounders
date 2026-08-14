@@ -35,7 +35,24 @@ function mapDbToArticleProps(dbArticle: any): ArticleProps {
     }
   }
 
+  // Handle Image URL
   let imageUrl = dbArticle.headerImage;
+
+  // Fallback to original scraped image if S3 watermarked image is missing
+  if (!imageUrl && scrapeResult) {
+    if (scrapeResult.openGraph && (scrapeResult.openGraph as any)['og:image']) {
+      imageUrl = (scrapeResult.openGraph as any)['og:image'];
+    } else if (scrapeResult.images) {
+      let parsedImages = scrapeResult.images;
+      if (typeof parsedImages === 'string') {
+        try { parsedImages = JSON.parse(parsedImages); } catch (e) {}
+      }
+      if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+        imageUrl = parsedImages[0].src || parsedImages[0];
+      }
+    }
+  }
+
   const displayImage = imageUrl || '/placeholder.jpg';
 
   return {

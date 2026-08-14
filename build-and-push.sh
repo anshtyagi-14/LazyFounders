@@ -9,8 +9,8 @@ CLUSTER_NAME="lazyfounders-cluster"
 # Array of services to build, push, and deploy
 # Format: "directory_name:ecr_repository_name:ecs_service_name"
 SERVICES=(
-  # "api-dashboard:lf-api-dashboard:lf-api-dashboard-task-service"
-  "discovery-service:lf-discovery-service:lf-discovery-service-task-service"
+  "api-dashboard:lf-api-dashboard:lf-api-dashboard-task-service"
+  # "discovery-service:lf-discovery-service:lf-discovery-service-task-service"
   # "categorization-service:lf-categorization-service:lf-categorization-service-task-service"
   # "scraper-service:lf-scraper-service:lf-scraper-service-task-service"
   # "intelligence-service:lf-intelligence-service:lf-intelligence-service-task-service"

@@ -38,6 +38,7 @@ USER appuser
 # Note: Next.js standalone mode automatically traces and copies required node_modules and local packages!
 COPY --from=builder --chown=appuser:appgroup /app/apps/api-dashboard/.next/standalone ./
 COPY --from=builder --chown=appuser:appgroup /app/apps/api-dashboard/.next/static ./apps/api-dashboard/.next/static
+COPY --from=builder --chown=appuser:appgroup /app/apps/api-dashboard/public ./public
 COPY --from=builder --chown=appuser:appgroup /app/apps/api-dashboard/public ./apps/api-dashboard/public
 
 EXPOSE 3000

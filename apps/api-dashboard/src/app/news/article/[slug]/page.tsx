@@ -92,7 +92,24 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   const authorName = 'LazyFounders';
   let authorInitials = 'LF';
 
-  let displayImage = dbArticle.headerImage || '/placeholder.jpg';
+  let imageUrl = dbArticle.headerImage;
+
+  // Fallback to original scraped image if S3 watermarked image is missing
+  if (!imageUrl && scrapeResult) {
+    if (scrapeResult.openGraph && (scrapeResult.openGraph as any)['og:image']) {
+      imageUrl = (scrapeResult.openGraph as any)['og:image'];
+    } else if (scrapeResult.images) {
+      let parsedImages = scrapeResult.images;
+      if (typeof parsedImages === 'string') {
+        try { parsedImages = JSON.parse(parsedImages); } catch (e) {}
+      }
+      if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+        imageUrl = parsedImages[0].src || parsedImages[0];
+      }
+    }
+  }
+
+  let displayImage = imageUrl || '/placeholder.jpg';
 
   const category = dbArticle.intelligenceResult?.categorization?.primaryCategory || 'Technology';
   const readTime = scrapeResult?.readingTimeMin ? Math.round(scrapeResult.readingTimeMin) : 5;
