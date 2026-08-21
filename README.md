@@ -7,9 +7,9 @@
   <br/>
   <br/>
 
-  # ⚡ Blogy SEO Engine (LazyFounders)
+  # 🌌 BLOGY: The Autonomous AI News Engine
 
-  **An autonomous, multi-agent AI pipeline for discovering, categorizing, rewriting, and publishing high-signal tech news.**
+  **A cybernetic, multi-agent pipeline that hunts, reads, rewrites, and publishes tech news while you sleep.**
 
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
   [![Next.js](https://img.shields.io/badge/Next.js-14-black.svg?style=for-the-badge&logo=next.js)](https://nextjs.org/)
@@ -17,107 +17,133 @@
   [![BullMQ](https://img.shields.io/badge/BullMQ-5.0-FF4081.svg?style=for-the-badge)](https://bullmq.io/)
   [![AWS Bedrock](https://img.shields.io/badge/AWS%20Bedrock-Claude_3-FF9900.svg?style=for-the-badge&logo=amazonaws)](https://aws.amazon.com/bedrock/)
 
+  _Built by Builders, for Builders._
+
 </div>
 
 ---
 
-## 🚀 Overview
+## 🚀 The Vision
 
-The **Blogy SEO Engine** is a state-of-the-art backend monorepo designed to autonomously curate content from across the web. Built on a robust microservices architecture using **Node.js, BullMQ, and Prisma**, it orchestrates specialized workers that scrape, categorize, deduplicate, and rewrite articles using **AWS Bedrock (Claude 3)**.
+Running a high-quality tech publication manually is a relic of the past. **Blogy (LazyFounders)** replaces the traditional editorial room with a tireless, 24/7 AI workforce. 
 
-The end result is a highly-optimized, automated Next.js dashboard featuring beautifully watermarked images, AI-crafted summaries, and deep SEO optimizations.
+It autonomously scours the internet for the highest-signal startup and product news, extracts the core value, rewrites the content for flawless SEO, watermarks the media, and deploys it to a sleek, dark-mode Next.js dashboard. **Zero manual intervention required.**
 
-## 🏗️ Architecture
+---
 
-The system is built as a **Turborepo** monorepo, cleanly separating concerns into independent, highly scalable microservices connected via **Redis (BullMQ)**.
+## 🧠 The Neural Pipeline
+
+Blogy isn't just a script; it's a deeply orchestrated **microservices architecture** built on Turborepo, where specialized autonomous agents communicate via high-speed Redis queues.
+
+```mermaid
+graph TD
+    classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:black;
+    classDef db fill:#336791,stroke:#fff,stroke-width:2px,color:white;
+    classDef worker fill:#1E293B,stroke:#38BDF8,stroke-width:2px,color:white;
+    classDef redis fill:#DC382D,stroke:#fff,stroke-width:2px,color:white;
+    classDef ui fill:#000000,stroke:#fff,stroke-width:2px,color:white;
+
+    A[🌐 Target Sitemaps & RSS] -->|Discovered URLs| B(Discovery Service):::worker
+    B -->|Jobs| C{Redis / BullMQ}:::redis
+    
+    C -->|Scrape Job| D[Scraper Service <br/>Playwright Stealth]:::worker
+    D -->|Raw DOM/HTML| C
+    
+    C -->|Categorize Job| E[Categorization Service]:::worker
+    E <-->|Claude 3| F((AWS Bedrock)):::aws
+    E -->|Taxonomy & Summary| C
+    
+    C -->|Intelligence Job| G[Intelligence Service]:::worker
+    G <-->|Deduplication & SEO| F
+    G -->|Watermarked Media| H[(AWS S3)]:::aws
+    G -->|SEO Markdown| C
+    
+    C -->|Publish Job| I[Publishing Service]:::worker
+    I -->|Insert Data| J[(PostgreSQL & pgvector)]:::db
+    
+    J <--> K[Next.js Dashboard API]:::ui
+    K --> L[End User / Readers]
+```
+
+---
+
+## ⚡ Core Systems
+
+### 🕵️ Stealth Scraping Engine
+Equipped with `playwright-extra` and stealth plugins, the Scraper Service navigates the modern web undetected. It effortlessly bypasses bot protections to extract the raw, unadulterated HTML signal from the noise.
+
+### 🤖 LLM Categorization & Deduplication
+Raw text is fed into **AWS Bedrock (Claude 3)**. The LLM acts as the Editor-in-Chief—summarizing lengthy articles, assigning rigid semantic taxonomy, and cross-referencing our vector database to ruthlessly eliminate duplicate stories.
+
+### ✍️ Generative SEO Rewriting
+Once approved, the AI crafts a completely original, engaging, and highly SEO-optimized markdown article. It generates custom meta descriptions, keywords, and semantic HTML structures that search engines love.
+
+### 🎨 Automated Media Processing
+No article is complete without visuals. The Intelligence pipeline intercepts raw images, resizes them, applies the custom Blogy SVG watermark using Node.js `sharp`, and securely offloads them to **Amazon S3**.
+
+### 🌌 The Next.js 14 Dashboard
+The final stop is the user interface. A blazing-fast, strictly typed Next.js App Router frontend consuming the Prisma database. It features responsive grid layouts, automated fallback images, and perfect Lighthouse scores.
+
+---
+
+## 🏗️ Repository Structure
+
+A masterclass in separation of concerns, powered by **Turborepo**:
 
 ```text
 lazyfounders/
 ├── apps/
-│   ├── api-dashboard/           # Next.js 14 frontend displaying the curated content
-│   ├── discovery-service/       # Triggers the pipeline via sitemaps and RSS feeds
-│   ├── scraper-service/         # Headless browser (Playwright) stealth scraping
-│   ├── categorization-service/  # LLM-powered categorization and summarization
-│   ├── intelligence-service/    # Deduplication, SEO rewriting, and Image watermarking (S3)
-│   └── publishing-service/      # Finalizes content state and manages publications
+│   ├── api-dashboard/           # Next.js 14 frontend 
+│   ├── discovery-service/       # The URL Hunter
+│   ├── scraper-service/         # The Stealth Extractor
+│   ├── categorization-service/  # The AI Editor
+│   ├── intelligence-service/    # The SEO Writer & Media Processor
+│   └── publishing-service/      # The Database Committer
 ├── packages/
-│   ├── database/                # Shared Prisma schema and Postgres connection logic
-│   ├── config/                  # Centralized configuration and environment variables
-│   ├── logger/                  # Shared Pino logger setup
-│   └── shared/                  # Common utilities and types
+│   ├── database/                # Shared Prisma schema
+│   ├── config/                  # Global environment variables
+│   ├── logger/                  # Universal Pino logging
+│   └── shared/                  # Common Types & Utilities
 ```
 
-## ✨ Key Features
+---
 
-- **🕸️ Stealth Scraping**: Utilizes `playwright-extra` and stealth plugins to reliably extract content without triggering bot protections.
-- **🧠 AI-Powered Categorization**: Uses AWS Bedrock (Claude 3 Haiku/Sonnet) to instantly summarize lengthy articles and assign precise taxonomy.
-- **🛡️ Intelligent Deduplication**: Cross-references new articles against the vector database to prevent publishing redundant stories.
-- **✍️ SEO Rewriting**: Autonomously rewrites the raw scraped content into high-quality, engaging, and SEO-optimized HTML markdown.
-- **🖼️ Automated Media Processing**: Downloads header images, resizes them, applies the custom Blogy SVG watermark using `sharp`, and uploads them to AWS S3.
-- **📊 Next.js Dashboard**: A sleek, dark-mode Next.js UI using Tailwind CSS to display the finalized articles with perfect lighthouse scores.
+## 🛠️ Booting the Engine (Local Dev)
 
-## 🛠️ Tech Stack
+Ready to spin up your own AI workforce?
 
-*   **Language**: TypeScript (Node.js >= 20)
-*   **Monorepo**: npm workspaces / Turborepo
-*   **Database**: PostgreSQL with `pgvector`
-*   **ORM**: Prisma
-*   **Message Broker**: Redis & BullMQ
-*   **AI/LLM**: AWS Bedrock (Anthropic Claude 3 Models)
-*   **Cloud Storage**: Amazon S3
-*   **Frontend**: Next.js 14, Tailwind CSS, React Server Components
-
-## ⚙️ Local Development Setup
-
-### 1. Prerequisites
+**1. Prerequisites**
 - Node.js >= 20.0.0
 - Docker & Docker Compose (for Postgres & Redis)
 - AWS CLI configured with Bedrock and S3 access
 
-### 2. Environment Variables
-Copy `.env.example` to `.env` at the root of the project and fill in your credentials:
+**2. Environment Configuration**
 ```bash
 cp .env.example .env
 ```
-Ensure you provide your `DATABASE_URL`, `REDIS_URL`, and AWS credentials.
+*(Ensure `DATABASE_URL`, `REDIS_URL`, and AWS credentials are set).*
 
-### 3. Install Dependencies
+**3. Install & Sync**
 ```bash
 npm install
-```
-
-### 4. Database Setup
-```bash
-# Push the Prisma schema to your local Postgres database
 npm run db:push -w apps/discovery-service
 ```
 
-### 5. Start the Services
-You can run all microservices and the dashboard concurrently using the root script:
+**4. Ignite the Pipeline**
+Run the entire microservice cluster concurrently:
 ```bash
 npm run dev:all
 ```
-Alternatively, you can start individual services using Turborepo or npm workspaces:
-```bash
-npm run dev -w apps/api-dashboard
-npm run dev -w apps/scraper-service
-```
 
-## 🚢 Deployment
+---
 
-The repository includes a `build-and-push.sh` script to containerize each service into highly optimized Docker images and push them to **AWS ECR**. 
+## 🚢 Cloud Deployment
 
-Each microservice is designed to run as an independent **AWS ECS Fargate** task, allowing you to independently scale the Scraper workers separately from the Intelligence LLM workers based on queue depth.
+Blogy is architected for the cloud. The included `build-and-push.sh` script containerizes every microservice into highly optimized Docker images.
 
-```bash
-# Example: Build and push all services
-./build-and-push.sh
-```
-
-## 🤝 Contributing
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/lazyfounders/blogy/issues).
+Deploy seamlessly to **AWS ECS Fargate**, allowing you to independently scale your Scraper workers separately from your LLM Intelligence workers based purely on Redis queue depth.
 
 ---
 <div align="center">
-  <i>Built by Builders, for Builders.</i>
+  <i>"The future of publishing is autonomous."</i>
 </div>
