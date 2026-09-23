@@ -7,8 +7,7 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "start": "node dist/main.js",
     "dev": "tsx watch src/main.ts",
-    "lint": "eslint src/ --ext .ts",
-    "test": "jest"
+    "lint": "eslint src/ --ext .ts"
   },
   "dependencies": {
     "@lazyfounders/config": "*",
@@ -22,7 +21,8 @@
     "pino": "^8.19.0",
     "playwright": "^1.42.1",
     "playwright-extra": "^4.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "@lazyfounders/ingestion-core": "*"
   },
   "devDependencies": {
     "@types/jsdom": "^21.1.6",

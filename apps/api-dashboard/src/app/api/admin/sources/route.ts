@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
+import { internalHeaders } from '@/lib/internal';
 
 export async function GET(request: Request) {
   try {
     const discoveryServiceUrl = process.env.DISCOVERY_SERVICE_URL || 'http://localhost:3001';
-    const response = await fetch(`${discoveryServiceUrl}/api/admin/sources`);
+    const response = await fetch(`${discoveryServiceUrl}/api/admin/sources`, { headers: internalHeaders() });
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error: any) {

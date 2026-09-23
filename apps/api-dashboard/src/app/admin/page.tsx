@@ -1,5 +1,6 @@
 import React from 'react';
 import { prisma } from "@/lib/prisma";
+import { listPublishedArticles } from "@/lib/articles";
 import Link from 'next/link';
 
 // Helper to format relative time
@@ -34,28 +35,23 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminOverview() {
   const [totalArticles, totalSources, recentErrors] = await Promise.all([
-    prisma.originalContent.count(),
+    prisma.article.count({ where: { publishedVersionId: { not: null }, status: { notIn: ['ARCHIVED', 'REJECTED'] } } }),
     prisma.source.count(),
     prisma.crawlError.count({
       where: { occurredAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } }
     })
   ]);
 
-  const recentArticles = await prisma.originalContent.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: 20,
-    include: {
-      intelligenceResult: {
-        include: {
-          categorization: {
-            include: {
-              scrapeResult: true
-            }
-          }
-        }
-      }
-    }
-  });
+  // Recently published stories (published versions only).
+  const recentArticles = (await listPublishedArticles({ take: 20 })).map((a) => ({
+    id: a.id,
+    slug: a.slug,
+    seoTitle: a.headline,
+    category: a.category,
+    originalPublishDate: a.citations[0]?.publishedAt ?? null,
+    publishedToBlogAt: a.publishedAt,
+    createdAt: a.publishedAt,
+  }));
 
   return (
     <div>
@@ -94,8 +90,8 @@ export default async function AdminOverview() {
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-white/10 text-sm">
               {recentArticles.map((article) => {
-                const category = article.intelligenceResult?.categorization?.primaryCategory || 'Technology';
-                const originalPublishDate = article.intelligenceResult?.categorization?.scrapeResult?.publishedDate;
+                const category = article.category;
+                const originalPublishDate = article.originalPublishDate;
                 
                 return (
                   <tr key={article.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">

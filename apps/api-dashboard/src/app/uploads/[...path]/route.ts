@@ -1,54 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { join } from "path";
-import { readFileSync, existsSync } from "fs";
+import { join, resolve, sep } from "path";
+import { readFileSync, existsSync, statSync } from "fs";
 
-// The actual uploads folder is in the workspace root, not inside apps/api-dashboard
-const UPLOADS_DIR = join(process.cwd(), '../../uploads');
+// Legacy local uploads live outside the dashboard (workspace root or the intelligence service).
+const BASES = [resolve(process.cwd(), "../../uploads"), resolve(process.cwd(), "../intelligence-service/uploads")];
+const TYPES: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif" };
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
-) {
-  const resolvedParams = await params;
-  const filePathArray = resolvedParams.path;
-  
-  if (!filePathArray || filePathArray.length === 0) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  const { path: parts } = await params;
+  if (!parts?.length || parts.some((p) => p === ".." || p.includes("\\") || p.includes("\0"))) {
     return new NextResponse("Not Found", { status: 404 });
   }
+  const ext = parts[parts.length - 1].split(".").pop()?.toLowerCase() ?? "";
+  // SVG is excluded: it can carry script.
+  if (!TYPES[ext]) return new NextResponse("Not Found", { status: 404 });
 
-  // Go up to the workspace root: 
-  // src/app/uploads/[...path]/route.ts -> apps/api-dashboard/src/app/uploads/[...path]/route.ts
-  // root is at ../../../../../../../uploads
-  const workspaceUploads = join(process.cwd(), '../../uploads', ...filePathArray);
-  const intelligenceUploads = join(process.cwd(), '../intelligence-service/uploads', ...filePathArray);
-
-  let filePath = workspaceUploads;
-  if (!existsSync(filePath)) {
-    filePath = intelligenceUploads;
+  for (const base of BASES) {
+    const filePath = resolve(join(base, ...parts));
+    // Path traversal guard: the resolved file must stay inside its base directory.
+    if (!filePath.startsWith(base + sep)) return new NextResponse("Not Found", { status: 404 });
+    if (existsSync(filePath) && statSync(filePath).isFile()) {
+      return new NextResponse(readFileSync(filePath), {
+        headers: { "Content-Type": TYPES[ext], "Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff" },
+      });
+    }
   }
-
-  if (!existsSync(filePath)) {
-    return new NextResponse("Not Found", { status: 404 });
-  }
-
-  try {
-    const fileBuffer = readFileSync(filePath);
-    
-    let contentType = "image/jpeg";
-    const ext = filePath.split('.').pop()?.toLowerCase();
-    if (ext === 'png') contentType = "image/png";
-    if (ext === 'webp') contentType = "image/webp";
-    if (ext === 'svg') contentType = "image/svg+xml";
-    if (ext === 'gif') contentType = "image/gif";
-
-    return new NextResponse(fileBuffer, {
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "public, max-age=31536000, immutable",
-      },
-    });
-  } catch (error) {
-    console.error("Error serving local upload:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
-  }
+  return new NextResponse("Not Found", { status: 404 });
 }

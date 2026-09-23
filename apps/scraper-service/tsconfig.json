@@ -5,11 +5,32 @@
     "outDir": "dist",
     "composite": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"],
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts"
+  ],
   "references": [
-    { "path": "../../packages/shared" },
-    { "path": "../../packages/logger" },
-    { "path": "../../packages/config" }
+    {
+      "path": "../../packages/shared"
+    },
+    {
+      "path": "../../packages/logger"
+    },
+    {
+      "path": "../../packages/config"
+    },
+    {
+      "path": "../../packages/ingestion-core"
+    },
+    {
+      "path": "../../packages/database"
+    },
+    {
+      "path": "../../packages/llm"
+    }
   ]
 }

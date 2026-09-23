@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+import { privateMetadata } from '@/lib/seo';
+
+export const metadata: Metadata = privateMetadata('Coming soon');
+
 import React from 'react';
 import Link from 'next/link';
 

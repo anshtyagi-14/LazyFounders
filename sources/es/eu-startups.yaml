@@ -1,0 +1,36 @@
+# EU-Startups (ES). Starter entry: run `npm run sources:verify -- eu-startups`, review robots.txt
+# and the publisher's terms, then approve in /admin/sources (or set trustStatus/active here).
+key: eu-startups
+name: EU-Startups
+country: ES
+defaultLanguage: en
+trustStatus: PENDING
+active: false
+priority: 5
+domains:
+  primary: eu-startups.com
+  aliases: []
+  assets: []
+discovery:
+  methods: [rss]
+  sitemaps: []
+  feeds: [https://www.eu-startups.com/feed/]
+  crawlIntervalMinutes: 30
+  maxArticlesPerScan: 40
+  recencyWindowHours: 48
+  includePatterns: []
+  excludePatterns: []
+fetch:
+  rateLimitPerMinute: 12
+  renderPolicy: never
+  robotsRequired: true
+adapter: null
+translation:
+  mode: if_different
+  targetLanguage: null
+publishing:
+  mode: MANUAL
+  minConfidence: 0.85
+imagePolicy: link_with_credit
+paywall: none
+notes: "European startup funding news."

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { internalHeaders } from '@/lib/internal';
 import { validateApiKey } from '@/lib/auth';
 
 export async function POST(request: Request) {
@@ -17,9 +18,7 @@ export async function POST(request: Request) {
       const intelligenceServiceUrl = process.env.INTELLIGENCE_SERVICE_URL || 'http://localhost:3004';
       const response = await fetch(`${intelligenceServiceUrl}/api/stateless/intelligence`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: internalHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ text: body.text, category: body.category }),
       });
 

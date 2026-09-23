@@ -13,7 +13,7 @@ COPY apps/ ./apps/
 RUN npm ci
 
 # Generate Prisma client for discovery-service (the schema lives here)
-RUN npx prisma generate --schema=apps/discovery-service/prisma/schema.prisma || true
+RUN npx prisma generate --schema=packages/database/prisma/schema.prisma || true
 
 # Build the workspace
 RUN npm run build --workspaces --if-present
@@ -40,7 +40,7 @@ COPY --from=builder --chown=appuser:appgroup /app/packages ./packages
 COPY --from=builder --chown=appuser:appgroup /app/apps/categorization-service/package.json ./apps/categorization-service/
 COPY --from=builder --chown=appuser:appgroup /app/apps/categorization-service/dist ./apps/categorization-service/dist
 
-COPY --from=builder --chown=appuser:appgroup /app/apps/discovery-service/prisma ./apps/discovery-service/prisma
+COPY --from=builder --chown=appuser:appgroup /app/packages/database/prisma ./packages/database/prisma
 
 EXPOSE 3003
 

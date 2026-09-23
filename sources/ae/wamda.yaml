@@ -1,0 +1,36 @@
+# Wamda (AE). Starter entry: run `npm run sources:verify -- wamda`, review robots.txt
+# and the publisher's terms, then approve in /admin/sources (or set trustStatus/active here).
+key: wamda
+name: Wamda
+country: AE
+defaultLanguage: en
+trustStatus: PENDING
+active: false
+priority: 5
+domains:
+  primary: wamda.com
+  aliases: []
+  assets: []
+discovery:
+  methods: [rss]
+  sitemaps: []
+  feeds: [https://www.wamda.com/feed]
+  crawlIntervalMinutes: 30
+  maxArticlesPerScan: 40
+  recencyWindowHours: 48
+  includePatterns: []
+  excludePatterns: []
+fetch:
+  rateLimitPerMinute: 12
+  renderPolicy: never
+  robotsRequired: true
+adapter: null
+translation:
+  mode: if_different
+  targetLanguage: null
+publishing:
+  mode: MANUAL
+  minConfidence: 0.85
+imagePolicy: link_with_credit
+paywall: none
+notes: "MENA startup news. Verify the feed URL during onboarding."

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { internalHeaders } from '@/lib/internal';
 import { validateApiKey } from '@/lib/auth';
 
 export async function POST(request: Request) {
@@ -17,9 +18,7 @@ export async function POST(request: Request) {
       const discoveryServiceUrl = process.env.DISCOVERY_SERVICE_URL || 'http://localhost:3001';
       const response = await fetch(`${discoveryServiceUrl}/api/stateless/discovery`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: internalHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ url: body.url }),
       });
 

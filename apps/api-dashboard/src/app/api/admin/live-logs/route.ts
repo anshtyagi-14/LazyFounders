@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { internalHeaders } from '@/lib/internal';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,7 +11,7 @@ export async function GET(request: Request) {
     : `${discoveryServiceUrl}/api/admin/live-logs`;
 
   try {
-    const response = await fetch(targetUrl);
+    const response = await fetch(targetUrl, { headers: internalHeaders() });
     
     // We proxy the SSE stream back to the client
     if (!response.body) {

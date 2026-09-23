@@ -1,52 +1,96 @@
 import React from 'react';
-import { PrismaClient } from '@prisma/client';
+import type { Metadata } from 'next';
+import { listPublishedArticles } from '@/lib/articles';
 import Link from 'next/link';
 import { SafeImage } from '../../../components/SafeImage';
+import { BrandBadge } from '../../../components/BrandBadge';
+import { JsonLd } from '../../../components/JsonLd';
+import { BRAND, collectionPageSchema, ogImageUrl, pageMetadata } from '@/lib/seo';
+import { ALL_COMPANIES } from '@/lib/companies';
 
 export const dynamic = 'force-dynamic';
 
-const prisma = new PrismaClient();
 
-const UNICORNS = ["Zomato", "Zoho", "Zetwerk", "Zeta", "Zerodha", "Zepto", "Zenoti", "Yubi", "Xpressbees", "Vedantu", "Urban Company", "Upstox", "upGrad", "Uniphore", "Unacademy", "Udaan", "Swiggy", "Spinny", "Snapdeal", "Slice", "Shopclues", "Shiprocket", "ShareChat", "Rivigo", "ReNew Energy"];
-const SOONICORNS = ["CarTrade", "FINO PayTech", "Infibeam Avenues", "Nazara Technologies", "Absolute", "Adda247", "Aequs", "Atlan", "BankBazaar", "BetterPlace", "Bira 91", "Bizongo", "BlueStone", "BluSmart", "BookMyShow", "BrightChamps", "Capillary Technologies", "Capital Float", "Captain Fresh", "Cashfree Payments", "Chaayos", "Chalo", "CityMall", "Classplus", "Clear"];
-const LISTED_TECH = ["MapmyIndia", "CarTrade", "Delhivery", "FINO PayTech", "EaseMyTrip", "Nykaa", "ideaForge", "IndiaMART", "Infibeam Avenues", "Info Edge", "Nazara Technologies", "Paytm", "PolicyBazaar", "RateGain", "Tracxn", "Yatra", "Zaggle", "Zomato", "Mamaearth", "TAC Security", "Digit Insurance", "Awfis", "Ixigo", "Menhood", "Ola Electric", "FirstCry", "Unicommerce"];
-const INVESTORS = ["Peak XV Partners", "Blume Ventures", "Venture Catalysts", "Inflection Point Ventures", "Matrix Partners India", "Kalaari Capital", "Mumbai Angels", "9Unicorns Accelerator Fund", "Indian Angel Network", "Titan Capital", "3one4 Capital", "Elevation Capital", "Brand Capital", "InnoVen Capital", "India Quotient", "Chiratae Ventures", "Trifecta Capital Advisors", "Alteria Capital", "Axilor Ventures", "Kae Capital", "100X.VC", "ah! Ventures", "Fireside Ventures", "Lightspeed India Partners", "Orios Venture Partners"];
 
-const ALL_COMPANIES = [...UNICORNS, ...SOONICORNS, ...LISTED_TECH, ...INVESTORS];
 
 function slugify(text: string) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 }
 
-export default async function CompanyNewsPage({ params }: { params: Promise<{ slug: string }> }) {
+type Props = { params: Promise<{ slug: string }> };
+
+interface CompanyArticle {
+  id: string;
+  slug: string;
+  headerImage: string | null;
+  seoTitle: string;
+  metaDescription: string;
+  createdAt: Date;
+}
+
+/** Resolve the slug to a company name and the published stories that mention it. */
+async function loadCompany(params: Props['params']) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug || '';
 
-  // 1. Find the exact case-sensitive company name from our constants, or fallback to capitalized slug
-  const matchedCompany = ALL_COMPANIES.find(c => slugify(c) === slug) || 
+  // Find the exact case-sensitive company name from our constants, or fall back to the slug
+  const matchedCompany = ALL_COMPANIES.find(c => slugify(c) === slug) ||
                          slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
-  // 2. Fetch articles mentioning this company
-  let articles: any[] = [];
+  let articles: CompanyArticle[] = [];
   try {
-    articles = await prisma.originalContent.findMany({
-      where: {
-        companies: {
-          hasSome: [matchedCompany, matchedCompany.toLowerCase()]
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      take: 50
-    });
+    const published = await listPublishedArticles({ companies: [matchedCompany, matchedCompany.toLowerCase()], take: 50 });
+    articles = published.map((a) => ({
+      id: a.id,
+      slug: a.slug,
+      headerImage: a.featuredImage?.url ?? null,
+      seoTitle: a.headline,
+      metaDescription: a.metaDescription,
+      createdAt: a.publishedAt,
+    }));
   } catch (error) {
     console.error(`Error fetching articles for company ${matchedCompany}:`, error);
   }
 
-  // 3. Render the UI
+  return { slug, matchedCompany, articles };
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug, matchedCompany, articles } = await loadCompany(params);
+  const count = articles.length;
+  return pageMetadata({
+    title: `${matchedCompany} news, funding and coverage`,
+    description: count
+      ? `${count} ${count === 1 ? 'story' : 'stories'} covering ${matchedCompany} on ${BRAND} — funding rounds, launches and analysis, each written from cited primary sources.`
+      : `${matchedCompany} coverage on ${BRAND}. Stories appear here as soon as our newsroom pipeline picks them up.`,
+    path: `/company/${slug}`,
+    image: articles[0]?.headerImage ?? ogImageUrl({ title: `${matchedCompany} coverage`, kicker: 'Company', meta: `${count} stories` }),
+    keywords: [matchedCompany, `${matchedCompany} news`, `${matchedCompany} funding`],
+    // A company hub with nothing on it is thin content: crawlable, but not indexable.
+    index: count > 0,
+  });
+}
+
+export default async function CompanyNewsPage({ params }: Props) {
+  const { slug, matchedCompany, articles } = await loadCompany(params);
+
+  // The company is the subject of this page — naming it as an entity is what lets an
+  // answer engine connect "news about <company>" to this URL.
+  const schema = collectionPageSchema({
+    path: `/company/${slug}`,
+    name: `${matchedCompany} — news and coverage`,
+    description: `Published ${BRAND} stories covering ${matchedCompany}.`,
+    crumbs: [
+      { name: 'Home', path: '/' },
+      { name: matchedCompany, path: `/company/${slug}` },
+    ],
+    entries: articles.map((a) => ({ path: `/news/article/${a.slug}`, name: a.seoTitle })),
+    about: { '@type': 'Organization', name: matchedCompany },
+  });
+
   return (
     <div className="min-h-screen bg-[#05070A] text-slate-200 font-sans pb-20">
+      <JsonLd data={schema} />
       {/* Header */}
       <div className="border-b border-white/5 bg-[#0a0d14]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-8">
@@ -77,18 +121,21 @@ export default async function CompanyNewsPage({ params }: { params: Promise<{ sl
               </svg>
             </div>
             <h3 className="text-xl font-bold text-white mb-2">No active intelligence found</h3>
-            <p className="text-slate-500 max-w-md">Our AI scrapers haven't picked up any recent articles or news covering {matchedCompany} yet. Check back soon!</p>
+            <p className="text-slate-500 max-w-md">Our AI scrapers haven&apos;t picked up any recent articles or news covering {matchedCompany} yet. Check back soon!</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {articles.map((article: any) => (
+            {articles.map((article) => (
               <Link href={`/news/article/${article.slug}`} key={article.id} className="group">
                 <div className="bg-[#0c1017] border border-white/5 rounded-2xl overflow-hidden hover:border-teal-500/30 transition-all duration-300 h-full flex flex-col shadow-lg hover:shadow-teal-500/10 hover:-translate-y-1">
                   
                   {/* Article Image Placeholder */}
                   <div className="h-48 bg-slate-900 w-full relative overflow-hidden border-b border-white/5">
                     {article.headerImage ? (
-                      <SafeImage src={article.headerImage} alt={article.seoTitle} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
+                      <>
+                        <SafeImage src={article.headerImage} alt={article.seoTitle} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
+                        <BrandBadge />
+                      </>
                     ) : (
                       <div className="absolute inset-0 bg-gradient-to-br from-teal-900/40 to-slate-900 flex items-center justify-center">
                         <svg className="w-10 h-10 text-teal-500/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">

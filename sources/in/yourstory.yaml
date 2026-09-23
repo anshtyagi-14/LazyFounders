@@ -1,0 +1,38 @@
+# YourStory (IN). Starter entry: run `npm run sources:verify -- yourstory`, review robots.txt
+# and the publisher's terms, then approve in /admin/sources (or set trustStatus/active here).
+key: yourstory
+name: YourStory
+country: IN
+defaultLanguage: en
+trustStatus: APPROVED
+active: true
+priority: 5
+domains:
+  primary: yourstory.com
+  aliases: []
+  assets: []
+discovery:
+  methods: [rss]
+  sitemaps: []
+  feeds: [https://yourstory.com/feed]
+  crawlIntervalMinutes: 30
+  maxArticlesPerScan: 40
+  recencyWindowHours: 48
+  includePatterns: []
+  excludePatterns: []
+fetch:
+  rateLimitPerMinute: 12
+  renderPolicy: never
+  robotsRequired: true
+  # Article pages return 403 to crawlers; YourStory syndicates full text in its RSS feed.
+  contentSource: feed
+adapter: yourstory
+translation:
+  mode: if_different
+  targetLanguage: null
+publishing:
+  mode: AUTO
+  minConfidence: 0.85
+imagePolicy: link_with_credit
+paywall: none
+notes: "Indian startup and founder news."

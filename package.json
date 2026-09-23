@@ -10,9 +10,21 @@
     "build": "npm run build --workspaces --if-present",
     "dev:all": "concurrently \"npm run dev -w apps/api-dashboard\" \"npm run dev -w apps/discovery-service\" \"npm run dev -w apps/scraper-service\" \"npm run dev -w apps/categorization-service\" \"npm run dev -w apps/intelligence-service\" \"npm run dev -w apps/publishing-service\"",
     "test": "npm run test --workspaces --if-present",
-    "test:int": "npm run test:int --workspaces --if-present",
+    "test:int": "npm run test:int -w @lazyfounders/ingestion-core",
     "lint": "npm run lint --workspaces --if-present",
-    "clean": "npm run clean --workspaces --if-present"
+    "clean": "npm run clean --workspaces --if-present",
+    "db:generate": "npm run db:generate -w @lazyfounders/database",
+    "db:migrate": "npm run db:migrate -w @lazyfounders/database",
+    "db:migrate:dev": "npm run db:migrate:dev -w @lazyfounders/database",
+    "db:baseline": "npm run db:baseline -w @lazyfounders/database",
+    "sources:validate": "tsx packages/ingestion-core/src/cli/sources.ts validate",
+    "sources:sync": "tsx packages/ingestion-core/src/cli/sources.ts sync",
+    "sources:list": "tsx packages/ingestion-core/src/cli/sources.ts list",
+    "sources:verify": "tsx packages/ingestion-core/src/cli/sources.ts verify",
+    "jobs:list": "tsx packages/ingestion-core/src/cli/jobs.ts list",
+    "jobs:replay": "tsx packages/ingestion-core/src/cli/jobs.ts replay",
+    "pipeline:smoke": "tsx packages/ingestion-core/src/cli/smoke.ts",
+    "auth:hash": "node apps/api-dashboard/scripts/hash-password.mjs"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -21,6 +33,7 @@
     "@prisma/client": "^6.19.3"
   },
   "devDependencies": {
-    "concurrently": "^10.0.4"
+    "concurrently": "^10.0.4",
+    "tsx": "^4.19.2"
   }
 }

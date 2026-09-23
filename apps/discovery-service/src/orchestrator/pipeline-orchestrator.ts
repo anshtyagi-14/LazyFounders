@@ -1,5 +1,5 @@
 import { Logger } from 'pino';
-import { PrismaClient, Source, CrawlRun } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { Readable } from 'node:stream';
 
@@ -28,11 +28,11 @@ export class PipelineOrchestrator {
     private readonly scraperQueue: IScraperQueue,
     private readonly logger: Logger,
     private readonly prisma: PrismaClient
-  ) {}
+  ) { }
 
   public async runDiscovery(sourceId: string): Promise<any> {
     this.logger.info({ sourceId }, 'Starting discovery pipeline');
-    
+
     const source = await this.prisma.source.findUnique({
       where: { id: sourceId }
     });
@@ -48,49 +48,49 @@ export class PipelineOrchestrator {
     }
 
     const traceId = randomUUID();
-      const maxAgeDays = source.recencyWindowHours / 24;
+    const maxAgeDays = source.recencyWindowHours / 24;
 
-      const stats: any = {
-        newUrls: 0,
-        updatedUrls: 0,
-        renamedUrls: 0,
-        removedUrls: 0,
-        unchangedUrls: 0,
-        errorCount: 0,
-        sitemapsProcessed: 0,
-        maxAgeDays
-      };
+    const stats: any = {
+      newUrls: 0,
+      updatedUrls: 0,
+      renamedUrls: 0,
+      removedUrls: 0,
+      unchangedUrls: 0,
+      errorCount: 0,
+      sitemapsProcessed: 0,
+      maxAgeDays
+    };
 
-      let crawlRunId: string | null = null;
-      
-      try {
-        const crawlRun = await this.prisma.crawlRun.create({
-          data: {
-            sourceId: source.id,
-            traceId,
-            status: 'running',
-            startedAt: new Date()
-          }
-        });
-        crawlRunId = crawlRun.id;
+    let crawlRunId: string | null = null;
 
-        // 2. Run discovery engine
-        const sitemaps = await this.discoveryEngine.discover({
-          domain: source.domain,
-          baseUrl: source.baseUrl,
+    try {
+      const crawlRun = await this.prisma.crawlRun.create({
+        data: {
           sourceId: source.id,
-          respectRobotsTxt: true
-        });
+          traceId,
+          status: 'running',
+          startedAt: new Date()
+        }
+      });
+      crawlRunId = crawlRun.id;
 
-        const allDiscoveredUrls: DiscoveredUrl[] = [];
+      // 2. Run discovery engine
+      const sitemaps = await this.discoveryEngine.discover({
+        domain: source.domain,
+        baseUrl: source.baseUrl,
+        sourceId: source.id,
+        respectRobotsTxt: true
+      });
 
-        // 3. Process each discovered sitemap
-        const sitemapUrlsToProcess = sitemaps.map(s => s.url);
-        await this.processSitemaps(sitemapUrlsToProcess, allDiscoveredUrls, stats, crawlRunId);
+      const allDiscoveredUrls: DiscoveredUrl[] = [];
 
-        // 9. Filter pipeline
-        const sourceConfig: SourceConfig = { maxAgeDays };
-      
+      // 3. Process each discovered sitemap
+      const sitemapUrlsToProcess = sitemaps.map(s => s.url);
+      await this.processSitemaps(sitemapUrlsToProcess, allDiscoveredUrls, stats, crawlRunId);
+
+      // 9. Filter pipeline
+      const sourceConfig: SourceConfig = { maxAgeDays };
+
       const filteredUrls = this.filterPipeline.process(allDiscoveredUrls, sourceConfig);
       this.logger.info({ count: filteredUrls.length, sourceId }, 'URLs remaining after filtering');
 
@@ -105,7 +105,7 @@ export class PipelineOrchestrator {
           result.changeType === ChangeType.RENAMED
         ) {
           const urlHash = Buffer.from(result.url.loc).toString('base64');
-          
+
           await this.prisma.urlState.upsert({
             where: { urlHash },
             create: {
@@ -207,28 +207,28 @@ export class PipelineOrchestrator {
 
       try {
         this.logger.debug({ sitemapUrl: url }, 'Fetching sitemap');
-        
+
         // 3. Fetch using FetchEscalator
         const response = await this.fetchEscalator.fetch(url, { respectRobotsTxt: true });
-        
+
         // 4. Decompress stream
         const rawStream = Readable.from(response.body);
         const decompressedStream = getDecompressedStream(rawStream, response.contentEncoding || '');
-        
+
         // 5. Parse
         let parseResult = await this.saxSitemapParser.parseStream(decompressedStream);
-        
+
         // 7. Fallback if errors and no urls
         if (parseResult.errors.length > 0 && parseResult.urls.length === 0) {
           parseResult = await this.regexFallbackParser.parseBuffer(response.body);
         }
 
         stats.sitemapsProcessed++;
-        
+
         // 8. Collect URLs
         if (parseResult.urls.length > 0) {
           collectedUrls.push(...parseResult.urls);
-          
+
           if (crawlRunId && stats.sitemapsProcessed % 2 === 0) {
             // Update UI periodically during long crawls
             await this.prisma.crawlRun.update({
@@ -253,19 +253,19 @@ export class PipelineOrchestrator {
               return true; // If no date at all, keep it
             }
             const ageDays = (Date.now() - s.lastmod.getTime()) / (1000 * 60 * 60 * 24);
-            return ageDays <= stats.maxAgeDays; 
+            return ageDays <= stats.maxAgeDays;
           });
-          
+
           // Failsafe: if we still have more than 10 sitemaps and none had dates, limit to 10
           // to prevent scraping 142k URLs every 5 minutes.
-          const sitemapsToFetch = recentSitemaps.length > 10 && !recentSitemaps[0].lastmod 
-            ? recentSitemaps.slice(0, 10) 
+          const sitemapsToFetch = recentSitemaps.length > 10 && !recentSitemaps[0].lastmod
+            ? recentSitemaps.slice(0, 10)
             : recentSitemaps;
-          
+
           if (sitemapsToFetch.length > 0) {
             await this.processSitemaps(sitemapsToFetch.map(s => s.loc), collectedUrls, stats, crawlRunId, visited);
           } else if (parseResult.sitemaps.length > 0) {
-             this.logger.debug(`Skipped ${parseResult.sitemaps.length} older child sitemaps.`);
+            this.logger.debug(`Skipped ${parseResult.sitemaps.length} older child sitemaps.`);
           }
         }
 

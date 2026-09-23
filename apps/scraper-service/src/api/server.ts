@@ -6,6 +6,21 @@ import { scrapeUrlStateless } from '../scraper/stateless.js';
 export async function createServer(logger: Logger, scraperQueue: Queue): Promise<FastifyInstance> {
   const server = Fastify({ logger: false });
 
+  // Service-to-service auth: these endpoints render arbitrary pages and must not be public.
+  server.addHook('onRequest', async (request, reply) => {
+    const token = process.env.INTERNAL_API_TOKEN;
+    if (!request.url.startsWith('/api/')) return;
+    if (!token) {
+      if (process.env.NODE_ENV === 'production') return reply.code(503).send({ error: 'INTERNAL_API_TOKEN not configured' });
+      return;
+    }
+    if (request.headers['x-internal-token'] !== token) return reply.code(401).send({ error: 'unauthorized' });
+  });
+
+  server.get('/health', async () => {
+    return { status: 'ok', service: 'scraper-service' };
+  });
+
   server.post('/api/scrape', async (request, reply) => {
     const { url, domain, sourceId, changeType } = request.body as any;
     

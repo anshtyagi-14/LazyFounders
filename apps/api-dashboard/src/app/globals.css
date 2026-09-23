@@ -1,21 +1,48 @@
-@import "tailwindcss";
-@plugin "@tailwindcss/typography";
+@import "tailwindcss" source(none);
+@source "../../src";
 @custom-variant dark (&:is(.dark *));
 
-:root {
+/* Semantic surface colours live in @theme (not :root) so Tailwind v4 generates the
+   matching utilities - bg-background, bg-card, text-foreground, border-border,
+   bg-primary/10 - which the admin and dashboard pages rely on. */
+@theme {
   --color-background: #09090b;
   --color-foreground: #fafafa;
   --color-card: #18181b;
   --color-card-foreground: #fafafa;
-  --color-primary: #059669;
+  --color-primary: #d4af37;
   --color-primary-foreground: #ffffff;
   --color-secondary: #27272a;
   --color-secondary-foreground: #fafafa;
   --color-muted: #27272a;
   --color-muted-foreground: #a1a1aa;
   --color-border: #27272a;
+
+  /* Brand accent: gold. The codebase carries 182 hardcoded teal-* utility
+     usages across 22 components; redefining Tailwind's own --color-teal-*
+     scale repoints every one of them to gold without touching any TSX.
+     The teal names are kept as the utility spelling on purpose - renaming
+     them is a separate mechanical pass, not part of the redesign. */
+  --color-teal-50:  #fbf6e9;
+  --color-teal-100: #f5e8c0;
+  --color-teal-200: #ebd79a;
+  --color-teal-300: #e0c26b;
+  --color-teal-400: #d9b84e;
+  --color-teal-500: #d4af37;
+  --color-teal-600: #b8942a;
+  --color-teal-700: #94741f;
+  --color-teal-800: #6b5416;
+  --color-teal-900: #46370e;
+  --color-teal-950: #2a1f09;
+
+  /* Type roles. next/font sets the three --font-* variables on <body>; these
+     turn them into font-display / font-headline / font-sans utilities. */
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-headline: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
 }
 
+@layer base {
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
@@ -23,19 +50,45 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+}
 
 :root {
-  /* Teal / Green — primary brand palette */
-  --teal-50:  #f0fdfa;
-  --teal-100: #ccfbf1;
-  --teal-200: #99f6e4;
-  --teal-300: #5eead4;
-  --teal-400: #2dd4bf;
-  --teal-500: #14b8a6;
-  --teal-600: #0d9488;
-  --teal-700: #0f766e;
-  --teal-800: #115e59;
-  --teal-900: #0d4a45;
+  /* Gold - the brand accent. 400/500 are the text-safe steps on the near-black
+     ground (~9:1); 700 and darker are decorative only and fail AA as body text. */
+  --gold-50:  #fbf6e9;
+  --gold-100: #f5e8c0;
+  --gold-200: #ebd79a;
+  --gold-300: #e0c26b;
+  --gold-400: #d9b84e;
+  --gold-500: #d4af37;
+  --gold-600: #b8942a;
+  --gold-700: #94741f;
+  --gold-800: #6b5416;
+  --gold-900: #46370e;
+
+  /* Ink - one set of grounds, replacing the four near-blacks that were in play
+     (#05070A in the navs, #09090b here, #030407 in the footer, #18181b). */
+  --ink-900: #08080a;
+  --ink-800: #0e0e11;
+  --ink-700: #16161a;
+  --rule:      #26262b;
+  --rule-gold: rgba(212, 175, 55, 0.28);
+
+  /* Masthead height. Every sticky offset derives from this one value. */
+  --header-h: 4rem;
+
+  /* Deprecated: --teal-* is the old accent name, kept as an alias so the ~25
+     call sites further down this file keep working. Retire in a follow-up. */
+  --teal-50:  var(--gold-50);
+  --teal-100: var(--gold-100);
+  --teal-200: var(--gold-200);
+  --teal-300: var(--gold-300);
+  --teal-400: var(--gold-400);
+  --teal-500: var(--gold-500);
+  --teal-600: var(--gold-600);
+  --teal-700: var(--gold-700);
+  --teal-800: var(--gold-800);
+  --teal-900: var(--gold-900);
 
   /* Yellow accent */
   --yellow-50: #fffbeb;
@@ -57,8 +110,8 @@ body {
 
   --white: #ffffff;
 
-  --font-display: 'Outfit', sans-serif;
-  --font-body: 'Outfit', sans-serif;
+  --font-display: var(--font-archivo), 'Outfit', sans-serif;
+  --font-body: var(--font-outfit), 'Outfit', sans-serif;
 
   --radius-sm: 6px;
   --radius-md: 12px;
@@ -69,9 +122,10 @@ body {
   --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
   --shadow-lg: 0 20px 48px rgba(0,0,0,0.10);
-  --shadow-teal: 0 8px 24px rgba(13,148,136,0.20);
+  --shadow-teal: 0 8px 24px rgba(212,175,55,0.22);
 }
 
+@layer base {
 html { scroll-behavior: smooth; }
 
 body {
@@ -93,7 +147,9 @@ a { text-decoration: none; color: inherit; }
 button { cursor: pointer; border: none; background: none; font-family: inherit; }
 img { max-width: 100%; }
 ul { list-style: none; }
+}
 
+@layer components {
 .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
 
 /* Shared section header - centered */
@@ -184,7 +240,7 @@ ul { list-style: none; }
 .btn-primary:hover {
   background: var(--teal-700);
   transform: translateY(-1px);
-  box-shadow: 0 12px 30px rgba(13,148,136,0.35);
+  box-shadow: 0 12px 30px rgba(212,175,55,0.38);
 }
 .btn-ghost {
   display: inline-flex;
@@ -240,61 +296,18 @@ ul { list-style: none; }
   --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
   --shadow-lg: 0 20px 48px rgba(0,0,0,0.6);
 }
-.dark body { background: #09090b; color: #fafafa; }
+.dark body { background: var(--ink-900); color: #fafafa; }
 
-/* Sections */
+/* The page ground. Everything else that used to live here was dark-mode
+   styling for a different marketing site (.eyn-section, .hiw-card, .navbar,
+   .hero-editor, .pricing-section) with no matching JSX in this app. */
 .dark section,
-.dark .hero,
-.dark .eyn-section,
-.dark .int-section,
-.dark .gd-section,
-.dark .hiw-section,
-.dark .aso-section,
-.dark .ps-section,
-.dark .sb-section,
-.dark .be-section,
-.dark .pricing-section,
-.dark footer { background: #09090b; }
-
-/* Alternating section BG */
-.dark .marquee-section,
-.dark .languages-section,
-.dark .testimonials-section { background: #111113; }
-
-/* Cards & surfaces */
-.dark .be-card,
-.dark .eyn-card,
-.dark .int-pill,
-.dark .hiw-card,
-.dark .sb-filter-btn,
-.dark .sb-preview,
-.dark .ps-problem,
-.dark .gd-item,
-.dark .pc-free,
-.dark .pc-paid { background: #18181b; border-color: #3f3f46; }
-
-/* Navbar */
-.dark .navbar { background: rgba(9,9,11,0.92); border-color: #3f3f46; }
-.dark .dropdown-panel,
-.dark .mobile-menu { background: #18181b; border-color: #3f3f46; }
-.dark .btn-ghost-nav { background: #27272a; border-color: #3f3f46; color: #d4d4d8; }
-
-/* Hero editor */
-.dark .hero-editor { background: #18181b; border-color: #3f3f46; }
-.dark .editor-chrome,
-.dark .editor-sidebar { background: #27272a; border-color: #3f3f46; }
-.dark .editor-url { background: #18181b; border-color: #3f3f46; color: #71717a; }
-
-/* Misc */
-.dark .dropdown-item:hover { background: rgba(13,148,136,0.12); }
-.dark .kw-row:hover,
-.dark .kw-row.active { background: rgba(13,148,136,0.12); }
-.dark .sb-filter-btn.active { background: rgba(13,148,136,0.12); border-color: var(--teal-600); }
+.dark footer { background: var(--ink-900); }
 
 /* ── Custom Prose Components (TOC & Highlights) ── */
 .table-of-contents {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  border: 1px solid rgba(20, 184, 166, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.15);
   border-radius: var(--radius-lg);
   padding: 2rem 2.5rem;
   margin: 2.5rem 0;
@@ -312,7 +325,7 @@ ul { list-style: none; }
 }
 .dark .table-of-contents {
   background: linear-gradient(135deg, #0a0f1a 0%, #111827 100%);
-  border-color: rgba(20, 184, 166, 0.1);
+  border-color: rgba(212, 175, 55, 0.1);
 }
 
 .table-of-contents h3 {
@@ -362,7 +375,7 @@ ul { list-style: none; }
   font-weight: 800;
   color: var(--teal-500);
   font-size: 0.85rem;
-  background: rgba(20, 184, 166, 0.1);
+  background: rgba(212, 175, 55, 0.1);
   width: 1.75rem;
   height: 1.75rem;
   border-radius: 6px;
@@ -381,16 +394,16 @@ ul { list-style: none; }
 
 /* Key Highlights */
 .key-highlights {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(20, 184, 166, 0.04) 100%);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.06) 0%, rgba(212, 175, 55, 0.04) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.2);
   border-left: 4px solid #10b981;
   border-radius: var(--radius-lg);
   padding: 2rem 2.5rem;
   margin: 2.5rem 0;
 }
 .dark .key-highlights {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(20, 184, 166, 0.03) 100%);
-  border-color: rgba(16, 185, 129, 0.25);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.06) 0%, rgba(212, 175, 55, 0.03) 100%);
+  border-color: rgba(212, 175, 55, 0.25);
   border-left-color: #10b981;
 }
 
@@ -443,8 +456,8 @@ ul { list-style: none; }
 
 /* Summary Box */
 .summary-box {
-  background: linear-gradient(135deg, rgba(20, 184, 166, 0.06) 0%, rgba(99, 102, 241, 0.04) 100%);
-  border: 1px solid rgba(20, 184, 166, 0.2);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.06) 0%, rgba(99, 102, 241, 0.04) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.2);
   border-left: 4px solid var(--teal-500);
   border-radius: var(--radius-lg);
   padding: 2rem 2.5rem;
@@ -460,8 +473,8 @@ ul { list-style: none; }
   opacity: 0.3;
 }
 .dark .summary-box {
-  background: linear-gradient(135deg, rgba(20, 184, 166, 0.06) 0%, rgba(99, 102, 241, 0.03) 100%);
-  border-color: rgba(20, 184, 166, 0.25);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.06) 0%, rgba(99, 102, 241, 0.03) 100%);
+  border-color: rgba(212, 175, 55, 0.25);
   border-left-color: var(--teal-500);
 }
 .summary-box h3 {
@@ -740,13 +753,13 @@ ul { list-style: none; }
 .prose-custom blockquote {
   margin: 2.5rem 0;
   padding: 1.5rem 2rem;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(20, 184, 166, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(212, 175, 55, 0.05) 100%);
   border-left: 4px solid #6366f1;
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
   position: relative;
 }
 .dark .prose-custom blockquote {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(20, 184, 166, 0.04) 100%);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(212, 175, 55, 0.04) 100%);
 }
 .prose-custom blockquote::before {
   content: '"';
@@ -775,12 +788,12 @@ ul { list-style: none; }
   margin: 3rem 0;
 }
 .dark .prose-custom hr {
-  background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
 }
 
 /* Code blocks */
 .prose-custom code {
-  background: rgba(20, 184, 166, 0.08);
+  background: rgba(212, 175, 55, 0.08);
   color: var(--teal-700);
   padding: 0.15em 0.4em;
   border-radius: 4px;
@@ -788,14 +801,14 @@ ul { list-style: none; }
   font-weight: 500;
 }
 .dark .prose-custom code {
-  background: rgba(20, 184, 166, 0.12);
+  background: rgba(212, 175, 55, 0.12);
   color: var(--teal-300);
 }
 
 /* Content Courtesy */
 .content-courtesy {
-  background: linear-gradient(135deg, #f0fdfa 0%, #f0f9ff 100%);
-  border: 1px solid rgba(20, 184, 166, 0.2);
+  background: linear-gradient(135deg, #fbf6e9 0%, #f7f1e2 100%);
+  border: 1px solid rgba(212, 175, 55, 0.2);
   border-radius: var(--radius-lg);
   padding: 1.75rem 2rem;
   position: relative;
@@ -811,23 +824,45 @@ ul { list-style: none; }
   background: linear-gradient(90deg, var(--teal-400), #6366f1);
 }
 .dark .content-courtesy {
-  background: linear-gradient(135deg, rgba(13, 148, 136, 0.06) 0%, rgba(99, 102, 241, 0.04) 100%);
+  background: linear-gradient(135deg, rgba(184, 148, 42, 0.06) 0%, rgba(99, 102, 241, 0.04) 100%);
   border-color: rgba(255, 255, 255, 0.06);
 }
 .courtesy-icon-wrap {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  background: rgba(20, 184, 166, 0.1);
+  background: rgba(212, 175, 55, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-top: 0.125rem;
 }
 .dark .courtesy-icon-wrap {
-  background: rgba(20, 184, 166, 0.15);
+  background: rgba(212, 175, 55, 0.15);
 }
 .courtesy-link {
   word-break: break-all;
 }
 
+
+}
+@layer utilities {
+/* Scrollbar utilities. These only ever existed in the old prebuilt
+   public/css/news-tailwind.css, never in a Tailwind source file, so they are
+   declared here now that the real Tailwind build is back. */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+.custom-scrollbar { scrollbar-width: thin; scrollbar-color: var(--gray-300) transparent; }
+.custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: var(--radius-full);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+
+}

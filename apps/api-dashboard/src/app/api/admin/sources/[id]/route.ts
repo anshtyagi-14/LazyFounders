@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { internalHeaders } from '@/lib/internal';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -8,7 +9,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     
     const response = await fetch(`${discoveryServiceUrl}/api/admin/sources/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: internalHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(body),
     });
     const data = await response.json();

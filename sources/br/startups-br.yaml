@@ -1,0 +1,36 @@
+# Startups.com.br (BR). Starter entry: run `npm run sources:verify -- startups-br`, review robots.txt
+# and the publisher's terms, then approve in /admin/sources (or set trustStatus/active here).
+key: startups-br
+name: Startups.com.br
+country: BR
+defaultLanguage: pt
+trustStatus: PENDING
+active: false
+priority: 5
+domains:
+  primary: startups.com.br
+  aliases: []
+  assets: []
+discovery:
+  methods: [rss]
+  sitemaps: []
+  feeds: [https://startups.com.br/feed/]
+  crawlIntervalMinutes: 30
+  maxArticlesPerScan: 40
+  recencyWindowHours: 48
+  includePatterns: []
+  excludePatterns: []
+fetch:
+  rateLimitPerMinute: 12
+  renderPolicy: never
+  robotsRequired: true
+adapter: null
+translation:
+  mode: if_different
+  targetLanguage: null
+publishing:
+  mode: MANUAL
+  minConfidence: 0.85
+imagePolicy: link_with_credit
+paywall: none
+notes: "Brazilian startup news (Portuguese language)."

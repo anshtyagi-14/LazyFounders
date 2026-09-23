@@ -1,0 +1,36 @@
+# Maddyness (FR). Starter entry: run `npm run sources:verify -- maddyness`, review robots.txt
+# and the publisher's terms, then approve in /admin/sources (or set trustStatus/active here).
+key: maddyness
+name: Maddyness
+country: FR
+defaultLanguage: fr
+trustStatus: PENDING
+active: false
+priority: 5
+domains:
+  primary: maddyness.com
+  aliases: []
+  assets: []
+discovery:
+  methods: [rss]
+  sitemaps: []
+  feeds: [https://www.maddyness.com/feed/]
+  crawlIntervalMinutes: 30
+  maxArticlesPerScan: 40
+  recencyWindowHours: 48
+  includePatterns: []
+  excludePatterns: []
+fetch:
+  rateLimitPerMinute: 12
+  renderPolicy: never
+  robotsRequired: true
+adapter: null
+translation:
+  mode: if_different
+  targetLanguage: null
+publishing:
+  mode: MANUAL
+  minConfidence: 0.85
+imagePolicy: link_with_credit
+paywall: none
+notes: "French startup news (French language)."

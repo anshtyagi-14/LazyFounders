@@ -1,133 +1,133 @@
 import React from 'react';
 import Link from 'next/link';
-import { PrismaClient } from '@prisma/client';
-import { ExpandableCompanyList } from './ExpandableCompanyList';
+import { BRAND } from '@/lib/articles';
+import { FOOTER_LINKS, SOCIAL_LINKS, getNavTopics } from '@/lib/nav';
+import { ALL_COMPANIES } from '@/lib/companies';
 
-const prisma = new PrismaClient();
+/**
+ * The footer used to run its own `findMany({ take: 2000 })` for company names on
+ * every render of every page - a third database round trip per request, under
+ * `force-dynamic`. It now reads the curated directory and the memoised topic
+ * list, so it costs nothing beyond what the masthead already fetched.
+ *
+ * The company list is capped: linking a hundred company pages from every page of
+ * the site is a link farm into pages that are frequently empty.
+ */
 
-function slugify(text: string) {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+function slugifyCompany(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+}
+
+function ColumnHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="mb-4 font-display text-[0.68rem] font-bold uppercase tracking-[0.16em] text-teal-500">{children}</h3>
+  );
+}
+
+function FooterLink({ href, children, soon }: { href: string; children: React.ReactNode; soon?: boolean }) {
+  return (
+    <Link href={href} className="block py-1 text-sm text-gray-400 transition-colors hover:text-teal-400">
+      {children}
+      {soon ? <span className="ml-1.5 text-[0.6rem] uppercase tracking-wider text-gray-600">soon</span> : null}
+    </Link>
+  );
 }
 
 export async function Footer() {
-  // Fetch active companies from the database, populated by the Intelligence Engine's LLM
-  let activeCompaniesSet = new Set<string>();
-  try {
-    const articles = await prisma.originalContent.findMany({
-      select: { companies: true },
-      take: 2000 // Scan deeply
-    });
-    
-    articles.forEach(a => {
-      if (a.companies && Array.isArray(a.companies)) {
-        a.companies.forEach(c => activeCompaniesSet.add(c.trim()));
-      }
-    });
-  } catch (e) {
-    console.error("Failed to fetch active companies for footer:", e);
-  }
-
-  let activeCompanies = Array.from(activeCompaniesSet);
-
-  // Capitalize properly based on dictionary or fallback to Title Case
-  activeCompanies = activeCompanies.map(c => {
-    return c.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  });
-
-  // If DB doesn't have many known companies yet, inject some defaults so the footer isn't empty
-  if (activeCompanies.length < 12) {
-    const defaults = ["Zomato", "Swiggy", "Zerodha", "Zoho", "Paytm", "Delhivery", "Nykaa", "PolicyBazaar", "CarTrade", "MapmyIndia", "Freshworks", "Postman"];
-    activeCompanies = [...new Set([...activeCompanies, ...defaults])];
-  }
-
-  // Split into 4 columns
-  const colSize = Math.ceil(activeCompanies.length / 4);
-  const columns = [
-    { title: "Trending Companies", items: activeCompanies.slice(0, colSize) },
-    { title: "Active Startups", items: activeCompanies.slice(colSize, colSize * 2) },
-    { title: "Tech Ecosystem", items: activeCompanies.slice(colSize * 2, colSize * 3) },
-    { title: "Market Leaders", items: activeCompanies.slice(colSize * 3) }
-  ];
-
+  const topics = await getNavTopics();
+  const companies = ALL_COMPANIES.slice(0, 24);
 
   return (
-    <footer style={{ width: '100%', backgroundColor: '#030407', borderTop: '1px solid #27272a', textAlign: 'left', fontFamily: 'sans-serif' }}>
-      <div style={{ maxWidth: '1160px', margin: '0 auto', padding: '3rem 24px 2rem 24px' }}>
-        
-        {/* Dynamic Companies Section */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', borderBottom: '1px solid #27272a', paddingBottom: '3rem', marginBottom: '3rem' }}>
-          {columns.map((col, index) => (
-            col.items.length > 0 && (
-              <div key={index} style={{ textAlign: 'left' }}>
-                <h3 style={{ color: '#ffffff', fontWeight: 800, textTransform: 'uppercase', fontSize: '1.1rem', marginBottom: '1rem', letterSpacing: '0.5px' }}>
-                  {col.title}
-                </h3>
-                <ExpandableCompanyList companies={col.items} initialVisible={15} />
-              </div>
-            )
+    <footer className="border-t border-white/10 bg-[#0e0e11]">
+      <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
+          {topics.length > 0 ? (
+            <div>
+              <ColumnHeading>Topics</ColumnHeading>
+              {topics.slice(0, 10).map((t) => (
+                <FooterLink key={t.slug} href={'/news/category/' + t.slug}>
+                  {t.label}
+                </FooterLink>
+              ))}
+            </div>
+          ) : null}
+
+          <div>
+            <ColumnHeading>Companies</ColumnHeading>
+            <div className="grid grid-cols-2 gap-x-5 md:grid-cols-1">
+              {companies.slice(0, 10).map((name) => (
+                <FooterLink key={name} href={'/company/' + slugifyCompany(name)}>
+                  {name}
+                </FooterLink>
+              ))}
+            </div>
+          </div>
+
+          {FOOTER_LINKS.map((group) => (
+            <div key={group.title}>
+              <ColumnHeading>{group.title}</ColumnHeading>
+              {group.items.map((item) => (
+                <FooterLink key={item.label} href={item.href} soon={item.soon}>
+                  {item.label}
+                </FooterLink>
+              ))}
+            </div>
           ))}
-        </div>
 
-        {/* Main Footer Links */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3rem', justifyContent: 'space-between', paddingBottom: '3rem', borderBottom: '1px solid #27272a', marginBottom: '3rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', textAlign: 'left', minWidth: '130px' }}>
-            <h3 style={{ color: '#14b8a6', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.9rem', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>Media</h3>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>News</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>In-Depth</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Startup Spotlight</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Newsletter</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Resources</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Events</Link>
-          </div>
+          <div>
+            <ColumnHeading>The daily brief</ColumnHeading>
+            <p className="mb-4 text-sm leading-relaxed text-gray-400">
+              Startup, funding and AI news in a five-minute read.
+            </p>
+            {/* An honest link, not an input. There is no subscriber table in the
+                schema yet, so a form here would discard what the reader types. */}
+            <Link
+              href="/coming-soon"
+              className="inline-flex items-center gap-2 border border-teal-500/40 px-4 py-2 font-display text-[0.7rem] font-bold uppercase tracking-[0.12em] text-teal-400 transition-colors hover:bg-teal-500 hover:text-black"
+            >
+              Get the brief
+              <span aria-hidden="true">-&gt;</span>
+            </Link>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', textAlign: 'left', minWidth: '130px' }}>
-            <h3 style={{ color: '#14b8a6', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.9rem', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>Intel</h3>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Reports</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Data</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Analysis</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Insights</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Trends</Link>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', textAlign: 'left', minWidth: '130px' }}>
-            <h3 style={{ color: '#14b8a6', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.9rem', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>Company</h3>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>About Us</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Careers</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Contact</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Advertise</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Partnerships</Link>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', textAlign: 'left', minWidth: '130px' }}>
-            <h3 style={{ color: '#14b8a6', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.9rem', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>Legal</h3>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Privacy Policy</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Terms of Service</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Cookie Policy</Link>
-            <Link href="/coming-soon" style={{ color: '#a1a1aa', fontSize: '0.9rem', textDecoration: 'none' }}>Disclaimer</Link>
-          </div>
-
-          {/* Socials & Subscribe Placeholder */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: '200px' }}>
-             <h3 style={{ color: '#14b8a6', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.9rem', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>Stay Updated</h3>
-             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input type="email" placeholder="Your email address" style={{ backgroundColor: '#18181b', border: '1px solid #27272a', padding: '0.5rem 1rem', borderRadius: '4px', color: '#fff', fontSize: '0.9rem', outline: 'none', flex: 1 }} />
-                <button style={{ backgroundColor: '#14b8a6', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer' }}>Subscribe</button>
-             </div>
-             <p style={{ color: '#71717a', fontSize: '0.8rem', margin: 0 }}>Get the latest updates directly to your inbox.</p>
+            <ColumnHeading>
+              <span className="mt-8 block">Follow</span>
+            </ColumnHeading>
+            <div className="flex gap-4">
+              {SOCIAL_LINKS.map((s) => (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-gray-400 transition-colors hover:text-teal-400"
+                >
+                  {s.label}
+                </a>
+              ))}
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Copyright */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <p style={{ color: '#71717a', fontSize: '0.85rem', margin: 0 }}>
-            © {new Date().getFullYear()} SEO Toolkit by LazyFounders. All rights reserved.
+      {/* The masthead again, at scale: the reader leaves the page knowing whose
+          publication they were reading. */}
+      <div className="mx-auto max-w-7xl overflow-hidden px-4 sm:px-6 lg:px-8">
+        {/* Sized to bleed off the edge, clipped by the wrapper: without the clip
+            this single word widens the document and the whole page scrolls sideways. */}
+        <p className="select-none whitespace-nowrap border-t border-white/10 pt-10 font-display text-[13vw] font-extrabold uppercase leading-[0.8] tracking-[-0.045em] text-white/8 lg:text-[10.5rem]">
+          {BRAND}
+        </p>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-gray-500">
+          <p>
+            &copy; {new Date().getFullYear()} {BRAND}. All rights reserved.
           </p>
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <span style={{ color: '#71717a', fontSize: '0.85rem' }}>Built for scale.</span>
-          </div>
+          <p>AI-assisted reporting, human-reviewed, fully cited.</p>
         </div>
-
       </div>
     </footer>
   );
 }
+

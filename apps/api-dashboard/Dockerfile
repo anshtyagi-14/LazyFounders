@@ -17,7 +17,7 @@ RUN npm config set fetch-retry-maxtimeout 1200000 && \
 # Generate Prisma client
 # Assuming the Prisma schema is located in one of these directories. 
 # We'll generate it where it's used.
-RUN npx prisma generate --schema=apps/api-dashboard/prisma/schema.prisma || true
+RUN npx prisma generate --schema=packages/database/prisma/schema.prisma || true
 
 # Build the workspace (Next.js will output to .next/standalone)
 RUN npm run build --workspaces --if-present

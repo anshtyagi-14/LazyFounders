@@ -15,7 +15,7 @@ RUN npm config set fetch-retry-maxtimeout 1200000 && \
     npm ci --no-audit --no-fund --prefer-offline
 
 # Generate Prisma client for discovery-service (often needed if there's shared code)
-RUN npx prisma generate --schema=apps/discovery-service/prisma/schema.prisma || true
+RUN npx prisma generate --schema=packages/database/prisma/schema.prisma || true
 
 # Build the workspace
 RUN npm run build --workspaces --if-present
@@ -42,7 +42,7 @@ COPY --from=builder /app/apps/scraper-service/node_module[s] ./apps/scraper-serv
 
 
 # (Optional) Copy Prisma schema if scraper directly uses it, otherwise it relies on packages
-COPY --from=builder /app/apps/discovery-service/prisma ./apps/discovery-service/prisma
+COPY --from=builder /app/packages/database/prisma ./packages/database/prisma
 
 EXPOSE 3002
 

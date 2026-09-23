@@ -1,0 +1,40 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "UploadBuildSource",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:GetObject"],
+      "Resource": "arn:aws:s3:::lazyfounders-build-source-248746142729/*"
+    },
+    {
+      "Sid": "RunBuilds",
+      "Effect": "Allow",
+      "Action": [
+        "codebuild:StartBuild",
+        "codebuild:BatchGetBuilds",
+        "codebuild:BatchGetProjects",
+        "codebuild:ListBuildsForProject",
+        "codebuild:StopBuild"
+      ],
+      "Resource": "arn:aws:codebuild:ap-south-1:248746142729:project/lazyfounders-build"
+    },
+    {
+      "Sid": "ReadBuildLogs",
+      "Effect": "Allow",
+      "Action": ["logs:GetLogEvents", "logs:DescribeLogStreams", "logs:DescribeLogGroups"],
+      "Resource": "arn:aws:logs:ap-south-1:248746142729:log-group:/aws/codebuild/lazyfounders-build*"
+    },
+    {
+      "Sid": "WatchRollout",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:DescribeServices",
+        "ecs:DescribeTasks",
+        "ecs:ListTasks",
+        "ecs:UpdateService"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

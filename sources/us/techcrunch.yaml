@@ -1,0 +1,36 @@
+# TechCrunch (US). Starter entry: run `npm run sources:verify -- techcrunch`, review robots.txt
+# and the publisher's terms, then approve in /admin/sources (or set trustStatus/active here).
+key: techcrunch
+name: TechCrunch
+country: US
+defaultLanguage: en
+trustStatus: APPROVED
+active: true
+priority: 5
+domains:
+  primary: techcrunch.com
+  aliases: []
+  assets: []
+discovery:
+  methods: [rss]
+  sitemaps: []
+  feeds: [https://techcrunch.com/feed/]
+  crawlIntervalMinutes: 30
+  maxArticlesPerScan: 40
+  recencyWindowHours: 48
+  includePatterns: []
+  excludePatterns: []
+fetch:
+  rateLimitPerMinute: 12
+  renderPolicy: never
+  robotsRequired: true
+adapter: null
+translation:
+  mode: if_different
+  targetLanguage: null
+publishing:
+  mode: AUTO
+  minConfidence: 0.85
+imagePolicy: link_with_credit
+paywall: none
+notes: "Global startup and venture news."

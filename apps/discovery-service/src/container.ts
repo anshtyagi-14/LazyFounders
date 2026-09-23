@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
 import { loadConfig, type AppConfig } from '@lazyfounders/config';
 import { createLogger } from '@lazyfounders/logger';
@@ -29,7 +29,7 @@ export async function createContainer(): Promise<Container> {
 
   // Log slow queries in development
   if (config.app.nodeEnv === 'development') {
-    prisma.$on('query' as never, (e: Prisma.QueryEvent) => {
+    prisma.$on('query' as never, (e: any) => {
       if (e.duration > 100) {
         logger.warn({ duration: e.duration, query: e.query }, 'Slow query detected');
       }

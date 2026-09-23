@@ -1,140 +1,83 @@
 import React from "react";
-import { prisma } from "../../../../lib/prisma";
+import Link from "next/link";
+import type { Metadata } from "next";
 import { ArticleCard } from "../../../../components/ArticleCard";
-import type { ArticleProps } from "../../../../components/FeaturedCard";
+import { JsonLd } from "../../../../components/JsonLd";
+import { listCategories, listPublishedArticles, slugifyCategory, toArticleProps } from "@/lib/articles";
+import { BRAND, collectionPageSchema, ogImageUrl, pageMetadata } from "@/lib/seo";
 
 export const dynamic = 'force-dynamic';
 
-function mapDbToArticleProps(dbArticle: any): ArticleProps {
-  const scrapeResult = dbArticle.intelligenceResult?.categorization?.scrapeResult;
-  
-  let publishedDate = 'Unknown Date';
-  if (scrapeResult?.publishedDate) {
-    publishedDate = new Date(scrapeResult.publishedDate).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  } else {
-    publishedDate = new Date(dbArticle.createdAt).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  }
+type Props = { params: Promise<{ category: string }> };
 
-  const authorName = scrapeResult?.author || 'Unknown Author';
-  
-  let authorInitials = 'AN';
-  if (authorName !== 'Unknown Author') {
-    const parts = authorName.split(' ');
-    if (parts.length >= 2) {
-      authorInitials = (parts[0][0] + parts[1][0]).toUpperCase();
-    } else {
-      authorInitials = authorName.substring(0, 2).toUpperCase();
-    }
-  }
-
-  // Handle Image URL
-  let imageUrl = dbArticle.headerImage;
-
-  // Fallback to original scraped image if S3 watermarked image is missing
-  if (!imageUrl && scrapeResult) {
-    if (scrapeResult.openGraph && (scrapeResult.openGraph as any)['og:image']) {
-      imageUrl = (scrapeResult.openGraph as any)['og:image'];
-    } else if (scrapeResult.images) {
-      let parsedImages = scrapeResult.images;
-      if (typeof parsedImages === 'string') {
-        try { parsedImages = JSON.parse(parsedImages); } catch (e) {}
-      }
-      if (Array.isArray(parsedImages) && parsedImages.length > 0) {
-        imageUrl = parsedImages[0].src || parsedImages[0];
-      }
-    }
-  }
-
-  const displayImage = imageUrl || '/placeholder.jpg';
-
-  return {
-    url: `/news/article/${dbArticle.slug}`,
-    imageUrl: displayImage,
-    category: dbArticle.intelligenceResult?.categorization?.primaryCategory || 'Technology',
-    title: dbArticle.seoTitle,
-    description: dbArticle.metaDescription,
-    authorInitials,
-    authorName,
-    readTime: scrapeResult?.readingTimeMin ? Math.round(scrapeResult.readingTimeMin) : 5,
-    publishedDate
-  };
+/** Resolve the slug back to the stored category label and its published stories. */
+async function loadCategory(params: Props["params"]) {
+  const resolvedParams = await params;
+  const urlCategory = decodeURIComponent(resolvedParams.category);
+  const [categories, published] = await Promise.all([
+    listCategories(),
+    listPublishedArticles({ category: urlCategory, take: 60 }),
+  ]);
+  const name = categories.find((c) => slugifyCategory(c) === urlCategory) || urlCategory.replace(/-/g, ' ');
+  return { urlCategory, categories, published, name };
 }
 
-export default async function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
-  const resolvedParams = await params;
-  const decodedCategory = decodeURIComponent(resolvedParams.category).replace(/-/g, ' ');
-  
-  // Fetch all articles to generate the sticky nav categories
-  const allDbArticles = await prisma.originalContent.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: {
-      intelligenceResult: {
-        include: {
-          categorization: {
-            include: {
-              scrapeResult: true
-            }
-          }
-        }
-      }
-    }
+function titleCase(s: string): string {
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { urlCategory, published, name } = await loadCategory(params);
+  const label = titleCase(name);
+  const lead = published[0]?.headline;
+  return pageMetadata({
+    title: `${label} news — funding, launches and analysis`,
+    description: published.length
+      ? `${published.length} ${label} ${published.length === 1 ? 'story' : 'stories'} on ${BRAND}${lead ? `, including “${lead}”` : ''}. Updated continuously with cited reporting.`
+      : `${label} coverage on ${BRAND}. New stories are published as our newsroom pipeline verifies them.`,
+    path: `/news/category/${urlCategory}`,
+    image: published[0]?.featuredImage?.url ?? ogImageUrl({ title: `${label} news`, kicker: 'Category', meta: `${published.length} stories` }),
+    keywords: [label, `${label} news`, `${label} startups`, `${label} funding`],
+    // An empty category is thin content: keep it crawlable but out of the index.
+    index: published.length > 0,
   });
+}
 
-  const allArticles = allDbArticles.map(mapDbToArticleProps);
-  const categories = Array.from(new Set(allArticles.map(a => a.category)));
+export default async function CategoryPage({ params }: Props) {
+  const { urlCategory, categories, published, name } = await loadCategory(params);
+  const categoryArticles = published.map(toArticleProps);
+  const actualCategoryName = name;
 
-  const urlCategory = resolvedParams.category;
-  
-  // Filter articles for this specific category (by matching URL slug)
-  const categoryArticles = allArticles.filter(
-    a => a.category.toLowerCase().replace(/[^a-z0-9]+/g, '-') === urlCategory
-  );
-  
-  // Find the actual display name of the category for the title
-  const actualCategoryName = categories.find(
-    c => c.toLowerCase().replace(/[^a-z0-9]+/g, '-') === urlCategory
-  ) || decodedCategory;
-  
   const isEmpty = categoryArticles.length === 0;
+
+  const schema = collectionPageSchema({
+    path: `/news/category/${urlCategory}`,
+    name: `${titleCase(actualCategoryName)} news`,
+    description: `Latest ${actualCategoryName} reporting from ${BRAND}.`,
+    crumbs: [
+      { name: "Home", path: "/" },
+      { name: titleCase(actualCategoryName), path: `/news/category/${urlCategory}` },
+    ],
+    entries: published.map((a) => ({ path: `/news/article/${a.slug}`, name: a.headline })),
+  });
 
   return (
     <div className="App min-h-screen flex flex-col bg-white dark:bg-gray-950">
-      <nav
-        className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-[#05070A] border-b border-slate-100 dark:border-gray-800"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative flex items-center justify-between h-16">
-            <a className="flex items-center space-x-2" href="/">
-              <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                blogy
-              </span>
-            </a>
-          </div>
-        </div>
-      </nav>
-
-      <div className="flex-1 mt-16">
-        <div className="border-b border-gray-200 dark:border-gray-800 sticky top-16 bg-white dark:bg-gray-950 z-40">
+      <JsonLd data={schema} />
+      <div className="flex-1">
+        <div className="border-b border-gray-200 dark:border-gray-800 sticky top-[var(--header-h)] bg-white dark:bg-gray-950 z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide py-4">
-              <a
+              <Link
                 className="flex items-center space-x-2 px-4 py-2 rounded-full whitespace-nowrap transition-all bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                 href="/"
               >
                 <span className="text-sm font-medium">All Posts</span>
-              </a>
+              </Link>
               {categories.map((cat, idx) => {
                 const isActive = cat.toLowerCase().replace(/[^a-z0-9]+/g, '-') === urlCategory;
                 return (
-                  <a
+                  <Link
                     key={idx}
                     className={`flex items-center space-x-2 px-4 py-2 rounded-full whitespace-nowrap transition-all ${
                       isActive 
@@ -144,7 +87,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
                     href={`/news/category/${cat.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
                   >
                     <span className="text-sm font-medium">{cat}</span>
-                  </a>
+                  </Link>
                 );
               })}
             </div>
@@ -153,11 +96,14 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="mb-8">
-            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-2 capitalize">
+            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2 capitalize">
               {actualCategoryName} Stories
-            </h2>
+            </h1>
             <p className="text-xl text-slate-600 dark:text-gray-400 max-w-3xl">
-              Latest news and trends from the {actualCategoryName} space.
+              {/* A direct, snippet-sized answer to "what is on this page?" for answer engines. */}
+              {actualCategoryName} news on {BRAND}: {categoryArticles.length}{" "}
+              {categoryArticles.length === 1 ? "story" : "stories"} covering funding rounds,
+              product launches and analysis, each one written from cited primary sources.
             </p>
           </div>
 

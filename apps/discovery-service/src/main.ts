@@ -36,6 +36,9 @@ import { sourceRoutes } from './api/source-routes.js';
 import { metricsPlugin } from './plugins/metrics.js';
 import { tracingPlugin } from './plugins/tracing.js';
 import type { IFetchStrategy } from './fetcher/types.js';
+import { internalAuthPlugin } from './plugins/internal-auth.js';
+import { v2Routes } from './api/v2-routes.js';
+import { STAGES, isLegacyPipelineEnabled, isPipelineV2Enabled, startPipelineRuntime, type PipelineRuntime } from '@lazyfounders/ingestion-core';
 
 async function main(): Promise<void> {
   const container = await createContainer();
@@ -134,20 +137,37 @@ async function main(): Promise<void> {
 
   // 7. Server Setup
   const server = await createServer(container, discoveryEngine);
-  
+
+  // v2 pipeline (feature flagged): discovery stage workers + scheduler + outbox dispatcher.
+  let runtime: PipelineRuntime | null = null;
+  if (isPipelineV2Enabled()) {
+    runtime = await startPipelineRuntime({
+      service: 'discovery-service',
+      defaultStages: [STAGES.DISCOVER],
+      prisma: prisma as any,
+      logger,
+      scheduler: true,
+    });
+  }
+
+  await server.register(internalAuthPlugin);
   await server.register(metricsPlugin);
   await server.register(tracingPlugin);
   await server.register(sourceRoutes, { pipelineOrchestrator, prisma });
+  await server.register(v2Routes, { prisma, runtime });
 
-  // Start scheduler
-  cronScheduler.start();
+  // Legacy scheduler (URL-only categorisation pipeline) until cutover.
+  const legacyEnabled = isLegacyPipelineEnabled();
+  if (legacyEnabled) cronScheduler.start();
+  logger.info({ legacyPipeline: legacyEnabled, pipelineV2: Boolean(runtime) }, 'Pipelines configured');
 
   // Graceful shutdown handler
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, 'Shutdown signal received');
 
     try {
-      cronScheduler.stop(); // Assuming a stop method exists
+      if (legacyEnabled) cronScheduler.stop();
+      await runtime?.close();
 
       await server.close();
       logger.info('HTTP server closed');

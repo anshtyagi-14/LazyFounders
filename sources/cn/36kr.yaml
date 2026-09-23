@@ -1,0 +1,36 @@
+# 36Kr (CN). Starter entry: run `npm run sources:verify -- 36kr`, review robots.txt
+# and the publisher's terms, then approve in /admin/sources (or set trustStatus/active here).
+key: 36kr
+name: 36Kr
+country: CN
+defaultLanguage: zh
+trustStatus: PENDING
+active: false
+priority: 5
+domains:
+  primary: 36kr.com
+  aliases: []
+  assets: []
+discovery:
+  methods: [rss]
+  sitemaps: []
+  feeds: [https://36kr.com/feed]
+  crawlIntervalMinutes: 30
+  maxArticlesPerScan: 40
+  recencyWindowHours: 48
+  includePatterns: []
+  excludePatterns: []
+fetch:
+  rateLimitPerMinute: 12
+  renderPolicy: never
+  robotsRequired: true
+adapter: null
+translation:
+  mode: if_different
+  targetLanguage: null
+publishing:
+  mode: MANUAL
+  minConfidence: 0.85
+imagePolicy: link_with_credit
+paywall: none
+notes: "Chinese tech and venture news (Chinese language). Verify robots.txt and terms before approval."

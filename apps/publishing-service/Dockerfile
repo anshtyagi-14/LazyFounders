@@ -15,7 +15,7 @@ RUN npm config set fetch-retry-maxtimeout 1200000 && \
     npm ci --no-audit --no-fund --prefer-offline
 
 # Generate Prisma client for discovery-service (the schema lives here)
-RUN npx prisma generate --schema=apps/discovery-service/prisma/schema.prisma || true
+RUN npx prisma generate --schema=packages/database/prisma/schema.prisma || true
 
 # Build the workspace
 RUN npm run build --workspaces --if-present
@@ -43,7 +43,7 @@ COPY --from=builder --chown=appuser:appgroup /app/apps/publishing-service/packag
 COPY --from=builder --chown=appuser:appgroup /app/apps/publishing-service/dist ./apps/publishing-service/dist
 COPY --from=builder --chown=appuser:appgroup /app/apps/publishing-service/node_module[s] ./apps/publishing-service/node_modules
 
-COPY --from=builder --chown=appuser:appgroup /app/apps/discovery-service/prisma ./apps/discovery-service/prisma
+COPY --from=builder --chown=appuser:appgroup /app/packages/database/prisma ./packages/database/prisma
 
 EXPOSE 3005
 

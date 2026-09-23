@@ -1,6 +1,7 @@
 'use server';
 
 import { Queue } from 'bullmq';
+import { internalHeaders } from '@/lib/internal';
 import { Redis } from 'ioredis';
 import { PrismaClient } from '@prisma/client';
 
@@ -169,7 +170,8 @@ export async function triggerDiscovery(url: string) {
 
     const discoveryServiceUrl = process.env.DISCOVERY_SERVICE_URL || 'http://localhost:3001';
     await fetch(`${discoveryServiceUrl}/sources/${source.id}/discover`, {
-      method: 'POST'
+      method: 'POST',
+      headers: internalHeaders(),
     });
 
     return {

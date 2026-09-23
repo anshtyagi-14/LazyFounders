@@ -5,6 +5,8 @@ import { createLogger } from '@lazyfounders/logger';
 import { Redis } from 'ioredis';
 import { PrismaClient } from '@prisma/client';
 import { Queue } from 'bullmq';
+import { STAGES, isLegacyPipelineEnabled, isPipelineV2Enabled, startPipelineRuntime, type PipelineRuntime } from '@lazyfounders/ingestion-core';
+import { PlaywrightRenderer } from './scraper/v2-renderer.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -30,7 +32,21 @@ async function main(): Promise<void> {
   });
 
   // Start Background Worker
-  const scraperWorker = new ScraperWorker(workerRedis as any, prisma, logger as any);
+  // Legacy worker until cutover (LEGACY_PIPELINE_ENABLED=false disables it).
+  const scraperWorker = isLegacyPipelineEnabled() ? new ScraperWorker(workerRedis as any, prisma, logger as any) : null;
+
+  // v2 pipeline: HTTP-first scraping + normalisation; headless rendering only for sources that require it.
+  let runtime: PipelineRuntime | null = null;
+  const renderer = new PlaywrightRenderer();
+  if (isPipelineV2Enabled()) {
+    runtime = await startPipelineRuntime({
+      service: 'scraper-service',
+      defaultStages: [STAGES.SCRAPE, STAGES.NORMALIZE],
+      prisma: prisma as any,
+      logger: logger as any,
+      renderer,
+    });
+  }
 
   // Start HTTP API
   const server = await createServer(logger as any, scraperQueue);
@@ -39,7 +55,9 @@ async function main(): Promise<void> {
   const shutdown = async (signal: string) => {
     logger.info({ signal }, 'Shutdown signal received');
     try {
-      await scraperWorker.close();
+      await scraperWorker?.close();
+      await runtime?.close();
+      await renderer.close();
       await server.close();
       await scraperQueue.close();
       await prisma.$disconnect();

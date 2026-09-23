@@ -1,0 +1,36 @@
+# Entrackr (IN). Starter entry: run `npm run sources:verify -- entrackr`, review robots.txt
+# and the publisher's terms, then approve in /admin/sources (or set trustStatus/active here).
+key: entrackr
+name: Entrackr
+country: IN
+defaultLanguage: en
+trustStatus: PENDING
+active: false
+priority: 5
+domains:
+  primary: entrackr.com
+  aliases: []
+  assets: []
+discovery:
+  methods: [rss]
+  sitemaps: []
+  feeds: [https://entrackr.com/feed/]
+  crawlIntervalMinutes: 30
+  maxArticlesPerScan: 40
+  recencyWindowHours: 48
+  includePatterns: []
+  excludePatterns: []
+fetch:
+  rateLimitPerMinute: 12
+  renderPolicy: never
+  robotsRequired: true
+adapter: null
+translation:
+  mode: if_different
+  targetLanguage: null
+publishing:
+  mode: MANUAL
+  minConfidence: 0.85
+imagePolicy: link_with_credit
+paywall: none
+notes: "Indian startup funding and financials."

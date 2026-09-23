@@ -122,3 +122,9 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+# Prisma client generated into the dashboard from packages/database
+apps/api-dashboard/src/generated/
+
+# Local raw snapshot store (SNAPSHOT_STORAGE=fs)
+**/data/snapshots/

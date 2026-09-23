@@ -6,7 +6,21 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
+    "rootDir": "./src",
     "outDir": "./dist"
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ],
+  "references": [
+    {
+      "path": "../../packages/ingestion-core"
+    },
+    {
+      "path": "../../packages/database"
+    },
+    {
+      "path": "../../packages/llm"
+    }
+  ]
 }

@@ -60,7 +60,7 @@ export class IntelligenceWorker {
 
   private async processJob(job: Job<IntelligenceJobData>): Promise<void> {
     const { categorizationResultId } = job.data;
-    
+
     if (!categorizationResultId) {
       throw new Error('categorizationResultId is required in job data');
     }
@@ -90,7 +90,7 @@ export class IntelligenceWorker {
     }
 
     // --- PHASE 1: DEDUPLICATION ---
-    
+
     // Fetch last 20 original contents in this category to check for duplicates
     const recentOriginals = await this.prisma.originalContent.findMany({
       where: {
@@ -111,14 +111,14 @@ export class IntelligenceWorker {
       }
     });
 
-    const recentArticlesForLlm = recentOriginals.map(ro => ({
+    const recentArticlesForLlm = recentOriginals.map((ro: any) => ({
       id: ro.intelligenceResultId, // Using intelligence ID as reference
       title: ro.seoTitle,
       summary: ro.intelligenceResult.categorization.summary || ''
     }));
 
     jobLogger.debug(`Checking deduplication against ${recentArticlesForLlm.length} recent articles in category ${primaryCategory}`);
-    
+
     const dedupResult = await this.bedrockClient.checkDuplicate(
       scrapeResult.title || 'Untitled',
       summary,
@@ -154,9 +154,9 @@ export class IntelligenceWorker {
 
     // --- PHASE 3: EXTRACT & WATERMARK IMAGE ---
     let headerImageUrl = null;
-    
-    jobLogger.debug({ 
-      openGraph: scrapeResult.openGraph, 
+
+    jobLogger.debug({
+      openGraph: scrapeResult.openGraph,
       images: scrapeResult.images,
       imagesIsArray: Array.isArray(scrapeResult.images)
     }, 'Extracting header image from scrape result');
@@ -167,14 +167,14 @@ export class IntelligenceWorker {
         headerImageUrl = og['og:image'];
       }
     }
-    
+
     if (!headerImageUrl && scrapeResult.images) {
       // Prisma JSON fields might come back as strings if poorly parsed, or objects
       let parsedImages = scrapeResult.images;
       if (typeof parsedImages === 'string') {
-        try { parsedImages = JSON.parse(parsedImages); } catch (e) {}
+        try { parsedImages = JSON.parse(parsedImages); } catch (e) { }
       }
-      
+
       if (Array.isArray(parsedImages) && parsedImages.length > 0) {
         const imagesArr = parsedImages as any[];
         headerImageUrl = imagesArr[0].src || imagesArr[0];

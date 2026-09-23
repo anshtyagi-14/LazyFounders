@@ -1,0 +1,66 @@
+version: 0.2
+
+# CodeBuild spec for LazyFounders. Builds all six service images, pushes them to
+# ECR tagged with the commit sha and `latest`, then forces a new ECS deployment.
+#
+# Required project env vars: AWS_ACCOUNT_ID, AWS_DEFAULT_REGION, ECS_CLUSTER.
+# Requires privilegedMode: true (Docker-in-Docker).
+
+env:
+  variables:
+    ECS_CLUSTER: lazyfounders-cluster
+    # dir:ecr-repo:ecs-service
+    SERVICES: >-
+      api-dashboard:lf-api-dashboard:lf-api-dashboard-task-service
+      discovery-service:lf-discovery-service:lf-discovery-service-task
+      scraper-service:lf-scraper-service:lf-scraper-service-task
+      categorization-service:lf-categorization-service:lf-categorization-service
+      intelligence-service:lf-intelligence-service:lf-intelligence-service-task
+      publishing-service:lf-publishing-service:lf-publishing-service-task
+
+phases:
+  pre_build:
+    commands:
+      - REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
+      - TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:-$CODEBUILD_BUILD_NUMBER}"
+      - TAG="${TAG:0:12}"
+      - echo "Building tag $TAG into $REGISTRY"
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$REGISTRY"
+
+  build:
+    commands:
+      - |
+        set -e
+        for entry in $SERVICES; do
+          IFS=':' read -r APP_DIR REPO _SVC <<< "$entry"
+          echo "===== build $APP_DIR ====="
+          docker build -t "$REPO:$TAG" -f "apps/$APP_DIR/Dockerfile" .
+          docker tag "$REPO:$TAG" "$REGISTRY/$REPO:$TAG"
+          docker tag "$REPO:$TAG" "$REGISTRY/$REPO:latest"
+        done
+
+  post_build:
+    commands:
+      # Push only after every image built, so a late failure cannot leave a
+      # half-updated set of `latest` tags in ECR.
+      - |
+        set -e
+        for entry in $SERVICES; do
+          IFS=':' read -r _DIR REPO _SVC <<< "$entry"
+          echo "===== push $REPO ====="
+          docker push "$REGISTRY/$REPO:$TAG"
+          docker push "$REGISTRY/$REPO:latest"
+        done
+      - |
+        set -e
+        if [ "${SKIP_ECS_DEPLOY:-false}" = "true" ]; then
+          echo "SKIP_ECS_DEPLOY=true - images pushed, not deploying."
+          exit 0
+        fi
+        for entry in $SERVICES; do
+          IFS=':' read -r _DIR _REPO SVC <<< "$entry"
+          echo "===== deploy $SVC ====="
+          aws ecs update-service --cluster "$ECS_CLUSTER" --service "$SVC" \
+            --force-new-deployment --query 'service.serviceName' --output text
+        done
+      - echo "Deployed tag $TAG"

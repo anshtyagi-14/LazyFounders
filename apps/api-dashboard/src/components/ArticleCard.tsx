@@ -1,12 +1,13 @@
 import React from 'react';
-import type { ArticleProps } from './FeaturedCard';
+import { cardLinkProps, type ArticleProps } from './FeaturedCard';
 import { SafeImage } from './SafeImage';
+import { BrandBadge } from './BrandBadge';
 
 export function ArticleCard({ article }: { article: ArticleProps }) {
   return (
     <a
       className="group bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-800 block flex flex-col h-full"
-      href={article.url}
+      {...cardLinkProps(article)}
     >
       <div className="relative h-48 overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0">
         <SafeImage
@@ -14,6 +15,7 @@ export function ArticleCard({ article }: { article: ArticleProps }) {
           alt={article.title}
           className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
         />
+        <BrandBadge />
         <div className="absolute top-4 left-4">
           <div className="flex items-center space-x-1 bg-white dark:bg-gray-900 px-3 py-1 rounded-full text-xs font-medium shadow-lg">
             <svg
@@ -60,6 +62,9 @@ export function ArticleCard({ article }: { article: ArticleProps }) {
               </p>
             </div>
           </div>
+          {article.external ? (
+            <span className="text-sm font-medium text-teal-600 dark:text-teal-400 shrink-0">Read at source ↗</span>
+          ) : (
           <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-500 shrink-0">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -78,6 +83,7 @@ export function ArticleCard({ article }: { article: ArticleProps }) {
             </svg>
             <span className="text-sm">{article.readTime} min</span>
           </div>
+          )}
         </div>
       </div>
     </a>

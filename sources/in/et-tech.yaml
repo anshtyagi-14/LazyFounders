@@ -1,0 +1,36 @@
+# ET Tech (The Economic Times) (IN). Starter entry: run `npm run sources:verify -- et-tech`, review robots.txt
+# and the publisher's terms, then approve in /admin/sources (or set trustStatus/active here).
+key: et-tech
+name: ET Tech (The Economic Times)
+country: IN
+defaultLanguage: en
+trustStatus: PENDING
+active: false
+priority: 5
+domains:
+  primary: economictimes.indiatimes.com
+  aliases: []
+  assets: []
+discovery:
+  methods: [rss]
+  sitemaps: []
+  feeds: [https://economictimes.indiatimes.com/tech/rssfeeds/13357270.cms]
+  crawlIntervalMinutes: 30
+  maxArticlesPerScan: 40
+  recencyWindowHours: 48
+  includePatterns: []
+  excludePatterns: []
+fetch:
+  rateLimitPerMinute: 12
+  renderPolicy: never
+  robotsRequired: true
+adapter: null
+translation:
+  mode: if_different
+  targetLanguage: null
+publishing:
+  mode: MANUAL
+  minConfidence: 0.85
+imagePolicy: link_with_credit
+paywall: metered
+notes: "Technology section of The Economic Times. ET Prime stories are paywalled and skipped."
