@@ -1,22 +1,23 @@
-# Tech.eu (BE). Feed verified 2026-09-23: HTTP 200, 20 items, latest same day;
+# MIT Technology Review (US). Feed verified 2026-09-23: HTTP 200, items present,
 # robots.txt has no blanket disallow for the default user-agent.
-key: tech-eu
-name: Tech.eu
-country: BE
+key: technologyreview
+name: MIT Technology Review
+country: US
 defaultLanguage: en
 trustStatus: APPROVED
 active: true
 priority: 5
 domains:
-  primary: tech.eu
+  primary: technologyreview.com
   aliases: []
   assets: []
 discovery:
   methods: [rss]
   sitemaps: []
-  feeds: [https://tech.eu/feed/]
-  crawlIntervalMinutes: 30
-  maxArticlesPerScan: 40
+  feeds:
+    - https://www.technologyreview.com/feed/
+  crawlIntervalMinutes: 60
+  maxArticlesPerScan: 15
   recencyWindowHours: 48
   includePatterns: []
   excludePatterns: []
@@ -24,6 +25,7 @@ fetch:
   rateLimitPerMinute: 12
   renderPolicy: never
   robotsRequired: true
+  contentSource: page
 adapter: null
 translation:
   mode: if_different
@@ -32,5 +34,5 @@ publishing:
   mode: AUTO
   minConfidence: 0.85
 imagePolicy: link_with_credit
-paywall: none
-notes: "European tech and funding news."
+paywall: metered
+notes: "AI and emerging-technology analysis."

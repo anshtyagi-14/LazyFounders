@@ -1,29 +1,32 @@
-# Tech.eu (BE). Feed verified 2026-09-23: HTTP 200, 20 items, latest same day;
+# Mint (Technology) (IN). Feed verified 2026-09-23: HTTP 200, items present,
 # robots.txt has no blanket disallow for the default user-agent.
-key: tech-eu
-name: Tech.eu
-country: BE
+key: livemint-tech
+name: Mint (Technology)
+country: IN
 defaultLanguage: en
 trustStatus: APPROVED
 active: true
 priority: 5
 domains:
-  primary: tech.eu
+  primary: livemint.com
   aliases: []
   assets: []
 discovery:
   methods: [rss]
   sitemaps: []
-  feeds: [https://tech.eu/feed/]
-  crawlIntervalMinutes: 30
-  maxArticlesPerScan: 40
-  recencyWindowHours: 48
+  feeds:
+    - https://www.livemint.com/rss/technology
+    - https://www.livemint.com/rss/companies
+  crawlIntervalMinutes: 20
+  maxArticlesPerScan: 30
+  recencyWindowHours: 24
   includePatterns: []
   excludePatterns: []
 fetch:
   rateLimitPerMinute: 12
   renderPolicy: never
   robotsRequired: true
+  contentSource: page
 adapter: null
 translation:
   mode: if_different
@@ -32,5 +35,5 @@ publishing:
   mode: AUTO
   minConfidence: 0.85
 imagePolicy: link_with_credit
-paywall: none
-notes: "European tech and funding news."
+paywall: metered
+notes: "Indian business and technology news from Mint."

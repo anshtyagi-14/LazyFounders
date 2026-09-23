@@ -1,11 +1,11 @@
-# Sifted (GB). Starter entry: run `npm run sources:verify -- sifted`, review robots.txt
-# and the publisher's terms, then approve in /admin/sources (or set trustStatus/active here).
+# Sifted (GB). Feed verified 2026-09-23: HTTP 200, 24 items, latest same day; robots.txt
+# has no blanket disallow. Pro articles are metered, so publishing stays MANUAL.
 key: sifted
 name: Sifted
 country: GB
 defaultLanguage: en
-trustStatus: PENDING
-active: false
+trustStatus: APPROVED
+active: true
 priority: 5
 domains:
   primary: sifted.eu

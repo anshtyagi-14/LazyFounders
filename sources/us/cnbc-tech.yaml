@@ -1,0 +1,39 @@
+# CNBC Technology (US). Feed verified 2026-09-23: HTTP 200, items present,
+# robots.txt has no blanket disallow for the default user-agent.
+key: cnbc-tech
+name: CNBC Technology
+country: US
+defaultLanguage: en
+trustStatus: APPROVED
+active: true
+priority: 5
+domains:
+  primary: cnbc.com
+  aliases: []
+  assets: []
+discovery:
+  methods: [rss]
+  sitemaps: []
+  feeds:
+    - https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19854910
+    - https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10001147
+  crawlIntervalMinutes: 20
+  maxArticlesPerScan: 30
+  recencyWindowHours: 24
+  includePatterns: []
+  excludePatterns: []
+fetch:
+  rateLimitPerMinute: 12
+  renderPolicy: never
+  robotsRequired: true
+  contentSource: page
+adapter: null
+translation:
+  mode: if_different
+  targetLanguage: null
+publishing:
+  mode: AUTO
+  minConfidence: 0.85
+imagePolicy: link_with_credit
+paywall: none
+notes: "CNBC technology and business headlines (two feeds: tech and business)."
