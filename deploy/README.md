@@ -68,6 +68,33 @@ twice — once onto the new images with the old environment, and again in step 3
 deploying. It tags each image with the commit sha as well as `latest`, so a
 rollback is `aws ecs update-service --task-definition <family>:<older-revision>`.
 
+## Domain and HTTPS
+
+`lazyfounder.in` is being moved from GoDaddy DNS to Route53 by
+`deploy/route53-setup.sh`. The zone, the certificate request and the records
+already exist:
+
+| | |
+|---|---|
+| Hosted zone | `Z005056223VN82AG864O2` |
+| Certificate | `.../certificate/d94691a8-aa80-416f-b527-3a0619fcdfa4` (ap-south-1) |
+
+Nothing is live yet. The domain still resolves through GoDaddy, so the
+certificate sits in `PENDING_VALIDATION`. To finish:
+
+1. Set these nameservers on `lazyfounder.in` at GoDaddy:
+   `ns-584.awsdns-09.net`, `ns-1767.awsdns-28.co.uk`, `ns-374.awsdns-46.com`,
+   `ns-1364.awsdns-42.org`
+2. Wait for the certificate to validate, then re-run the script without
+   `--dns-only` to add the HTTPS listener and the 80 to 443 redirect.
+3. Point the app at the domain in `deploy/.env.production`
+   (`NEXT_PUBLIC_SITE_URL`, `REVALIDATE_URL`) and run
+   `node deploy/update-task-defs.mjs --deploy`.
+
+Credentials are split on this account: `route53` and `acm` need the `dhando-dev`
+keys, `elasticloadbalancing` needs `github-action`. Pass the latter as
+`ELB_AWS_PROFILE`, or skip the lookup with `ALB_DNS` and `ALB_ZONE`.
+
 ## First deploy against an existing database
 
 A database that predates Prisma migrations has no `_prisma_migrations` table.
