@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Build all six service images on a throwaway EC2 host and push them to ECR.
 #
+# The ECS cluster runs on Graviton (t4g.medium), so the build host and the AMI
+# must both be arm64 - an x86 image will not run on it at all.
+#
 # For accounts where CodeBuild is not available and there is no local Docker.
 # The instance terminates itself when the build finishes or fails.
 #
@@ -23,11 +26,11 @@ SRC_BUCKET="${SRC_BUCKET:-lazyfounders-blog-images}"
 SRC_KEY="${SRC_KEY:-_build/source.zip}"
 
 AMI_ID="${AMI_ID:-}"
-INSTANCE_TYPE="${INSTANCE_TYPE:-c6a.2xlarge}"
+INSTANCE_TYPE="${INSTANCE_TYPE:-c7g.2xlarge}"
 SUBNET_ID="${SUBNET_ID:-}"
 VOLUME_GB="${VOLUME_GB:-80}"
 
-SITE_URL="${SITE_URL:-http://lf-dashboard-alb-613434669.ap-south-1.elb.amazonaws.com}"
+SITE_URL="${SITE_URL:-https://lazyfounder.in}"
 
 cd "$(dirname "$0")/.."
 
@@ -70,7 +73,7 @@ ECR_TOKEN="$(aws ecr get-authorization-token --region "$AWS_REGION" \
 # --- instance placement ------------------------------------------------------
 if [ -z "$AMI_ID" ]; then
   AMI_ID="$(ec2_aws ec2 describe-images --owners amazon --region "$AWS_REGION" \
-    --filters "Name=name,Values=al2023-ami-2023*-kernel-6.12-x86_64" "Name=state,Values=available" \
+    --filters "Name=name,Values=al2023-ami-2023*-kernel-6.12-arm64" "Name=state,Values=available" \
     --query 'reverse(sort_by(Images,&CreationDate))[0].ImageId' --output text)"
 fi
 if [ -z "$SUBNET_ID" ]; then

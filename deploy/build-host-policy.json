@@ -1,5 +1,5 @@
 {
-  "Comment": "Smallest grant that lets deploy/ec2-build.sh run. Attach to the user that launches the build host. Everything else the build needs (ECR push, ECS rollout) the github-action user already has.",
+  "Comment": "Smallest grant that lets deploy/ec2-build.sh run. Attach to the user that launches the build host. Instance types are arm64 because the ECS cluster runs on Graviton. Everything else the build needs (ECR push, ECS rollout) the github-action user already has.",
   "Version": "2012-10-17",
   "Statement": [
     {
@@ -22,7 +22,7 @@
       "Resource": "*",
       "Condition": {
         "StringEqualsIfExists": {
-          "ec2:InstanceType": ["c6a.xlarge", "c6a.2xlarge", "c6a.4xlarge"]
+          "ec2:InstanceType": ["c7g.xlarge", "c7g.2xlarge", "c7g.4xlarge", "c6g.2xlarge"]
         }
       }
     },
