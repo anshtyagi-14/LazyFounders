@@ -61,8 +61,11 @@ aws s3 cp "$(native "$TMPD/source.zip")" "s3://$SRC_BUCKET/$SRC_KEY" --region "$
 SRC_URL="$(aws s3 presign "s3://$SRC_BUCKET/$SRC_KEY" --region "$AWS_REGION" --expires-in 43200)"
 
 # --- short-lived ECR token ---------------------------------------------------
+# The Windows CLI terminates output with CRLF, which base64 rejects as input.
 ECR_TOKEN="$(aws ecr get-authorization-token --region "$AWS_REGION" \
-  --query 'authorizationData[0].authorizationToken' --output text | base64 -d | cut -d: -f2)"
+  --query 'authorizationData[0].authorizationToken' --output text \
+  | tr -d '\r\n ' | base64 -d | cut -d: -f2-)"
+[ -n "$ECR_TOKEN" ] || { echo "Could not obtain an ECR token." >&2; exit 1; }
 
 # --- instance placement ------------------------------------------------------
 if [ -z "$AMI_ID" ]; then
