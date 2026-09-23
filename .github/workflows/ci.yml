@@ -35,12 +35,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:generate
-      - name: Validate source registry
-        run: npm run sources:validate
       - name: Build packages and services
         run: |
           npx tsc -b packages/database packages/llm packages/ingestion-core
           for s in discovery-service scraper-service categorization-service intelligence-service publishing-service; do (cd apps/$s && npx tsc -b); done
+      # Must follow the build: the CLI imports @lazyfounders/database, whose
+      # package main is ./dist/index.js and does not exist until tsc has run.
+      - name: Validate source registry
+        run: npm run sources:validate
       - name: Unit tests
         run: npm test
       - name: Migrations
