@@ -4,6 +4,7 @@ import './globals.css';
 import { Footer } from '../components/Footer';
 import { SiteHeader } from '../components/site/SiteHeader';
 import { JsonLd } from '../components/JsonLd';
+import { Analytics } from '../components/Analytics';
 import {
   BRAND,
   SITE_DESCRIPTION,
@@ -131,6 +132,7 @@ export default function RootLayout({
           {children}
         </div>
         <Footer />
+        <Analytics />
       </body>
     </html>
   );
