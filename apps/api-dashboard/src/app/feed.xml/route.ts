@@ -1,5 +1,5 @@
 import { listPublishedArticles } from '@/lib/articles';
-import { BRAND, SITE_DESCRIPTION, SITE_LANG, SITE_LOGO, SITE_URL, stripMarkdown, clamp } from '@/lib/seo';
+import { BRAND, SITE_DESCRIPTION, SITE_LANG, SITE_LOGO, SITE_URL, stripMarkdown, clamp, xmlEscape } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -9,15 +9,6 @@ export const revalidate = 0;
  * stories here long before a sitemap recrawl, so it is linked from <head> on every page.
  */
 const TAKE = 50;
-
-function xmlEscape(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
 
 export async function GET() {
   const articles = await listPublishedArticles({ take: TAKE });

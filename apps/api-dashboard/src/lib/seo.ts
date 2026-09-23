@@ -50,6 +50,24 @@ export function absoluteUrl(path = '/'): string {
   return `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
+/**
+ * Escape text for an XML text node or attribute.
+ *
+ * Every XML surface has to run its own values through this. Next's sitemap
+ * serialiser interpolates `url` and `images` straight into the document with no
+ * escaping of its own, so a third-party image URL carrying a bare `&` (query
+ * separators such as `?width=1200&format=jpeg` are routine) produces an
+ * `EntityRef` parse error and truncates the sitemap at that line.
+ */
+export function xmlEscape(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 /** Trim to a length search engines actually render, without cutting mid-word. */
 export function clamp(text: string, max: number): string {
   const clean = (text ?? '').replace(/\s+/g, ' ').trim();

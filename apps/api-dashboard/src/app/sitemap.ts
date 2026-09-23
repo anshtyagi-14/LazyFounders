@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { prisma } from '@/lib/prisma';
 import { SITE_URL, slugifyCategory } from '@/lib/articles';
+import { xmlEscape } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -67,7 +68,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: a.updatedAt ?? a.publishedAt ?? undefined,
         changeFrequency: 'daily' as const,
         priority: 0.8,
-        ...(image ? { images: [image] } : {}),
+        // Next writes `images` into <image:loc> verbatim, and these URLs come from
+        // whichever publisher we sourced the story from, so they are the one field
+        // here that routinely carries characters XML will not accept raw.
+        ...(image ? { images: [xmlEscape(image)] } : {}),
       };
     }),
     ...[...newestByCompany.entries()].map(([name, when]) => ({
