@@ -2,6 +2,12 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Next.js inlines NEXT_PUBLIC_* at build time and prerenders pages with it, so
+# the canonical, OG and sitemap URLs are fixed here - setting it only at runtime
+# leaves localhost baked into the static output.
+ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+
 # Copy root configurations and workspace definitions
 COPY package.json package-lock.json tsconfig.base.json ./
 
