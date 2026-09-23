@@ -62,8 +62,8 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: '48x48' },
-      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
+      { url: '/favicon-64.png', type: 'image/png', sizes: '64x64' },
       { url: '/logo192.png', type: 'image/png', sizes: '192x192' },
     ],
     apple: [{ url: '/logo192.png', sizes: '192x192' }],
@@ -98,14 +98,28 @@ const siteSchema = {
   '@graph': [organizationSchema(), websiteSchema()],
 };
 
+const themeScript = `
+(function () {
+  try {
+    var saved = localStorage.getItem('lazyfounders-theme');
+    var dark = saved === 'dark' || (saved !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+  } catch (_) {
+    document.documentElement.classList.add('dark');
+    document.documentElement.style.colorScheme = 'dark';
+  }
+})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang={SITE_LANG} className="dark">
+    <html lang={SITE_LANG} className="dark" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <link rel="alternate" type="application/rss+xml" title={`${BRAND} — latest stories`} href="/feed.xml" />
         <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
         <JsonLd data={siteSchema} />

@@ -5,6 +5,7 @@ import { SearchBox } from './SearchBox';
 import { MobileMenu, NavDropdown } from './HeaderNav';
 import { getNavTopics, PRIMARY_LINKS } from '@/lib/nav';
 import { COMPANY_GROUPS } from '@/lib/companies';
+import { ThemeToggle } from './ThemeToggle';
 
 /**
  * The masthead, rendered once in the root layout.
@@ -25,7 +26,7 @@ function TopicLinks({ topics, className = '' }: { topics: { slug: string; label:
         <Link
           key={t.slug}
           href={'/news/category/' + t.slug}
-          className="block py-1.5 text-sm text-gray-300 hover:text-teal-400 transition-colors"
+          className="block py-1.5 text-sm text-gray-700 hover:text-teal-700 transition-colors dark:text-gray-300 dark:hover:text-teal-400"
         >
           {t.label}
         </Link>
@@ -48,7 +49,7 @@ export async function SiteHeader() {
             <Link
               key={name}
               href={'/company/' + slugifyCompany(name)}
-              className="block py-1 text-sm text-gray-300 hover:text-teal-400 transition-colors"
+              className="block py-1 text-sm text-gray-700 hover:text-teal-700 transition-colors dark:text-gray-300 dark:hover:text-teal-400"
             >
               {name}
             </Link>
@@ -59,7 +60,7 @@ export async function SiteHeader() {
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#08080a]/95 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-black/10 bg-white/95 backdrop-blur-md dark:border-white/10 dark:bg-[#08080a]/95">
       <div className="mx-auto flex h-[var(--header-h)] max-w-7xl items-center gap-6 px-4 sm:px-6 lg:px-8">
         <MobileMenu>
           <nav aria-label="Mobile" className="mx-auto max-w-lg space-y-8">
@@ -70,7 +71,7 @@ export async function SiteHeader() {
             <div>
               <p className="mb-3 font-display text-[0.68rem] font-bold uppercase tracking-[0.14em] text-teal-500">Sections</p>
               {PRIMARY_LINKS.map((l) => (
-                <Link key={l.href + l.label} href={l.href} className="block py-1.5 text-sm text-gray-300 hover:text-teal-400">
+                <Link key={l.href + l.label} href={l.href} className="block py-1.5 text-sm text-gray-700 hover:text-teal-700 dark:text-gray-300 dark:hover:text-teal-400">
                   {l.label}
                   {l.soon ? <span className="ml-2 text-[0.65rem] uppercase tracking-wider text-gray-600">soon</span> : null}
                 </Link>
@@ -83,7 +84,7 @@ export async function SiteHeader() {
                   <Link
                     key={name}
                     href={'/company/' + slugifyCompany(name)}
-                    className="block py-1.5 text-sm text-gray-300 hover:text-teal-400"
+                    className="block py-1.5 text-sm text-gray-700 hover:text-teal-700 dark:text-gray-300 dark:hover:text-teal-400"
                   >
                     {name}
                   </Link>
@@ -94,7 +95,7 @@ export async function SiteHeader() {
           </nav>
         </MobileMenu>
 
-        <Wordmark />
+        <Wordmark compactOnMobile />
 
         <nav aria-label="Primary" className="hidden flex-1 items-center gap-7 lg:flex">
           {topics.length > 0 ? (
@@ -112,25 +113,26 @@ export async function SiteHeader() {
             <Link
               key={l.href + l.label}
               href={l.href}
-              className="py-2 text-sm font-medium text-gray-300 hover:text-teal-400 transition-colors"
+              className="py-2 text-sm font-medium text-gray-700 hover:text-teal-700 transition-colors dark:text-gray-300 dark:hover:text-teal-400"
             >
               {l.label}
             </Link>
           ))}
         </nav>
 
-        <div className="ml-auto lg:ml-0">
+        <div className="ml-auto flex items-center gap-2 lg:ml-0">
           <SearchBox className="hidden w-56 sm:block" />
           <Link
             href="/search"
             aria-label="Search"
-            className="block p-2 text-gray-300 hover:text-teal-400 sm:hidden"
+            className="block p-2 text-gray-700 hover:text-teal-700 sm:hidden dark:text-gray-300 dark:hover:text-teal-400"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
               <circle cx="11" cy="11" r="7" />
               <line x1="20" y1="20" x2="16.7" y2="16.7" />
             </svg>
           </Link>
+          <ThemeToggle />
         </div>
       </div>
     </header>

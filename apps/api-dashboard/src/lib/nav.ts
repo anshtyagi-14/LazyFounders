@@ -116,4 +116,5 @@ export const FOOTER_LINKS: { title: string; items: NavLink[] }[] = [
 export const SOCIAL_LINKS: NavLink[] = [
   { label: 'X', href: 'https://x.com/lazyfounders' },
   { label: 'LinkedIn', href: 'https://www.linkedin.com/company/lazyfounders' },
+  { label: 'Instagram', href: 'https://www.instagram.com/lazyfounders.in/' }
 ];

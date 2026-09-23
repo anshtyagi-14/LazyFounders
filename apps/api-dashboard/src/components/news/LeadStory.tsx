@@ -15,7 +15,7 @@ export function LeadStory({ item, size = 'md' }: { item: FeedItem; size?: 'md' |
 
   return (
     <a {...cardLinkProps(props)} className="group block">
-      <div className={'relative overflow-hidden bg-[#16161a] ' + frame}>
+      <div className={'relative overflow-hidden bg-gray-100 dark:bg-[#16161a] ' + frame}>
         <SafeImage
           src={item.hasImage ? props.imageUrl : undefined}
           alt=""
@@ -25,15 +25,15 @@ export function LeadStory({ item, size = 'md' }: { item: FeedItem; size?: 'md' |
       <p className="mt-4 font-display text-[0.68rem] font-bold uppercase tracking-[0.14em] text-teal-500">
         {props.category}
       </p>
-      <h3 className={'mt-2 font-headline leading-[1.15] text-white transition-colors group-hover:text-teal-300 ' + headline}>
+      <h3 className={'mt-2 font-headline leading-[1.15] text-gray-950 transition-colors group-hover:text-teal-700 dark:text-white dark:group-hover:text-teal-300 ' + headline}>
         {props.title}
       </h3>
       {props.description ? (
-        <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-gray-400">{props.description}</p>
+        <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-gray-600 dark:text-gray-400">{props.description}</p>
       ) : null}
       <p className="mt-3 flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
         <span>{props.publishedDate}</span>
-        <span aria-hidden="true" className="text-white/15">/</span>
+        <span aria-hidden="true" className="text-black/20 dark:text-white/15">/</span>
         <span>{item.isOwn ? props.readTime + ' min read' : props.authorName}</span>
       </p>
     </a>

@@ -89,10 +89,10 @@ export default async function CompanyNewsPage({ params }: Props) {
   });
 
   return (
-    <div className="min-h-screen bg-[#05070A] text-slate-200 font-sans pb-20">
+    <div className="min-h-screen bg-white text-slate-800 font-sans pb-20 dark:bg-[#05070A] dark:text-slate-200">
       <JsonLd data={schema} />
       {/* Header */}
-      <div className="border-b border-white/5 bg-[#0a0d14]/80 backdrop-blur-md sticky top-0 z-50">
+      <div className="border-b border-black/10 bg-white/80 backdrop-blur-md sticky top-[var(--header-h)] z-40 dark:border-white/5 dark:bg-[#0a0d14]/80">
         <div className="max-w-6xl mx-auto px-6 py-8">
           <Link href="/" className="text-teal-500 hover:text-teal-400 text-sm font-medium flex items-center gap-2 mb-4 transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -100,7 +100,7 @@ export default async function CompanyNewsPage({ params }: Props) {
             </svg>
             Back to Home
           </Link>
-          <h1 className="text-4xl font-extrabold text-white tracking-tight flex items-center gap-4">
+          <h1 className="text-4xl font-extrabold text-slate-950 tracking-tight flex items-center gap-4 dark:text-white">
             <span className="bg-teal-500/20 text-teal-400 p-3 rounded-xl border border-teal-500/30">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -108,29 +108,29 @@ export default async function CompanyNewsPage({ params }: Props) {
             </span>
             {matchedCompany} Intelligence
           </h1>
-          <p className="text-slate-400 mt-3 text-lg">Latest news, articles, and AI insights covering {matchedCompany}.</p>
+          <p className="text-slate-600 mt-3 text-lg dark:text-slate-400">Latest news, articles, and AI insights covering {matchedCompany}.</p>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-6 mt-12">
         {articles.length === 0 ? (
-          <div className="bg-[#0c1017] border border-white/5 rounded-3xl p-12 text-center flex flex-col items-center justify-center">
-            <div className="bg-white/5 p-4 rounded-full mb-4">
+          <div className="bg-slate-50 border border-black/10 rounded-3xl p-12 text-center flex flex-col items-center justify-center dark:bg-[#0c1017] dark:border-white/5">
+            <div className="bg-black/5 p-4 rounded-full mb-4 dark:bg-white/5">
               <svg className="w-8 h-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5L18.5 7H20" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">No active intelligence found</h3>
+            <h3 className="text-xl font-bold text-slate-950 mb-2 dark:text-white">No active intelligence found</h3>
             <p className="text-slate-500 max-w-md">Our AI scrapers haven&apos;t picked up any recent articles or news covering {matchedCompany} yet. Check back soon!</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {articles.map((article) => (
               <Link href={`/news/article/${article.slug}`} key={article.id} className="group">
-                <div className="bg-[#0c1017] border border-white/5 rounded-2xl overflow-hidden hover:border-teal-500/30 transition-all duration-300 h-full flex flex-col shadow-lg hover:shadow-teal-500/10 hover:-translate-y-1">
+                <div className="bg-white border border-black/10 rounded-2xl overflow-hidden hover:border-teal-500/30 transition-all duration-300 h-full flex flex-col shadow-lg hover:shadow-teal-500/10 hover:-translate-y-1 dark:bg-[#0c1017] dark:border-white/5">
                   
                   {/* Article Image Placeholder */}
-                  <div className="h-48 bg-slate-900 w-full relative overflow-hidden border-b border-white/5">
+                  <div className="h-48 bg-slate-100 w-full relative overflow-hidden border-b border-black/10 dark:bg-slate-900 dark:border-white/5">
                     {article.headerImage ? (
                       <>
                         <SafeImage src={article.headerImage} alt={article.seoTitle} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
@@ -152,7 +152,7 @@ export default async function CompanyNewsPage({ params }: Props) {
                   
                   {/* Article Content */}
                   <div className="p-6 flex flex-col flex-grow">
-                    <h2 className="text-lg font-bold text-slate-200 group-hover:text-teal-400 transition-colors leading-tight mb-3 line-clamp-3">
+                    <h2 className="text-lg font-bold text-slate-900 group-hover:text-teal-700 transition-colors leading-tight mb-3 line-clamp-3 dark:text-slate-200 dark:group-hover:text-teal-400">
                       {article.seoTitle}
                     </h2>
                     <p className="text-slate-500 text-sm line-clamp-3 mb-6">

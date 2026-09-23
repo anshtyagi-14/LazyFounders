@@ -31,7 +31,7 @@ export function SearchBox({ defaultValue = '', className = '' }: { defaultValue?
         defaultValue={defaultValue}
         placeholder="Search stories"
         maxLength={100}
-        className="w-full border border-white/12 bg-white/5 py-2 pl-9 pr-3 text-sm text-white placeholder:text-gray-500 focus:border-teal-500/60 focus:bg-white/8 focus:outline-none transition-colors"
+        className="w-full border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-teal-500/60 focus:bg-white focus:outline-none transition-colors dark:border-white/12 dark:bg-white/5 dark:text-white dark:focus:bg-white/8"
       />
     </form>
   );

@@ -53,6 +53,18 @@ body {
 }
 
 :root {
+  /* Semantic application surfaces. Keeping these variables theme-aware also
+     covers dashboard/admin screens that use Tailwind's semantic utilities. */
+  --color-background: #ffffff;
+  --color-foreground: #18181b;
+  --color-card: #ffffff;
+  --color-card-foreground: #18181b;
+  --color-secondary: #f4f4f5;
+  --color-secondary-foreground: #27272a;
+  --color-muted: #f4f4f5;
+  --color-muted-foreground: #71717a;
+  --color-border: #e4e4e7;
+
   /* Gold - the brand accent. 400/500 are the text-safe steps on the near-black
      ground (~9:1); 700 and darker are decorative only and fail AA as body text. */
   --gold-50:  #fbf6e9;
@@ -282,6 +294,16 @@ ul { list-style: none; }
 
 /* ── Dark mode ── */
 .dark {
+  --color-background: #09090b;
+  --color-foreground: #fafafa;
+  --color-card: #18181b;
+  --color-card-foreground: #fafafa;
+  --color-secondary: #27272a;
+  --color-secondary-foreground: #fafafa;
+  --color-muted: #27272a;
+  --color-muted-foreground: #a1a1aa;
+  --color-border: #27272a;
+
   --gray-50:  #18181b;
   --gray-100: #27272a;
   --gray-200: #3f3f46;

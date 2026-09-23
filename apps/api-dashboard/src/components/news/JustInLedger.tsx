@@ -11,7 +11,7 @@ import type { FeedItem } from '@/lib/feed';
  */
 export function JustInLedger({ items }: { items: FeedItem[] }) {
   return (
-    <ol className="border-t border-white/10">
+    <ol className="border-t border-black/10 dark:border-white/10">
       {items.map((item) => {
         const time = item.publishedAt.toLocaleTimeString('en-IN', {
           hour: '2-digit',
@@ -20,7 +20,7 @@ export function JustInLedger({ items }: { items: FeedItem[] }) {
           timeZone: 'Asia/Kolkata',
         });
         return (
-          <li key={item.id} className="border-b border-white/8">
+          <li key={item.id} className="border-b border-black/10 dark:border-white/8">
             <a
               {...cardLinkProps(item.props)}
               className="group flex flex-col gap-1 py-3.5 sm:flex-row sm:items-baseline sm:gap-5"
@@ -28,7 +28,7 @@ export function JustInLedger({ items }: { items: FeedItem[] }) {
               <time className="shrink-0 font-display text-xs font-bold tabular-nums tracking-[0.08em] text-teal-500">
                 {time}
               </time>
-              <span className="flex-1 font-headline text-[1.02rem] leading-snug text-gray-100 transition-colors group-hover:text-teal-400">
+              <span className="flex-1 font-headline text-[1.02rem] leading-snug text-gray-900 transition-colors group-hover:text-teal-700 dark:text-gray-100 dark:group-hover:text-teal-400">
                 {item.props.title}
               </span>
               <span className="shrink-0 font-display text-[0.65rem] font-bold uppercase tracking-[0.12em] text-gray-600">

@@ -18,7 +18,7 @@ export function TopPicks({ items }: { items: FeedItem[] }) {
     <div className="grid gap-8 lg:grid-cols-[1.55fr_1fr] lg:gap-14">
       <LeadStory item={lead} size="lg" />
       {rest.length > 0 ? (
-        <div className="border-t border-white/10 lg:border-t-0">
+        <div className="border-t border-black/10 dark:border-white/10 lg:border-t-0">
           {rest.map((item) => (
             <StoryRow key={item.id} item={item} showThumb />
           ))}

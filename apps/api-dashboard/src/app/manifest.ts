@@ -17,7 +17,8 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#05070A',
     categories: ['news', 'business', 'technology'],
     icons: [
-      { src: '/favicon.ico', sizes: '64x64 32x32 24x24 16x16', type: 'image/x-icon' },
+      { src: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
+      { src: '/favicon-64.png', sizes: '64x64', type: 'image/png' },
       { src: '/logo192.png', type: 'image/png', sizes: '192x192', purpose: 'any' },
       { src: '/logo512.png', type: 'image/png', sizes: '512x512', purpose: 'any' },
       { src: '/logo512.png', type: 'image/png', sizes: '512x512', purpose: 'maskable' },

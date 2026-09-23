@@ -34,8 +34,8 @@ export default async function SearchPage({ searchParams }: Props) {
       {!query ? (
         <p className="text-sm text-gray-500">Type a company, a topic or a headline to begin.</p>
       ) : results.length === 0 ? (
-        <div className="border border-dashed border-white/12 px-4 py-16 text-center">
-          <h2 className="font-headline text-xl text-white">
+        <div className="border border-dashed border-black/15 px-4 py-16 text-center dark:border-white/12">
+          <h2 className="font-headline text-xl text-gray-950 dark:text-white">
             Nothing matches &ldquo;{query}&rdquo;
           </h2>
           <p className="mx-auto mt-3 max-w-md text-sm text-gray-500">

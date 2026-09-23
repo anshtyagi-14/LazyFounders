@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { BRAND } from '@/lib/articles';
 import { FOOTER_LINKS, SOCIAL_LINKS, getNavTopics } from '@/lib/nav';
 import { ALL_COMPANIES } from '@/lib/companies';
+import { Wordmark } from './site/Wordmark';
 
 /**
  * The footer used to run its own `findMany({ take: 2000 })` for company names on
@@ -26,7 +27,7 @@ function ColumnHeading({ children }: { children: React.ReactNode }) {
 
 function FooterLink({ href, children, soon }: { href: string; children: React.ReactNode; soon?: boolean }) {
   return (
-    <Link href={href} className="block py-1 text-sm text-gray-400 transition-colors hover:text-teal-400">
+    <Link href={href} className="block py-1 text-sm text-gray-600 transition-colors hover:text-teal-700 dark:text-gray-400 dark:hover:text-teal-400">
       {children}
       {soon ? <span className="ml-1.5 text-[0.6rem] uppercase tracking-wider text-gray-600">soon</span> : null}
     </Link>
@@ -38,8 +39,11 @@ export async function Footer() {
   const companies = ALL_COMPANIES.slice(0, 24);
 
   return (
-    <footer className="border-t border-white/10 bg-[#0e0e11]">
+    <footer className="border-t border-black/10 bg-gray-50 dark:border-white/10 dark:bg-[#0e0e11]">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <div className="mb-10 border-b border-black/10 pb-8 dark:border-white/10">
+          <Wordmark size="lg" />
+        </div>
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
           {topics.length > 0 ? (
             <div>
@@ -76,7 +80,7 @@ export async function Footer() {
 
           <div>
             <ColumnHeading>The daily brief</ColumnHeading>
-            <p className="mb-4 text-sm leading-relaxed text-gray-400">
+            <p className="mb-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
               Startup, funding and AI news in a five-minute read.
             </p>
             {/* An honest link, not an input. There is no subscriber table in the
@@ -99,7 +103,7 @@ export async function Footer() {
                   href={s.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-gray-400 transition-colors hover:text-teal-400"
+                  className="text-sm text-gray-600 transition-colors hover:text-teal-700 dark:text-gray-400 dark:hover:text-teal-400"
                 >
                   {s.label}
                 </a>
@@ -114,13 +118,13 @@ export async function Footer() {
       <div className="mx-auto max-w-7xl overflow-hidden px-4 sm:px-6 lg:px-8">
         {/* Sized to bleed off the edge, clipped by the wrapper: without the clip
             this single word widens the document and the whole page scrolls sideways. */}
-        <p className="select-none whitespace-nowrap border-t border-white/10 pt-10 font-display text-[13vw] font-extrabold uppercase leading-[0.8] tracking-[-0.045em] text-white/8 lg:text-[10.5rem]">
+        <p className="select-none whitespace-nowrap border-t border-black/10 pt-10 font-display text-[13vw] font-extrabold uppercase leading-[0.8] tracking-[-0.045em] text-black/5 dark:border-white/10 dark:text-white/8 lg:text-[10.5rem]">
           {BRAND}
         </p>
       </div>
 
       <div className="mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-gray-500">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-6 text-xs text-gray-500 dark:border-white/10">
           <p>
             &copy; {new Date().getFullYear()} {BRAND}. All rights reserved.
           </p>
@@ -130,4 +134,3 @@ export async function Footer() {
     </footer>
   );
 }
-

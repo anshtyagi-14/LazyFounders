@@ -21,16 +21,16 @@ export function Dateline({ storyCount, newest }: { storyCount: number; newest: D
     : null;
 
   return (
-    <div className="border-b border-white/10 bg-[#0e0e11]">
+    <div className="border-b border-black/10 bg-gray-50 dark:border-white/10 dark:bg-[#0e0e11]">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 font-display text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-gray-500 sm:px-6 lg:px-8">
         <span className="text-teal-500">{date}</span>
-        <span aria-hidden="true" className="text-white/15">/</span>
+        <span aria-hidden="true" className="text-black/20 dark:text-white/15">/</span>
         <span>
           {storyCount} {storyCount === 1 ? 'story' : 'stories'} live
         </span>
         {updated ? (
           <>
-            <span aria-hidden="true" className="text-white/15">/</span>
+            <span aria-hidden="true" className="text-black/20 dark:text-white/15">/</span>
             <span>Updated {updated}</span>
           </>
         ) : null}

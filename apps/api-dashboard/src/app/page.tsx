@@ -53,8 +53,8 @@ export default async function NewsDashboard() {
 
       <main className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
         {isEmpty ? (
-          <div className="flex flex-col items-center justify-center border border-dashed border-white/12 px-4 py-24 text-center">
-            <h1 className="font-headline text-2xl text-white">Nothing on the wire yet</h1>
+          <div className="flex flex-col items-center justify-center border border-dashed border-black/15 px-4 py-24 text-center dark:border-white/12">
+            <h1 className="font-headline text-2xl text-gray-950 dark:text-white">Nothing on the wire yet</h1>
             <p className="mt-3 max-w-md text-sm text-gray-500">
               The newsroom pipeline publishes stories as it verifies them. Check back shortly.
             </p>

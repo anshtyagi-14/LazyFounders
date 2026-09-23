@@ -20,7 +20,7 @@ export function TopicSection({ section }: { section: ResolvedSection }) {
         <SectionHeading label={label} blurb={blurb} href={href} />
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
           <LeadStory item={lead} />
-          <div className="border-t border-white/8 lg:border-t-0">
+          <div className="border-t border-black/10 dark:border-white/8 lg:border-t-0">
             {rest.map((item) => (
               <StoryRow key={item.id} item={item} showThumb />
             ))}

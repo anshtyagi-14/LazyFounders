@@ -45,7 +45,7 @@ export function NavDropdown({ label, children, panelClassName = '' }: DropdownPr
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 px-1 py-2 text-sm font-medium text-gray-300 hover:text-teal-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-500 transition-colors"
+        className="flex items-center gap-1.5 px-1 py-2 text-sm font-medium text-gray-700 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-500 transition-colors dark:text-gray-300 dark:hover:text-teal-400"
       >
         {label}
         <svg
@@ -68,7 +68,7 @@ export function NavDropdown({ label, children, panelClassName = '' }: DropdownPr
         id={panelId}
         hidden={!open}
         className={
-          'absolute left-0 top-full z-50 mt-3 max-h-[70vh] overflow-y-auto border border-white/10 bg-[#0e0e11] p-6 shadow-2xl shadow-black/60 custom-scrollbar ' +
+          'absolute left-0 top-full z-50 mt-3 max-h-[70vh] overflow-y-auto border border-black/10 bg-white p-6 shadow-2xl shadow-black/15 custom-scrollbar dark:border-white/10 dark:bg-[#0e0e11] dark:shadow-black/60 ' +
           panelClassName
         }
       >
@@ -107,7 +107,7 @@ export function MobileMenu({ children }: { children: React.ReactNode }) {
         aria-controls={panelId}
         aria-label={open ? 'Close menu' : 'Open menu'}
         onClick={() => setOpen((v) => !v)}
-        className="lg:hidden -ml-2 p-2 text-white hover:text-teal-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500"
+        className="lg:hidden -ml-2 p-2 text-gray-900 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500 dark:text-white dark:hover:text-teal-400"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
           {open ? (
@@ -129,7 +129,7 @@ export function MobileMenu({ children }: { children: React.ReactNode }) {
         id={panelId}
         hidden={!open}
         onClick={close}
-        className="lg:hidden fixed inset-x-0 bottom-0 top-[var(--header-h)] z-40 overflow-y-auto border-t border-white/10 bg-[#08080a] px-5 py-8 custom-scrollbar"
+        className="lg:hidden fixed inset-x-0 bottom-0 top-[var(--header-h)] z-40 overflow-y-auto border-t border-black/10 bg-white px-5 py-8 custom-scrollbar dark:border-white/10 dark:bg-[#08080a]"
       >
         {children}
       </div>
