@@ -107,7 +107,7 @@ export function MobileMenu({ children }: { children: React.ReactNode }) {
         aria-controls={panelId}
         aria-label={open ? 'Close menu' : 'Open menu'}
         onClick={() => setOpen((v) => !v)}
-        className="lg:hidden -ml-2 p-2 text-gray-900 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500 dark:text-white dark:hover:text-teal-400"
+        className="lg:hidden -ml-2 flex h-11 w-11 items-center justify-center text-gray-900 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500 dark:text-white dark:hover:text-teal-400"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
           {open ? (

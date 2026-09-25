@@ -146,14 +146,34 @@ if [ "$DNS_ONLY" = true ]; then
 else
   # Validation only completes once the registrar points at Route53, so this will
   # sit here on a first run. Ctrl-C is fine; re-run the script after the switch.
+  # --- 6. Listeners -----------------------------------------------------------
+  #
+  # The site has to answer on exactly one origin. Four were reachable and all
+  # served 200: http and https, each on the apex and on www. Everything below
+  # collapses them onto https://$DOMAIN.
+  ALB_ARN="$(elb_aws elbv2 describe-load-balancers --names "$ALB_NAME" --region "$AWS_REGION" \
+    --query 'LoadBalancers[0].LoadBalancerArn' --output text)"
+  TG_ARN="$(elb_aws elbv2 describe-target-groups --names lf-dashboard-tg --region "$AWS_REGION" \
+    --query 'TargetGroups[0].TargetGroupArn' --output text)"
+
+  # This runs before the certificate wait, not inside it. It used to sit in the
+  # validated branch, so on any run that did not reach that branch - a Ctrl-C at
+  # the wait, or an HTTPS listener created by hand afterwards - port 80 was left
+  # serving the site instead of redirecting, which is how it ended up answering
+  # 200 in production.
+  HTTP_ARN="$(elb_aws elbv2 describe-listeners --load-balancer-arn "$ALB_ARN" --region "$AWS_REGION" \
+    --query "Listeners[?Port==\`80\`].ListenerArn | [0]" --output text)"
+  if [ "$HTTP_ARN" != "None" ] && [ -n "$HTTP_ARN" ]; then
+    echo "Redirecting HTTP:80 to HTTPS"
+    elb_aws elbv2 modify-listener --region "$AWS_REGION" --listener-arn "$HTTP_ARN" \
+      --default-actions 'Type=redirect,RedirectConfig={Protocol=HTTPS,Port=443,StatusCode=HTTP_301}' \
+      --query 'Listeners[0].ListenerArn' --output text
+  fi
+
+  # Validation only completes once the registrar points at Route53, so this will
+  # sit here on a first run. Ctrl-C is fine; re-run the script after the switch.
   echo "Waiting for certificate validation (Ctrl-C if nameservers are still at GoDaddy)..."
   if aws acm wait certificate-validated --region "$AWS_REGION" --certificate-arn "$CERT_ARN"; then
-    # --- 6. HTTPS listener ----------------------------------------------------
-    ALB_ARN="$(elb_aws elbv2 describe-load-balancers --names "$ALB_NAME" --region "$AWS_REGION" \
-      --query 'LoadBalancers[0].LoadBalancerArn' --output text)"
-    TG_ARN="$(elb_aws elbv2 describe-target-groups --names lf-dashboard-tg --region "$AWS_REGION" \
-      --query 'TargetGroups[0].TargetGroupArn' --output text)"
-
     HTTPS_ARN="$(elb_aws elbv2 describe-listeners --load-balancer-arn "$ALB_ARN" --region "$AWS_REGION" \
       --query "Listeners[?Port==\`443\`].ListenerArn | [0]" --output text)"
 
@@ -165,17 +185,31 @@ else
         --ssl-policy ELBSecurityPolicy-TLS13-1-2-2021-06 \
         --default-actions "Type=forward,TargetGroupArn=$TG_ARN" \
         --query 'Listeners[0].ListenerArn' --output text
+      HTTPS_ARN="$(elb_aws elbv2 describe-listeners --load-balancer-arn "$ALB_ARN" --region "$AWS_REGION" \
+        --query "Listeners[?Port==\`443\`].ListenerArn | [0]" --output text)"
     else
       echo "HTTPS listener already exists"
     fi
 
-    # Send plain HTTP to HTTPS instead of serving the site twice.
-    HTTP_ARN="$(elb_aws elbv2 describe-listeners --load-balancer-arn "$ALB_ARN" --region "$AWS_REGION" \
-      --query "Listeners[?Port==\`80\`].ListenerArn | [0]" --output text)"
-    echo "Redirecting HTTP:80 to HTTPS"
-    elb_aws elbv2 modify-listener --region "$AWS_REGION" --listener-arn "$HTTP_ARN" \
-      --default-actions 'Type=redirect,RedirectConfig={Protocol=HTTPS,Port=443,StatusCode=HTTP_301}' \
-      --query 'Listeners[0].ListenerArn' --output text
+    # www -> apex, 301, path and query preserved. The certificate already covers
+    # both names (see the SANs above) and both are alias records to this ALB, so
+    # without this rule the whole site is duplicated under www.
+    WWW_RULE_ARN="$(elb_aws elbv2 describe-rules --listener-arn "$HTTPS_ARN" --region "$AWS_REGION" \
+      --query "Rules[?Priority=='10'].RuleArn | [0]" --output text)"
+    WWW_ACTION="Type=redirect,RedirectConfig={Protocol=HTTPS,Host=$DOMAIN,Port=443,Path=/#{path},Query=#{query},StatusCode=HTTP_301}"
+    if [ "$WWW_RULE_ARN" = "None" ] || [ -z "$WWW_RULE_ARN" ]; then
+      echo "Creating www -> apex redirect rule"
+      elb_aws elbv2 create-rule --region "$AWS_REGION" --listener-arn "$HTTPS_ARN" --priority 10 \
+        --conditions "Field=host-header,Values=www.$DOMAIN" \
+        --actions "$WWW_ACTION" \
+        --query 'Rules[0].RuleArn' --output text
+    else
+      echo "Updating www -> apex redirect rule"
+      elb_aws elbv2 modify-rule --region "$AWS_REGION" --rule-arn "$WWW_RULE_ARN" \
+        --conditions "Field=host-header,Values=www.$DOMAIN" \
+        --actions "$WWW_ACTION" \
+        --query 'Rules[0].RuleArn' --output text
+    fi
   fi
 fi
 

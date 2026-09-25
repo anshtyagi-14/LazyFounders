@@ -1,8 +1,9 @@
-import { listCategories, listPublishedArticles, slugifyCategory } from '@/lib/articles';
+import { listPublishedArticles } from '@/lib/articles';
+import { SITE_CATEGORIES } from '@/lib/topics';
 import { BRAND, SITE_DESCRIPTION, SITE_TAGLINE, SITE_URL, clamp } from '@/lib/seo';
 
+// Dynamic: the image is built without database access. The Cache-Control header below lets clients reuse it.
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 /**
  * /llms.txt — the llmstxt.org convention: a curated, markdown map of the site written for
@@ -14,10 +15,7 @@ export const revalidate = 0;
  * of inferring it from page chrome.
  */
 export async function GET() {
-  const [recent, categories] = await Promise.all([
-    listPublishedArticles({ take: 50 }),
-    listCategories(),
-  ]);
+  const recent = await listPublishedArticles({ take: 50 });
 
   const lines = [
     `# ${BRAND}`,
@@ -25,9 +23,10 @@ export async function GET() {
     `> ${SITE_DESCRIPTION}`,
     '',
     `${BRAND} is a ${SITE_TAGLINE.toLowerCase()} publication. Every story is assembled by an`,
-    'automated newsroom pipeline that discovers reporting from approved publishers, verifies the',
-    'claims across sources, and rewrites them as an original article. Each published story lists',
-    'the primary sources it was built from, and links back to them.',
+    'automated newsroom pipeline that discovers reporting from approved publishers, checks the',
+    'claims across sources, and has an AI model draft an original article that is published',
+    'automatically. Each published story lists the primary sources it was built from, and links',
+    `back to them. Editorial standards: ${SITE_URL}/editorial-policy. AI use: ${SITE_URL}/ai-policy.`,
     '',
     '## How to cite us',
     '',
@@ -40,8 +39,8 @@ export async function GET() {
     '',
     '## Machine-readable entry points',
     '',
-    `- [Sitemap](${SITE_URL}/sitemap.xml): every indexable URL, rebuilt on each request.`,
-    `- [Google News sitemap](${SITE_URL}/news-sitemap.xml): stories from the last 48 hours.`,
+    `- [Sitemap index](${SITE_URL}/sitemap.xml): every indexable URL.`,
+    `- [Google News sitemap](${SITE_URL}/sitemaps/news.xml): stories from the last 48 hours.`,
     `- [RSS feed](${SITE_URL}/feed.xml): the latest stories with summaries.`,
     `- [robots.txt](${SITE_URL}/robots.txt): crawl rules. AI crawlers are explicitly allowed.`,
     '- Every public page embeds schema.org JSON-LD (NewsArticle, CollectionPage, BreadcrumbList,',
@@ -55,7 +54,7 @@ export async function GET() {
     '',
     '## Sections',
     '',
-    ...categories.map((c) => `- [${c}](${SITE_URL}/news/category/${slugifyCategory(c)})`),
+    ...SITE_CATEGORIES.map((c) => `- [${c.label}](${SITE_URL}/news/category/${c.slug}): ${c.description}`),
     '',
     '## Recent stories',
     '',

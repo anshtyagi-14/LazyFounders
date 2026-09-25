@@ -1,6 +1,6 @@
 import { permanentRedirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
+// A bare redirect. Nothing to rebuild per request.
 
 /**
  * /news is linked from the category navigation but has never had a page of its own.

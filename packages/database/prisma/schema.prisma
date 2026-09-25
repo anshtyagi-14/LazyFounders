@@ -657,3 +657,41 @@ model EditorialAction {
   @@index([articleId, createdAt])
   @@map("editorial_actions")
 }
+
+/// Early-access email list for the future LazyFounder Brief. Capture only:
+/// nothing sends to these addresses yet, and there are no accounts behind them.
+model EmailSignup {
+  id             String   @id @default(uuid()) @db.Uuid
+  email          String   @unique /// lowercased and trimmed before insert
+  signupLocation String   @map("signup_location") /// homepage | footer | article
+  utmSource      String?  @map("utm_source")
+  utmMedium      String?  @map("utm_medium")
+  utmCampaign    String?  @map("utm_campaign")
+  referrer       String?
+  /// Submissions for this address, first one included; duplicates only bump it.
+  attempts       Int      @default(1)
+  createdAt      DateTime @default(now()) @map("created_at")
+  lastAttemptAt  DateTime @default(now()) @map("last_attempt_at")
+
+  @@index([createdAt])
+  @@map("email_signups")
+}
+
+/// Public-site errors (server render, client boundary, image, API, sitemap,
+/// email capture) for the admin error list. Repeats of the same error collapse
+/// into one row through the fingerprint, so a burst stays one line with a count.
+model SiteError {
+  id          String    @id @default(uuid()) @db.Uuid
+  type        String    /// server_error | page_error | article_render | api_error | image_error | email_capture | sitemap
+  route       String
+  message     String
+  fingerprint String    @unique
+  count       Int       @default(1)
+  firstSeenAt DateTime  @default(now()) @map("first_seen_at")
+  lastSeenAt  DateTime  @default(now()) @map("last_seen_at")
+  resolvedAt  DateTime? @map("resolved_at")
+
+  @@index([lastSeenAt])
+  @@index([type, lastSeenAt])
+  @@map("site_errors")
+}

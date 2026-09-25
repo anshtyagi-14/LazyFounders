@@ -1,5 +1,8 @@
 import React from "react";
-import { SafeImage } from "./SafeImage";import { BrandBadge } from './BrandBadge';
+import { SafeImage } from "./SafeImage";
+import { BrandBadge } from "./BrandBadge";
+import { gaAttrs, publishAgeBucket, type ArticleOrigin } from "@/lib/ga-attrs";
+
 export interface ArticleProps {
   url: string;
   imageUrl?: string;
@@ -12,27 +15,56 @@ export interface ArticleProps {
   description?: string;
   /** Headline card that links out to the original publisher (opens in a new tab). */
   external?: boolean;
+  /** Analytics: story id, how it was produced, and when (for the freshness bucket). */
+  id?: string;
+  origin?: ArticleOrigin;
+  publishedAt?: string;
+}
+
+/** Where on the page a card sits, for select_content reporting. */
+export interface CardContext {
+  surface?: string;
+  position?: number;
+  /** Override the event (e.g. related_article_select). */
+  event?: string;
 }
 
 /** Link attributes for cards: external headline cards open the publisher in a new tab. */
-export function cardLinkProps(article: ArticleProps) {
-  return article.external
-    ? {
-        href: article.url,
-        target: "_blank",
-        rel: "noopener noreferrer nofollow",
-      }
-    : { href: article.url };
+export function cardLinkProps(article: ArticleProps, ctx: CardContext = {}) {
+  const ga = gaAttrs(ctx.event ?? "select_content", {
+    content_type: "article",
+    content_id: article.id,
+    category: article.category,
+    article_origin: article.origin,
+    source_surface: ctx.surface,
+    position: ctx.position,
+    publish_age_bucket: publishAgeBucket(article.publishedAt),
+  });
+  if (article.external) {
+    return {
+      href: article.url,
+      target: "_blank",
+      rel: "noopener noreferrer nofollow",
+      ...ga,
+    };
+  }
+  // Source-story pages are noindex and Disallowed in robots.txt (they carry a
+  // cross-domain canonical to the publisher). Following them from the home page
+  // spends crawl budget on URLs the crawler is then told to drop.
+  if (article.url.startsWith("/news/source/")) {
+    return { href: article.url, rel: "nofollow", ...ga };
+  }
+  return { href: article.url, ...ga };
 }
 
-export function FeaturedCard({ article }: { article: ArticleProps }) {
+export function FeaturedCard({ article, context }: { article: ArticleProps; context?: CardContext }) {
   return (
     <a
       className="group relative overflow-hidden rounded-2xl block h-[380px] sm:h-[420px] lg:h-[460px]"
-      {...cardLinkProps(article)}
+      {...cardLinkProps(article, context)}
     >
       <SafeImage
-        src={article.imageUrl || "/placeholder.jpg"}
+        src={article.imageUrl || "/fallback.webp"}
         alt={article.title}
         className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
       />

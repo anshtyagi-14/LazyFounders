@@ -1,0 +1,7 @@
+# TODO(contacts): replace with the real security contact before launch
+# (keep in sync with src/lib/site-contacts.ts).
+Contact: mailto:security@lazyfounder.in
+Expires: 2027-09-25T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://lazyfounder.in/.well-known/security.txt
+Policy: https://lazyfounder.in/terms

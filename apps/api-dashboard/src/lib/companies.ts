@@ -25,3 +25,6 @@ export const COMPANY_GROUPS: { title: string; items: string[] }[] = [
   { title: 'Listed tech', items: LISTED_TECH },
   { title: 'Investors', items: INVESTORS },
 ];
+
+/** Below this, a company hub is thin: out of the index and out of the sitemap. */
+export const MIN_COMPANY_STORIES = 2;

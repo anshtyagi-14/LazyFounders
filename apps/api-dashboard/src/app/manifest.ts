@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { BRAND, SITE_DESCRIPTION, SITE_LANG, SITE_TAGLINE } from '@/lib/seo';
 
-export const dynamic = 'force-dynamic';
+// Constant. There is nothing here to rebuild per request.
 
 /** Replaces the stale Create React App public/manifest.json. */
 export default function manifest(): MetadataRoute.Manifest {

@@ -9,7 +9,7 @@ import {
   type PublicArticle,
 } from '@/lib/articles';
 import type { ArticleProps } from '@/components/FeaturedCard';
-import { normalizeTopics } from '@/lib/topics';
+import { normalizeTopics, categoryForArticle } from '@/lib/topics';
 
 /**
  * Site search over both content pools.
@@ -85,7 +85,7 @@ export async function searchStories(rawQuery: string, opts: { take?: number } = 
   });
 
   const results: SearchResult[] = [
-    ...own.map((a) => ({ props: toArticleProps(a), isOwn: true })),
+    ...own.map((a) => ({ props: { ...toArticleProps(a), category: categoryForArticle(a.category).label }, isOwn: true })),
     ...matchedSources.map((h) => {
       // headlineToArticleProps puts the publisher in the chip; every other list on
       // the site shows the topic there, and the publisher stays as the byline.
@@ -96,4 +96,11 @@ export async function searchStories(rawQuery: string, opts: { take?: number } = 
   ];
 
   return results.slice(0, take);
+}
+
+/** Curated companies whose name contains the query: their hub pages are search results too. */
+export function matchCompanies(rawQuery: string, names: readonly string[], limit = 8): string[] {
+  const needle = normalizeQuery(rawQuery).toLowerCase();
+  if (needle.length < 2) return [];
+  return names.filter((n) => n.toLowerCase().includes(needle)).slice(0, limit);
 }

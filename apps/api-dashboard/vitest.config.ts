@@ -8,7 +8,11 @@ import path from 'node:path';
  */
 export default defineConfig({
   resolve: {
-    alias: { '@': path.resolve(__dirname, 'src') },
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+      // The real module throws unless bundled for React Server; tests run in plain Node.
+      'server-only': path.resolve(__dirname, 'src/test/server-only.ts'),
+    },
   },
   test: {
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],

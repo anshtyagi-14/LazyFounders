@@ -1,6 +1,12 @@
 import { prisma } from '@/lib/prisma';
+import { clientIp, rateLimit } from '@/lib/rate-limit';
+
+const RATE_LIMITED = { valid: false, status: 429, error: 'Rate limit exceeded. Try again in a minute.' } as const;
 
 export async function validateApiKey(request: Request) {
+  // Per-IP first, so guessing keys is throttled before any database lookup.
+  if (!(await rateLimit('api-v1-ip', clientIp(request.headers), 120, 60)).ok) return RATE_LIMITED;
+
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return { valid: false, error: 'Missing or invalid Authorization header. Use format: Bearer <API_KEY>' };
@@ -24,6 +30,8 @@ export async function validateApiKey(request: Request) {
     if (!apiKeyRecord.isActive) {
       return { valid: false, error: 'API key is revoked or inactive' };
     }
+
+    if (!(await rateLimit('api-v1-key', apiKeyRecord.id, 60, 60)).ok) return RATE_LIMITED;
 
     // Increment usage asynchronously
     prisma.apiKey.update({

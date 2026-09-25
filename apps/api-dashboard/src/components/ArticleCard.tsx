@@ -1,17 +1,17 @@
 import React from 'react';
-import { cardLinkProps, type ArticleProps } from './FeaturedCard';
+import { cardLinkProps, type ArticleProps, type CardContext } from './FeaturedCard';
 import { SafeImage } from './SafeImage';
 import { BrandBadge } from './BrandBadge';
 
-export function ArticleCard({ article }: { article: ArticleProps }) {
+export function ArticleCard({ article, context }: { article: ArticleProps; context?: CardContext }) {
   return (
     <a
       className="group bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-800 block flex flex-col h-full"
-      {...cardLinkProps(article)}
+      {...cardLinkProps(article, context)}
     >
       <div className="relative h-48 overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0">
         <SafeImage
-          src={article.imageUrl || '/placeholder.jpg'}
+          src={article.imageUrl || '/fallback.webp'}
           alt={article.title}
           className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
         />

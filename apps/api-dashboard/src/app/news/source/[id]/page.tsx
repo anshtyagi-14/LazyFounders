@@ -1,22 +1,28 @@
 import React from "react";
 import Link from "next/link";
-export const dynamic = "force-dynamic";
+// Syndicated headlines never change after they are stored.
+export const revalidate = 300;
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { SafeImage } from "../../../../components/SafeImage";
 import { BrandBadge } from "../../../../components/BrandBadge";
 import { PoweredByBlogy } from "../../../../components/PoweredByBlogy";
 import { getSourceStory, listPublishedArticles, sourceStoryPath } from "@/lib/articles";
-import { ogImageUrl, pageMetadata } from "@/lib/seo";
+import { pageMetadata } from "@/lib/seo";
 
 type Props = { params: Promise<{ id: string }> };
+
+/** Empty on purpose: no build-time pages, but on-demand ISR (see the article page). */
+export async function generateStaticParams() {
+  return [];
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const result = await getSourceStory(id);
   if (!result || result.kind !== "story") return { title: "Story not found", robots: { index: false } };
   const { story } = result;
-  const image = story.imageUrl || ogImageUrl({ title: story.headline, kicker: story.publisher, meta: `${story.readTime} min read` });
+  const image = story.imageUrl;
   return pageMetadata({
     title: story.headline,
     description: story.excerpt,
@@ -137,8 +143,8 @@ export default async function SourceStoryPage({ params }: Props) {
                     {latest.map((l) => (
                       <a key={l.id} href={`/news/article/${l.slug}`} className="group flex gap-3 items-start">
                         <SafeImage
-                          src={l.featuredImage?.url || "/placeholder.jpg"}
-                          alt={l.headline}
+                          src={l.featuredImage?.url || "/fallback.webp"}
+                          alt=""
                           className="w-16 h-16 rounded-lg object-cover bg-slate-100 dark:bg-[#121820] shrink-0 ring-1 ring-slate-200 dark:ring-white/10"
                           loading="lazy"
                         />

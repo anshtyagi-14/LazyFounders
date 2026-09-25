@@ -4,10 +4,19 @@ import React from 'react';
  * A plain GET form. No client component and no JavaScript: the browser submits
  * to /search on Enter, so search keeps working with scripting disabled.
  */
-export function SearchBox({ defaultValue = '', className = '' }: { defaultValue?: string; className?: string }) {
+export function SearchBox({
+  defaultValue = '',
+  className = '',
+  id = 'site-search',
+}: {
+  defaultValue?: string;
+  className?: string;
+  /** Unique per instance: the masthead, the mobile menu and /search can all render one. */
+  id?: string;
+}) {
   return (
     <form action="/search" method="get" role="search" className={'relative ' + className}>
-      <label htmlFor="site-search" className="sr-only">
+      <label htmlFor={id} className="sr-only">
         Search stories
       </label>
       <svg
@@ -25,13 +34,13 @@ export function SearchBox({ defaultValue = '', className = '' }: { defaultValue?
         <line x1="20" y1="20" x2="16.7" y2="16.7" />
       </svg>
       <input
-        id="site-search"
+        id={id}
         type="search"
         name="q"
         defaultValue={defaultValue}
         placeholder="Search stories"
         maxLength={100}
-        className="w-full border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-teal-500/60 focus:bg-white focus:outline-none transition-colors dark:border-white/12 dark:bg-white/5 dark:text-white dark:focus:bg-white/8"
+        className="min-h-11 w-full border border-gray-300 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-600 focus:border-teal-600 focus:bg-white transition-colors dark:border-white/15 dark:bg-white/5 dark:text-white dark:placeholder:text-gray-400 dark:focus:bg-white/8"
       />
     </form>
   );

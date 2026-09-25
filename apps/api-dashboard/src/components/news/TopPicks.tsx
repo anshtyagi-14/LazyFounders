@@ -16,11 +16,11 @@ export function TopPicks({ items }: { items: FeedItem[] }) {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1.55fr_1fr] lg:gap-14">
-      <LeadStory item={lead} size="lg" />
+      <LeadStory item={lead} size="lg" priority context={{ surface: 'top_picks', position: 1 }} />
       {rest.length > 0 ? (
         <div className="border-t border-black/10 dark:border-white/10 lg:border-t-0">
-          {rest.map((item) => (
-            <StoryRow key={item.id} item={item} showThumb />
+          {rest.map((item, i) => (
+            <StoryRow key={item.id} item={item} showThumb context={{ surface: 'top_picks', position: i + 2 }} />
           ))}
         </div>
       ) : null}

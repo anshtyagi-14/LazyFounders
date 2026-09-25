@@ -5,10 +5,13 @@ import Link from 'next/link';
 import { SafeImage } from '../../../components/SafeImage';
 import { BrandBadge } from '../../../components/BrandBadge';
 import { JsonLd } from '../../../components/JsonLd';
-import { BRAND, collectionPageSchema, ogImageUrl, pageMetadata } from '@/lib/seo';
-import { ALL_COMPANIES } from '@/lib/companies';
+import { BRAND, collectionPageSchema, pageMetadata } from '@/lib/seo';
+import { notFound } from 'next/navigation';
+import { ALL_COMPANIES, MIN_COMPANY_STORIES } from '@/lib/companies';
+import { companyIndex, type CompanyEntry } from '@/lib/company-index';
 
-export const dynamic = 'force-dynamic';
+// A company hub moves only when a new story mentions it.
+export const revalidate = 300;
 
 
 
@@ -18,6 +21,11 @@ function slugify(text: string) {
 }
 
 type Props = { params: Promise<{ slug: string }> };
+
+/** Empty on purpose: no build-time pages, but on-demand ISR (see the article page). */
+export async function generateStaticParams() {
+  return [];
+}
 
 interface CompanyArticle {
   id: string;
@@ -33,13 +41,17 @@ async function loadCompany(params: Props['params']) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug || '';
 
-  // Find the exact case-sensitive company name from our constants, or fall back to the slug
-  const matchedCompany = ALL_COMPANIES.find(c => slugify(c) === slug) ||
-                         slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  const curated = ALL_COMPANIES.find((c) => slugify(c) === slug);
+  const entry = (await companyIndex().catch(() => new Map<string, CompanyEntry>())).get(slug);
+  // A slug that is neither a curated company nor mentioned by any story is a
+  // wrong URL, not an empty hub.
+  if (!curated && !entry) notFound();
+  const matchedCompany = curated ?? entry!.name;
+  const spellings = [...new Set([...(entry?.names ?? []), matchedCompany, matchedCompany.toLowerCase()])];
 
   let articles: CompanyArticle[] = [];
   try {
-    const published = await listPublishedArticles({ companies: [matchedCompany, matchedCompany.toLowerCase()], take: 50 });
+    const published = await listPublishedArticles({ companies: spellings, take: 50 });
     articles = published.map((a) => ({
       id: a.id,
       slug: a.slug,
@@ -64,10 +76,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       ? `${count} ${count === 1 ? 'story' : 'stories'} covering ${matchedCompany} on ${BRAND} — funding rounds, launches and analysis, each written from cited primary sources.`
       : `${matchedCompany} coverage on ${BRAND}. Stories appear here as soon as our newsroom pipeline picks them up.`,
     path: `/company/${slug}`,
-    image: articles[0]?.headerImage ?? ogImageUrl({ title: `${matchedCompany} coverage`, kicker: 'Company', meta: `${count} stories` }),
+    image: articles.find((a) => a.headerImage)?.headerImage,
     keywords: [matchedCompany, `${matchedCompany} news`, `${matchedCompany} funding`],
-    // A company hub with nothing on it is thin content: crawlable, but not indexable.
-    index: count > 0,
+    // A company hub with one story or none is thin content: crawlable, but not indexable.
+    index: count >= MIN_COMPANY_STORIES,
   });
 }
 

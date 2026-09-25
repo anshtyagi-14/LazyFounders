@@ -6,7 +6,7 @@ export const metadata: Metadata = privateMetadata('Coming soon');
 import React from 'react';
 import Link from 'next/link';
 
-export const dynamic = 'force-dynamic';
+// Static copy behind a noindex. Nothing to rebuild per request.
 
 export default function ComingSoonPage() {
   return (

@@ -10,6 +10,8 @@ const PUBLIC_WHERE = { publishedVersionId: { not: null }, status: { notIn: ['ARC
 
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
 export const BRAND = process.env.SITE_BRAND_NAME || 'LazyFounders';
+/** Lightweight brand card (1200x630 WebP) for cards and heroes with no usable image. */
+export const FALLBACK_IMAGE_PATH = '/fallback.webp';
 
 export interface FeaturedImage {
   url: string;
@@ -41,6 +43,11 @@ export interface PublicArticle {
   intro: string;
   bodyMarkdown: string;
   featuredImage: FeaturedImage | null;
+  /**
+   * Second step of the image chain: another cited source's lead image, used
+   * when the story has none of its own. Only loaded for the article page.
+   */
+  sourceImage?: FeaturedImage | null;
   citations: PublicCitation[];
   readTime: number;
   isLegacy: boolean;
@@ -126,7 +133,7 @@ function toPublic(a: ArticleRow, v: Awaited<ReturnType<typeof withVersions>>[num
 export function toArticleProps(p: PublicArticle): ArticleProps {
   return {
     url: `/news/article/${p.slug}`,
-    imageUrl: p.featuredImage?.url || '/placeholder.jpg',
+    imageUrl: p.featuredImage?.url || FALLBACK_IMAGE_PATH,
     category: p.category,
     title: sanitizeHeadline(p.headline),
     description: sanitizeHeadline(p.metaDescription),
@@ -134,29 +141,66 @@ export function toArticleProps(p: PublicArticle): ArticleProps {
     authorName: BRAND,
     readTime: p.readTime,
     publishedDate: formatDate(p.publishedAt),
+    id: p.id,
+    origin: 'synthesis',
+    publishedAt: p.publishedAt.toISOString(),
   };
 }
 
-export async function listPublishedArticles(opts: { take?: number; category?: string; companies?: string[]; excludeId?: string } = {}): Promise<PublicArticle[]> {
+export async function listPublishedArticles(
+  opts: { take?: number; skip?: number; categories?: string[]; companies?: string[]; excludeId?: string } = {},
+): Promise<PublicArticle[]> {
   const rows = await prisma.article.findMany({
     where: {
       ...PUBLIC_WHERE,
+      // Raw Article.category values; translate a site category with labelsForCategory().
+      ...(opts.categories ? { category: { in: opts.categories } } : {}),
       ...(opts.companies?.length ? { companies: { hasSome: opts.companies } } : {}),
       ...(opts.excludeId ? { id: { not: opts.excludeId } } : {}),
     },
     orderBy: { publishedAt: 'desc' },
-    // Category slugs are matched in memory (legacy categories are free text).
-    take: opts.category ? 500 : (opts.take ?? 28),
+    skip: opts.skip,
+    take: opts.take ?? 28,
   });
-  const filtered = opts.category ? rows.filter((r) => slugifyCategory(r.category || 'Technology') === opts.category).slice(0, opts.take ?? 50) : rows;
-  return (await withVersions(filtered)).map(({ a, v }) => toPublic(a, v));
+  return (await withVersions(rows)).map(({ a, v }) => toPublic(a, v));
+}
+
+export async function countPublishedArticles(opts: { categories?: string[] } = {}): Promise<number> {
+  return prisma.article.count({
+    where: { ...PUBLIC_WHERE, ...(opts.categories ? { category: { in: opts.categories } } : {}) },
+  });
+}
+
+export interface Paged<T> {
+  items: T[];
+  /** Matches across the whole window, not just this page. */
+  total: number;
 }
 
 export async function getPublishedArticle(slug: string): Promise<PublicArticle | null> {
   const a = await prisma.article.findFirst({ where: { slug, ...PUBLIC_WHERE } });
   if (!a) return null;
   const [row] = await withVersions([a]);
-  return row ? toPublic(row.a, row.v) : null;
+  if (!row) return null;
+  const article = toPublic(row.a, row.v);
+  if (!article.featuredImage?.url && a.storyId) article.sourceImage = await storySourceImage(a.storyId);
+  return article;
+}
+
+/**
+ * The first lead image among a story's sources whose image policy allows showing
+ * it (the same rule the pipeline applies to the primary source).
+ */
+async function storySourceImage(storyId: string): Promise<FeaturedImage | null> {
+  const rows = await prisma.storySource.findMany({
+    where: { storyId, sourceArticle: { leadImage: { not: null }, source: { imagePolicy: { not: 'none' } } } },
+    orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
+    take: 1,
+    select: { sourceArticle: { select: { leadImage: true, imageCredit: true, publisher: true, canonicalUrl: true, finalUrl: true } } },
+  });
+  const s = rows[0]?.sourceArticle;
+  if (!s?.leadImage) return null;
+  return { url: s.leadImage, credit: s.imageCredit ?? s.publisher, publisher: s.publisher, sourceUrl: s.canonicalUrl ?? s.finalUrl };
 }
 
 /**
@@ -216,19 +260,30 @@ function excerptOf(text: string | null | undefined, max = 220): string {
   return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), max - 40)).replace(/[\s,.;:]+$/, '')}…`;
 }
 
-export async function listSourceHeadlines(opts: { take?: number } = {}): Promise<SourceHeadline[]> {
+/** Visible source stories that did not already become one of our published stories. */
+function sourceListWhere(categories?: string[]) {
+  return {
+    ...SOURCE_VISIBLE_WHERE,
+    ...(categories ? { categories: { hasSome: categories } } : {}),
+    NOT: { storySource: { is: { story: { is: { article: { is: { publishedVersionId: { not: null } } } } } } } },
+  };
+}
+
+export async function countSourceHeadlines(opts: { categories?: string[] } = {}): Promise<number> {
+  return prisma.sourceArticle.count({ where: sourceListWhere(opts.categories) });
+}
+
+export async function listSourceHeadlines(opts: { take?: number; categories?: string[] } = {}): Promise<SourceHeadline[]> {
   const take = opts.take ?? 24;
   const rows = await prisma.sourceArticle.findMany({
-    where: {
-      ...SOURCE_VISIBLE_WHERE,
-      NOT: { storySource: { is: { story: { is: { article: { is: { publishedVersionId: { not: null } } } } } } } },
-    },
+    where: sourceListWhere(opts.categories),
     orderBy: [{ publishedAt: { sort: 'desc', nulls: 'last' } }, { fetchedAt: 'desc' }],
     take: take * 3,
     select: {
       id: true, canonicalFingerprint: true, headline: true, subheadline: true, bodyText: true,
       leadImage: true, publisher: true, publishedAt: true, fetchedAt: true,
       canonicalUrl: true, finalUrl: true, originalUrl: true, categories: true, tags: true,
+      source: { select: { imagePolicy: true } },
     },
   });
   const seen = new Set<string>();
@@ -242,7 +297,8 @@ export async function listSourceHeadlines(opts: { take?: number } = {}): Promise
       sourceUrl: url,
       headline: sanitizeHeadline(r.headline),
       excerpt: excerptOf(sanitizeHeadline(r.subheadline || r.bodyText)),
-      imageUrl: httpUrl(r.leadImage),
+      // A source that has not licensed its images for display gets the brand card.
+      imageUrl: r.source.imagePolicy === 'none' ? null : httpUrl(r.leadImage),
       publisher: r.publisher,
       publishedAt: r.publishedAt ?? r.fetchedAt,
       // Categories only: tags are entities ("Meta", "OpenAI", "TechCrunch Disrupt"),
@@ -279,6 +335,7 @@ export async function getSourceStory(id: string): Promise<SourceStoryResult> {
       leadImage: true, imageCredit: true, publisher: true, language: true,
       publishedAt: true, fetchedAt: true, canonicalUrl: true, finalUrl: true, originalUrl: true, categories: true, tags: true,
       storySource: { select: { story: { select: { article: { select: { slug: true, publishedVersionId: true, status: true } } } } } },
+      source: { select: { imagePolicy: true } },
     },
   });
   if (!r || !r.headline) return null;
@@ -297,7 +354,7 @@ export async function getSourceStory(id: string): Promise<SourceStoryResult> {
       subheadline: sanitizeHeadline(r.subheadline),
       excerpt: excerptOf(sanitizeHeadline(r.subheadline || r.bodyText)),
       author: r.author,
-      imageUrl: httpUrl(r.leadImage),
+      imageUrl: r.source.imagePolicy === 'none' ? null : httpUrl(r.leadImage),
       imageCredit: r.imageCredit,
       publisher: r.publisher,
       language: r.language,
@@ -314,7 +371,7 @@ export async function getSourceStory(id: string): Promise<SourceStoryResult> {
 export function headlineToArticleProps(h: SourceHeadline): ArticleProps {
   return {
     url: sourceStoryPath(h.id),
-    imageUrl: h.imageUrl || '/placeholder.jpg',
+    imageUrl: h.imageUrl || FALLBACK_IMAGE_PATH,
     category: h.publisher,
     title: sanitizeHeadline(h.headline),
     description: sanitizeHeadline(h.excerpt),
@@ -322,12 +379,34 @@ export function headlineToArticleProps(h: SourceHeadline): ArticleProps {
     authorName: h.publisher,
     readTime: h.readTime,
     publishedDate: formatDate(h.publishedAt),
+    id: h.id,
+    origin: 'wire',
+    publishedAt: h.publishedAt.toISOString(),
   };
 }
 
-export async function listCategories(): Promise<string[]> {
-  const rows = await prisma.article.findMany({ where: PUBLIC_WHERE, select: { category: true }, distinct: ['category'], take: 50 });
-  return rows.map((r) => r.category || 'Technology');
+const LABEL_TTL_MS = 10 * 60 * 1000;
+let labelCache: { own: string[]; source: string[]; expires: number } | null = null;
+
+/**
+ * Every distinct raw category label in both pools. Category pages translate a
+ * site category back into these (see labelsForCategory) to filter in SQL. The
+ * set only changes when the pipeline meets a new label, so a short process
+ * cache saves two DISTINCT scans per category render.
+ */
+export async function listRawCategoryLabels(): Promise<{ own: string[]; source: string[] }> {
+  if (labelCache && labelCache.expires > Date.now()) return labelCache;
+  const [own, source] = await Promise.all([
+    prisma.article.findMany({ where: PUBLIC_WHERE, select: { category: true }, distinct: ['category'] }),
+    prisma.$queryRaw<{ label: string }[]>`SELECT DISTINCT unnest(categories) AS label FROM source_articles`,
+  ]);
+  const fresh = {
+    own: own.map((r) => r.category).filter((c): c is string => Boolean(c)),
+    source: source.map((r) => r.label).filter(Boolean),
+    expires: Date.now() + LABEL_TTL_MS,
+  };
+  labelCache = fresh;
+  return fresh;
 }
 
 /**

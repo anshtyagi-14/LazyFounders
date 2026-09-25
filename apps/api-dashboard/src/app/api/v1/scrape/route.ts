@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   try {
     const auth = await validateApiKey(request);
     if (!auth.valid) {
-      return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
+      return NextResponse.json({ success: false, error: auth.error }, { status: 'status' in auth ? auth.status : 401 });
     }
 
     const body = await request.json();

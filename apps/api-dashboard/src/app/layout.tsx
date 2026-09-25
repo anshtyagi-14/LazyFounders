@@ -5,6 +5,7 @@ import { Footer } from '../components/Footer';
 import { SiteHeader } from '../components/site/SiteHeader';
 import { JsonLd } from '../components/JsonLd';
 import { Analytics } from '../components/Analytics';
+import { WebVitals } from '../components/WebVitals';
 import {
   BRAND,
   SITE_DESCRIPTION,
@@ -17,8 +18,6 @@ import {
   organizationSchema,
   websiteSchema,
 } from '@/lib/seo';
-
-export const dynamic = "force-dynamic";
 
 // Three roles, each doing one job: Archivo carries the masthead and every
 // uppercase label, Newsreader sets headlines so the page reads as a publication
@@ -79,7 +78,7 @@ export const metadata: Metadata = {
   },
   other: {
     // GEO: a short, machine-readable statement of what this publication is.
-    'ai-content-declaration': 'AI-assisted reporting, human-reviewed, fully cited',
+    'ai-content-declaration': 'AI-drafted from cited sources, checked by automated validation; see /ai-policy',
   },
 };
 
@@ -126,13 +125,21 @@ export default function RootLayout({
         <JsonLd data={siteSchema} />
       </head>
       <body className={`${outfit.variable} ${archivo.variable} ${newsreader.variable} ${outfit.className} min-h-screen flex flex-col`}>
+        <a
+          href="#content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-teal-500 focus:px-4 focus:py-3 focus:font-semibold focus:text-black"
+        >
+          Skip to content
+        </a>
         <SiteHeader />
-        {/* A plain wrapper: pages own their own <main>, and nesting <main> is invalid. */}
-        <div className="flex-1">
+        {/* A plain wrapper: pages own their own <main>, and nesting <main> is invalid.
+            It is the skip link's target, so it takes focus without joining the tab order. */}
+        <div id="content" tabIndex={-1} className="flex-1 outline-none">
           {children}
         </div>
         <Footer />
         <Analytics />
+        <WebVitals />
       </body>
     </html>
   );

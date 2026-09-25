@@ -1,5 +1,5 @@
 import React from 'react';
-import { cardLinkProps } from '../FeaturedCard';
+import { cardLinkProps, type CardContext } from '../FeaturedCard';
 import { SafeImage } from '../SafeImage';
 import type { FeedItem } from '@/lib/feed';
 
@@ -8,21 +8,34 @@ import type { FeedItem } from '@/lib/feed';
  * picture. It is the one place a story gets a large serif headline, which is what
  * marks it as the most important thing in its block.
  */
-export function LeadStory({ item, size = 'md' }: { item: FeedItem; size?: 'md' | 'lg' }) {
+export function LeadStory({
+  item,
+  size = 'md',
+  priority = false,
+  context,
+}: {
+  item: FeedItem;
+  size?: 'md' | 'lg';
+  priority?: boolean;
+  context?: CardContext;
+}) {
   const { props } = item;
   const headline = size === 'lg' ? 'text-2xl sm:text-3xl lg:text-4xl' : 'text-xl sm:text-2xl';
   const frame = size === 'lg' ? 'aspect-[16/9]' : 'aspect-[3/2]';
 
   return (
-    <a {...cardLinkProps(props)} className="group block">
+    <a {...cardLinkProps(props, context)} className="group block">
       <div className={'relative overflow-hidden bg-gray-100 dark:bg-[#16161a] ' + frame}>
         <SafeImage
-          src={item.hasImage ? props.imageUrl : undefined}
-          alt=""
+          src={item.hasImage ? props.imageUrl : '/fallback.webp'}
+          alt={item.hasImage ? props.title : ''}
+          width={size === 'lg' ? 1200 : 900}
+          height={size === 'lg' ? 675 : 600}
+          priority={priority}
           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
         />
       </div>
-      <p className="mt-4 font-display text-[0.68rem] font-bold uppercase tracking-[0.14em] text-teal-500">
+      <p className="mt-4 font-display text-[0.68rem] font-bold uppercase tracking-[0.14em] text-teal-700 dark:text-teal-500">
         {props.category}
       </p>
       <h3 className={'mt-2 font-headline leading-[1.15] text-gray-950 transition-colors group-hover:text-teal-700 dark:text-white dark:group-hover:text-teal-300 ' + headline}>
@@ -31,7 +44,7 @@ export function LeadStory({ item, size = 'md' }: { item: FeedItem; size?: 'md' |
       {props.description ? (
         <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-gray-600 dark:text-gray-400">{props.description}</p>
       ) : null}
-      <p className="mt-3 flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
+      <p className="mt-3 flex flex-wrap items-center gap-x-2 text-xs text-gray-600 dark:text-gray-400">
         <span>{props.publishedDate}</span>
         <span aria-hidden="true" className="text-black/20 dark:text-white/15">/</span>
         <span>{item.isOwn ? props.readTime + ' min read' : props.authorName}</span>

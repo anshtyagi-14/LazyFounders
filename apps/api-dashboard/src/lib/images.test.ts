@@ -1,0 +1,49 @@
+import { describe, expect, test } from 'vitest';
+
+import { resolveImage, usableImageUrl } from './images';
+
+describe('usableImageUrl', () => {
+  test('accepts https and site paths', () => {
+    expect(usableImageUrl('https://cdn.example.com/a.jpg?w=1200&h=630')).toBe('https://cdn.example.com/a.jpg?w=1200&h=630');
+    expect(usableImageUrl('/uploads/a.png')).toBe('/uploads/a.png');
+  });
+
+  test('rejects what would break or be unsafe on an https page', () => {
+    expect(usableImageUrl('http://example.com/a.jpg')).toBeNull();
+    expect(usableImageUrl('data:image/png;base64,AAAA')).toBeNull();
+    expect(usableImageUrl('javascript:alert(1)')).toBeNull();
+    expect(usableImageUrl('//evil.example/a.jpg')).toBeNull();
+    expect(usableImageUrl('not a url')).toBeNull();
+    expect(usableImageUrl('')).toBeNull();
+    expect(usableImageUrl(null)).toBeNull();
+  });
+});
+
+describe('resolveImage', () => {
+  test('uses the story image first', () => {
+    const img = resolveImage(
+      [
+        { url: 'https://a.example/lead.jpg', credit: 'Publisher A' },
+        { url: 'https://b.example/other.jpg', credit: 'Publisher B' },
+      ],
+      'Headline',
+    );
+    expect(img).toMatchObject({ url: 'https://a.example/lead.jpg', credit: 'Publisher A', alt: 'Headline', isFallback: false });
+    expect(img.width).toBeUndefined();
+  });
+
+  test('falls back to a source image when the story image is missing or unusable', () => {
+    const img = resolveImage([{ url: 'http://insecure.example/x.jpg' }, { url: 'https://b.example/other.jpg', credit: 'B' }], 'Headline');
+    expect(img.url).toBe('https://b.example/other.jpg');
+    expect(img.credit).toBe('B');
+  });
+
+  test('ends at the brand card, with its real size and an empty alt', () => {
+    const img = resolveImage([{ url: null }, { url: undefined }], 'Headline');
+    expect(img.isFallback).toBe(true);
+    expect(img.url).toMatch(/\/og-default\.png$/);
+    expect(img.displayUrl).toBe('/fallback.webp');
+    expect([img.width, img.height]).toEqual([1200, 630]);
+    expect(img.alt).toBe('');
+  });
+});

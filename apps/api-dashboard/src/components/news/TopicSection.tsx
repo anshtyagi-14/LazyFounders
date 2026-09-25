@@ -19,10 +19,10 @@ export function TopicSection({ section }: { section: ResolvedSection }) {
       <section className="py-10">
         <SectionHeading label={label} blurb={blurb} href={href} />
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
-          <LeadStory item={lead} />
+          <LeadStory item={lead} context={{ surface: `section_${slug}`, position: 1 }} />
           <div className="border-t border-black/10 dark:border-white/8 lg:border-t-0">
-            {rest.map((item) => (
-              <StoryRow key={item.id} item={item} showThumb />
+            {rest.map((item, i) => (
+              <StoryRow key={item.id} item={item} showThumb context={{ surface: `section_${slug}`, position: i + 2 }} />
             ))}
           </div>
         </div>
@@ -34,8 +34,8 @@ export function TopicSection({ section }: { section: ResolvedSection }) {
     <section className="py-10">
       <SectionHeading label={label} blurb={blurb} href={href} />
       <div className="grid gap-x-10 sm:grid-cols-2">
-        {items.map((item) => (
-          <StoryRow key={item.id} item={item} showThumb />
+        {items.map((item, i) => (
+          <StoryRow key={item.id} item={item} showThumb context={{ surface: `section_${slug}`, position: i + 1 }} />
         ))}
       </div>
     </section>

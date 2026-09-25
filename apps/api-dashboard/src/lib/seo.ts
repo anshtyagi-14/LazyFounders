@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
-import { BRAND, SITE_URL } from '@/lib/articles';
+import { BRAND, FALLBACK_IMAGE_PATH, SITE_URL } from '@/lib/articles';
+import { DEFAULT_TWITTER_HANDLE, SOCIAL_PROFILE_LIST } from '@/lib/social';
 
-export { BRAND, SITE_URL };
+export { BRAND, FALLBACK_IMAGE_PATH, SITE_URL };
 
 /**
  * Single source of truth for every SEO / AEO / GEO signal the public site emits.
@@ -24,26 +25,28 @@ export const SITE_LANG = SITE_LOCALE.split('_')[0] || 'en';
 
 /** Brand logo used by Organization schema and as the social-card fallback. */
 export const SITE_LOGO = `${SITE_URL}/logo512.png`;
-/** Generated 1200x630 brand card (see src/app/og/route.tsx). */
-export const SITE_OG_IMAGE = `${SITE_URL}/og`;
-
-/** Branded social card for a page that has no artwork of its own. */
-export function ogImageUrl(opts: { title?: string; kicker?: string; meta?: string } = {}): string {
-  const q = new URLSearchParams();
-  if (opts.title) q.set('title', clamp(opts.title, 120));
-  if (opts.kicker) q.set('kicker', clamp(opts.kicker, 28));
-  if (opts.meta) q.set('meta', clamp(opts.meta, 80));
-  const qs = q.toString();
-  return qs ? `${SITE_URL}/og?${qs}` : SITE_OG_IMAGE;
-}
-
-/** sameAs profiles: the strongest signal an AI engine has for resolving the brand entity. */
-export const SOCIAL_PROFILES = (process.env.SITE_SOCIAL_PROFILES || '')
+/**
+ * Static 1200x630 brand card: the last step of every image fallback chain
+ * (article image, then source image, then this). Also the share image for
+ * pages with no artwork of their own.
+ */
+export const DEFAULT_IMAGE = { path: '/og-default.png', width: 1200, height: 630 } as const;
+export const SITE_OG_IMAGE = `${SITE_URL}${DEFAULT_IMAGE.path}`;
+/**
+ * sameAs profiles: the strongest signal an AI engine has for resolving the brand
+ * entity. The env var overrides, but it is unset everywhere, so the default is
+ * the real list rather than nothing.
+ */
+const ENV_SOCIAL_PROFILES = (process.env.SITE_SOCIAL_PROFILES || '')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
 
-export const TWITTER_HANDLE = process.env.SITE_TWITTER_HANDLE || '';
+export const SOCIAL_PROFILES = ENV_SOCIAL_PROFILES.length
+  ? ENV_SOCIAL_PROFILES
+  : SOCIAL_PROFILE_LIST.map((p) => p.href);
+
+export const TWITTER_HANDLE = process.env.SITE_TWITTER_HANDLE || DEFAULT_TWITTER_HANDLE;
 
 export function absoluteUrl(path = '/'): string {
   if (/^https?:\/\//i.test(path)) return path;
@@ -82,8 +85,11 @@ type PageMetaInput = {
   title: string;
   description: string;
   path: string;
-  /** Absolute or site-relative image URL. Falls back to the generated brand card. */
+  /** Absolute or site-relative image URL. Falls back to the static brand card. */
   image?: string | null;
+  /** Only when actually known: a guessed size is worse than none. */
+  imageWidth?: number;
+  imageHeight?: number;
   imageAlt?: string;
   type?: 'website' | 'article';
   index?: boolean;
@@ -104,6 +110,12 @@ export function pageMetadata(input: PageMetaInput): Metadata {
   const title = clamp(input.title, 70);
   const description = clamp(input.description || SITE_DESCRIPTION, 160);
   const image = input.image ? absoluteUrl(input.image) : SITE_OG_IMAGE;
+  const size =
+    image === SITE_OG_IMAGE
+      ? { width: DEFAULT_IMAGE.width, height: DEFAULT_IMAGE.height }
+      : input.imageWidth && input.imageHeight
+        ? { width: input.imageWidth, height: input.imageHeight }
+        : {};
   const index = input.index !== false;
 
   return {
@@ -112,6 +124,9 @@ export function pageMetadata(input: PageMetaInput): Metadata {
     keywords: input.keywords?.length ? input.keywords : undefined,
     alternates: {
       canonical: input.canonical ?? url,
+      // One locale, stated rather than inferred: the copy, the currency and the
+      // beat are all Indian English.
+      languages: { [SITE_LOCALE.replace('_', '-')]: url },
       types: { 'application/rss+xml': `${SITE_URL}/feed.xml` },
     },
     openGraph: {
@@ -121,7 +136,7 @@ export function pageMetadata(input: PageMetaInput): Metadata {
       description,
       siteName: BRAND,
       locale: SITE_LOCALE,
-      images: [{ url: image, width: 1200, height: 630, alt: input.imageAlt || title }],
+      images: [{ url: image, ...size, alt: input.imageAlt || title }],
       ...(input.type === 'article'
         ? { publishedTime: input.publishedTime, modifiedTime: input.modifiedTime, section: input.section, tags: input.keywords }
         : {}),
@@ -130,7 +145,7 @@ export function pageMetadata(input: PageMetaInput): Metadata {
       card: 'summary_large_image',
       title,
       description,
-      images: [image],
+      images: [{ url: image, alt: input.imageAlt || title }],
       ...(TWITTER_HANDLE ? { site: TWITTER_HANDLE, creator: TWITTER_HANDLE } : {}),
     },
     robots: index
@@ -164,8 +179,11 @@ export function organizationSchema() {
     logo: { '@type': 'ImageObject', url: SITE_LOGO, width: 512, height: 512 },
     image: SITE_LOGO,
     ...(SOCIAL_PROFILES.length ? { sameAs: SOCIAL_PROFILES } : {}),
-    // GEO: state the editorial model plainly so generative engines can describe the source.
-    publishingPrinciples: `${SITE_URL}/llms.txt`,
+    // The trust pages, as schema.org names them for news publishers.
+    publishingPrinciples: `${SITE_URL}/editorial-policy`,
+    correctionsPolicy: `${SITE_URL}/corrections`,
+    ethicsPolicy: `${SITE_URL}/editorial-policy`,
+    actionableFeedbackPolicy: `${SITE_URL}/contact`,
   };
 }
 
@@ -178,6 +196,16 @@ export function websiteSchema() {
     description: SITE_DESCRIPTION,
     inLanguage: SITE_LANG,
     publisher: { '@id': ORGANIZATION_ID },
+    // The site has a working reader-facing search at /search, so say so: this is
+    // what a sitelinks searchbox and an answer engine's "search this site" both read.
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${SITE_URL}/search?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
   };
 }
 

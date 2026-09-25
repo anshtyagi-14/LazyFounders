@@ -1,10 +1,14 @@
 import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/articles';
 
-export const dynamic = 'force-dynamic';
+// Derived from SITE_URL and two constant lists: the same bytes every time.
 
-/** Internal tooling and machine endpoints: never for any crawler. */
-const PRIVATE_PATHS = ['/admin', '/dashboard', '/developers', '/tools', '/api/', '/uploads/'];
+/**
+ * Internal tooling, machine endpoints and query-string search: never for any
+ * crawler. `/search?` blocks result pages while leaving the bare /search form
+ * reachable.
+ */
+const PRIVATE_PATHS = ['/admin', '/dashboard', '/developers', '/tools', '/api/', '/preview/', '/search?', '/uploads/private/'];
 
 /**
  * Syndicated source stories carry a canonical pointing at the original publisher, so they
@@ -37,7 +41,7 @@ const AI_CRAWLERS = [
 ];
 
 export default function robots(): MetadataRoute.Robots {
-  const allow = ['/', '/news/', '/company/', '/og', '/feed.xml'];
+  const allow = ['/', '/news/', '/company/', '/feed.xml'];
   const disallow = [...PRIVATE_PATHS, ...NOINDEX_PATHS];
 
   return {
@@ -45,7 +49,7 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: '*', allow, disallow },
       ...AI_CRAWLERS.map((userAgent) => ({ userAgent, allow, disallow })),
     ],
-    sitemap: [`${SITE_URL}/sitemap.xml`, `${SITE_URL}/news-sitemap.xml`],
+    sitemap: [`${SITE_URL}/sitemap.xml`, `${SITE_URL}/sitemaps/news.xml`],
     host: SITE_URL,
   };
 }

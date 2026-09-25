@@ -1,4 +1,5 @@
 import Script from 'next/script';
+import { AnalyticsClicks } from './AnalyticsClicks';
 
 /**
  * Google Analytics 4 for the public site.
@@ -29,6 +30,7 @@ export function Analytics() {
       <Script id="ga-init" strategy="afterInteractive">
         {init}
       </Script>
+      <AnalyticsClicks />
     </>
   );
 }

@@ -1,14 +1,17 @@
 import type { ArticleProps } from '@/components/FeaturedCard';
 import {
+  countPublishedArticles,
+  countSourceHeadlines,
   headlineToArticleProps,
   listPublishedArticles,
+  listRawCategoryLabels,
   listSourceHeadlines,
   slugifyCategory,
   toArticleProps,
   type PublicArticle,
   type SourceHeadline,
 } from '@/lib/articles';
-import { HOMEPAGE_SECTIONS, fallbackSection, normalizeTopics, type TopicSectionSpec } from '@/lib/topics';
+import { HOMEPAGE_SECTIONS, categoryForArticle, labelsForCategory, normalizeTopics, type CategorySlug, type TopicSectionSpec } from '@/lib/topics';
 
 /**
  * The homepage reads one merged feed, not two.
@@ -44,10 +47,11 @@ export interface HomepageFeed {
   topics: { slug: string; label: string; count: number }[];
 }
 
-function ownToFeedItem(a: PublicArticle): FeedItem {
+export function ownToFeedItem(a: PublicArticle): FeedItem {
   // Category only, for the same reason source tags are ignored: Article.tags holds
   // entities, not subjects.
-  const topics = normalizeTopics([a.category]);
+  // Our own stories always file under a category, even a legacy free-text one.
+  const topics = [categoryForArticle(a.category).label];
   const props = toArticleProps(a);
   return {
     id: a.id,
@@ -60,7 +64,7 @@ function ownToFeedItem(a: PublicArticle): FeedItem {
   };
 }
 
-function sourceToFeedItem(h: SourceHeadline): FeedItem {
+export function sourceToFeedItem(h: SourceHeadline): FeedItem {
   const topics = normalizeTopics(h.categories ?? []);
   const props = headlineToArticleProps(h);
   return {
@@ -118,26 +122,15 @@ export interface ResolvedSection extends TopicSectionSpec {
 }
 
 /**
- * The curated running order first, then any topic the pipeline produced that the
- * curated list does not name, so a new beat is never invisible. Sections with no
- * stories, or too few to read as a section, are dropped here rather than
- * rendering a heading with nothing under it.
+ * The six category sections, in masthead order. A section with too few stories
+ * to read as a section is dropped rather than rendering a heading with nothing
+ * under it.
  *
  * `used` carries ids already shown higher up the page so a story never appears twice.
  */
-export function resolveSections(
-  feed: HomepageFeed,
-  used: Set<string>,
-  opts: { maxExtra?: number } = {},
-): ResolvedSection[] {
-  const curatedSlugs = new Set(HOMEPAGE_SECTIONS.map((s) => s.slug));
-  const extras = feed.topics
-    .filter((t) => !curatedSlugs.has(t.slug) && t.count >= MIN_SECTION_ITEMS)
-    .slice(0, opts.maxExtra ?? 4)
-    .map((t) => fallbackSection(t.label));
-
+export function resolveSections(feed: HomepageFeed, used: Set<string>): ResolvedSection[] {
   const out: ResolvedSection[] = [];
-  for (const spec of [...HOMEPAGE_SECTIONS, ...extras]) {
+  for (const spec of HOMEPAGE_SECTIONS) {
     const items: FeedItem[] = [];
     for (const item of feed.byTopic.get(spec.slug) ?? []) {
       if (used.has(item.id)) continue;
@@ -192,4 +185,50 @@ export function pickJustIn(feed: HomepageFeed, used: Set<string>, count = 8): Fe
     out.push(item);
   }
   return out;
+}
+
+export interface CategoryFeedPage {
+  items: FeedItem[];
+  /** Stories across both pools filed under the category. */
+  total: number;
+}
+
+/** How deep a category listing paginates; older stories stay reachable through the sitemap. */
+export const CATEGORY_MAX_PAGES = 40;
+
+/**
+ * One page of a category: our stories and source stories filed under it,
+ * merged newest first. Both pools are filtered in SQL through the raw labels
+ * that fold into the category. The merge needs the first `page * perPage` of
+ * each pool, which CATEGORY_MAX_PAGES keeps bounded.
+ */
+export async function listCategoryFeed(
+  slug: CategorySlug,
+  opts: { page?: number; perPage?: number; excludeId?: string } = {},
+): Promise<CategoryFeedPage> {
+  const perPage = Math.max(1, opts.perPage ?? 24);
+  const page = Math.min(CATEGORY_MAX_PAGES, Math.max(1, opts.page ?? 1));
+  const labels = await listRawCategoryLabels();
+  const own = labelsForCategory(slug, labels.own);
+  const source = labelsForCategory(slug, labels.source);
+  // The pipeline default: an own story with an unmapped label files under Technology.
+  if (slug === 'technology') {
+    for (const l of labels.own) if (!own.includes(l) && categoryForArticle(l).slug === 'technology') own.push(l);
+  }
+
+  const depth = page * perPage + (opts.excludeId ? 1 : 0);
+  const [ownRows, sourceRows, ownCount, sourceCount] = await Promise.all([
+    own.length ? listPublishedArticles({ categories: own, take: depth }) : Promise.resolve([]),
+    source.length ? listSourceHeadlines({ categories: source, take: depth }) : Promise.resolve([]),
+    own.length ? countPublishedArticles({ categories: own }) : Promise.resolve(0),
+    source.length ? countSourceHeadlines({ categories: source }) : Promise.resolve(0),
+  ]);
+
+  const merged = [...ownRows.map(ownToFeedItem), ...sourceRows.map(sourceToFeedItem)]
+    .filter((i) => i.id !== opts.excludeId)
+    .sort(byRecency);
+  return {
+    items: merged.slice((page - 1) * perPage, page * perPage),
+    total: Math.min(ownCount + sourceCount, CATEGORY_MAX_PAGES * perPage),
+  };
 }

@@ -18,14 +18,14 @@ describe('sanitizeHeadline', () => {
 describe('normalizeTopic', () => {
   test('decodes entities that publishers leave in category labels', () => {
     // This is real data: source rows carry "Biotech &amp; Health" verbatim.
-    expect(normalizeTopic('Biotech &amp; Health')).toBe('Biotech');
+    expect(normalizeTopic('Biotech &amp; Health')).toBe('Technology');
     expect(normalizeTopic('Government &amp; Policy')).toBe('Policy');
   });
 
-  test('folds publisher labels that mean the same beat', () => {
+  test('folds publisher labels into the six site categories', () => {
     expect(normalizeTopic('Fundraising')).toBe('Funding');
     expect(normalizeTopic('Venture')).toBe('Funding');
-    expect(normalizeTopic('Startup Stories')).toBe('Startups');
+    expect(normalizeTopic('Startup Stories')).toBe('Business');
   });
 
   test('drops labels that are not subjects', () => {
@@ -36,8 +36,9 @@ describe('normalizeTopic', () => {
     expect(normalizeTopic(null)).toBeNull();
   });
 
-  test('passes through a label it has no opinion about', () => {
-    expect(normalizeTopic('Climate')).toBe('Climate');
+  test('drops a label that is not one of the site categories rather than inventing a section', () => {
+    expect(normalizeTopic('Climate')).toBe('Technology');
+    expect(normalizeTopic('Some Publisher Column')).toBeNull();
   });
 });
 

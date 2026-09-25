@@ -1,5 +1,7 @@
 'use client';
 
+import { track } from '@/lib/analytics';
+
 const STORAGE_KEY = 'lazyfounders-theme';
 
 type Theme = 'light' | 'dark';
@@ -19,6 +21,7 @@ export function ThemeToggle() {
   function toggleTheme() {
     const next = currentTheme() === 'dark' ? 'light' : 'dark';
     applyTheme(next);
+    track('theme_change', { theme: next });
 
     try {
       window.localStorage.setItem(STORAGE_KEY, next);
@@ -33,7 +36,7 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       aria-label="Toggle color theme"
       title="Toggle color theme"
-      className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-700 transition-colors hover:border-teal-500/60 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500 dark:border-white/12 dark:bg-white/5 dark:text-gray-300 dark:hover:text-teal-400"
+      className="inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-700 transition-colors hover:border-teal-500/60 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500 dark:border-white/12 dark:bg-white/5 dark:text-gray-300 dark:hover:text-teal-400"
     >
       <svg
         className="hidden size-[1.1rem] dark:block"
