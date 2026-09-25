@@ -115,8 +115,21 @@ function readability(html: string, url: string): { html: string; title: string |
  *   4. semantic HTML via Readability (then <article> paragraphs)
  * Headless rendering is signalled via `needsRender`, never done here.
  */
-export function extractArticle(html: string, url: string, adapter?: SourceAdapter): ExtractedArticle {
-  const $ = load(html);
+/**
+ * Reporter bio boxes ("…is a senior reporter… contact Tim by emailing…") sit
+ * inside <article> on many publishers, so Readability keeps them. They are
+ * never part of the story.
+ */
+const AUTHOR_BIO_SELECTOR = [
+  'author-bio', 'authorbio', 'author-card', 'author-box', 'about-author', 'about-the-author', 'contributor-bio', 'byline-bio',
+]
+  .flatMap((k) => [`[class*="${k}" i]`, `[id*="${k}" i]`])
+  .join(',');
+
+export function extractArticle(rawHtml: string, url: string, adapter?: SourceAdapter): ExtractedArticle {
+  const $ = load(rawHtml);
+  $(AUTHOR_BIO_SELECTOR).remove();
+  const html = $.html();
   const ld = findArticleJsonLd($);
   const fromAdapter = adapter?.extract?.($, url) ?? {};
 

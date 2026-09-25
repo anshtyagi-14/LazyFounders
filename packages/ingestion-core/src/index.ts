@@ -22,6 +22,7 @@ export * from './content/sanitize';
 export * from './content/language';
 export * from './content/extract';
 export * from './content/paywall';
+export * from './content/contacts';
 export * from './dedup/similarity';
 export * from './dedup/decide';
 export * from './validate/numbers';

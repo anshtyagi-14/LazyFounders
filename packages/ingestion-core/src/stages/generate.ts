@@ -9,6 +9,7 @@ import {
   type GeneratedArticle,
   type LlmClient,
 } from '@lazyfounders/llm';
+import { scrubForeignContacts } from '../content/contacts';
 import { renderArticleMarkdown, slugify, versionContentHash, type Citation, type InternalLink } from '../editorial/render';
 import { TerminalError } from '../errors';
 import type { StageHandler } from '../jobs/execute';
@@ -48,8 +49,9 @@ export async function generateVersion(llm: LlmClient, ctx: GenerationContext, co
     categories: CATEGORIES,
   });
   const res = await llm.structured({ task: 'generate', promptVersion: prompt.version, system: prompt.system, user: prompt.user, schema: GeneratedArticleSchema });
-  const article = { ...res.data, slug: slugify(res.data.slug || res.data.headline) };
-  const bodyMarkdown = renderArticleMarkdown(article, { brand: config.brand, citations: ctx.citations, links: ctx.links });
+  // Facts can carry a quoted press contact; no third-party address is ever published.
+  const article = { ...res.data, intro: scrubForeignContacts(res.data.intro).text, slug: slugify(res.data.slug || res.data.headline) };
+  const bodyMarkdown = scrubForeignContacts(renderArticleMarkdown(article, { brand: config.brand, citations: ctx.citations, links: ctx.links })).text;
   return {
     article,
     bodyMarkdown,

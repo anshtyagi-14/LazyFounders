@@ -1,3 +1,4 @@
+import { scrubForeignContacts } from '../content/contacts';
 import { detectLanguage } from '../content/language';
 import { contentHash, normalizeText } from '../content/sanitize';
 import { TerminalError } from '../errors';
@@ -27,7 +28,12 @@ export function normalizeHandler(deps: PipelineDeps): StageHandler<{ sourceArtic
     if (!sa) throw new TerminalError('SourceArticle not found', 'not_found');
     if (sa.state !== 'SCRAPED' && sa.state !== 'NORMALIZED') return;
 
-    const text = normalizeText(sa.bodyText ?? '');
+    // Reporter bios and press contacts must never reach extraction or generation.
+    const scrubbed = scrubForeignContacts(normalizeText(sa.bodyText ?? ''));
+    if (scrubbed.removed.length) {
+      deps.logger.info({ sourceArticleId: sa.id, removed: scrubbed.removed.length }, 'Removed third-party contact sentences from source text');
+    }
+    const text = scrubbed.text;
     if (!hasEnoughContent(text)) {
       await deps.prisma.sourceArticle.update({ where: { id: sa.id }, data: { state: 'REJECTED', stateReason: 'insufficient_content' } });
       return;

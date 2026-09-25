@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { Logger } from 'pino';
 import { BedrockClient } from '../llm/bedrock-client.js';
 import { ImageProcessor } from './image-processor.js';
+import { scrubForeignContacts } from '@lazyfounders/ingestion-core';
 
 export interface IntelligenceJobData {
   categorizationResultId: string;
@@ -147,10 +148,14 @@ export class IntelligenceWorker {
     // --- PHASE 2: REWRITE (INTELLIGENCE) ---
     this.logger.info(`Article is unique. Passing to LLM for SEO rewrite...`);
 
+    // Reporter bios and press contacts ("contact Tim by emailing ...") must not
+    // reach the rewrite, and nothing the model writes may carry one either.
     const rewritten = await this.bedrockClient.rewriteArticle(
-      scrapeResult.bodyText,
+      scrubForeignContacts(scrapeResult.bodyText).text,
       primaryCategory
     );
+    rewritten.bodyMarkdown = scrubForeignContacts(rewritten.bodyMarkdown).text;
+    rewritten.metaDescription = scrubForeignContacts(rewritten.metaDescription).text;
 
     // --- PHASE 3: EXTRACT & WATERMARK IMAGE ---
     let headerImageUrl = null;

@@ -328,7 +328,7 @@ suite('v2 pipeline end-to-end (PostgreSQL)', () => {
     // Readers see the citation title: it is the English translation, never the Japanese headline.
     expect(sv.citations[0].title).toBe(tr.headline);
     expect(sv.bodyMarkdown).not.toMatch(/[぀-ヿ㐀-鿿]/);
-    expect(sv.generator).toMatchObject({ model: 'fake-model', promptVersion: 'generate.v2' });
+    expect(sv.generator).toMatchObject({ model: 'fake-model', promptVersion: 'generate.v3' });
     // Every article is credited to the seeded default author.
     const author = await prisma.author.findUniqueOrThrow({ where: { slug: 'tarun-mottlia' } });
     for (const a of articles) expect(a.authorId).toBe(author.id);

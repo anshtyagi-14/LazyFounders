@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from '@lazyfounders/database';
+import { checkForeignContacts } from '../content/contacts';
 import { assertTransition, evaluatePublishGates, type GateResult } from '../editorial/state-machine';
 import { TerminalError } from '../errors';
 import type { StageHandler } from '../jobs/execute';
@@ -77,6 +78,7 @@ export function validateHandler(deps: PipelineDeps): StageHandler<{ articleId: s
       ...checkSeo({ headline: version.headline, seoTitle: version.seoTitle, metaDescription: version.metaDescription, slug: article.slug }),
       ...checkSafety(`${text}\n${version.whatThisMeans ?? ''}`),
       ...checkOutputLanguage(`${text}\n${version.whatThisMeans ?? ''}`, deps.config.publishLanguage),
+      ...checkForeignContacts(`${text}\n${version.whatThisMeans ?? ''}`),
     ];
     if (version.citations.length === 0) issues.push({ check: 'attribution', severity: 'error', message: 'No source citations' });
 

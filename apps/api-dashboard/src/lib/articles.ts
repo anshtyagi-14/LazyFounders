@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { cleanAuthor, slugify } from '@lazyfounders/ingestion-core/editorial';
+import { cleanAuthor, scrubForeignContacts, slugify } from '@lazyfounders/ingestion-core/editorial';
 import { authorInitials, authorPath, loadAuthors, type PublicAuthor } from '@/lib/authors';
 import type { ArticleProps } from '../components/FeaturedCard';
 
@@ -115,6 +115,9 @@ async function withVersions(rows: ArticleRow[]) {
 }
 
 function toPublic({ a, v, author }: Awaited<ReturnType<typeof withVersions>>[number]): PublicArticle {
+  // Stories stored before the pipeline scrubbed third-party contacts (reporter
+  // bios, press emails) are cleaned here, so no foreign address is ever served.
+  const bodyMarkdown = scrubForeignContacts(v.bodyMarkdown).text;
   return {
     id: a.id,
     slug: a.slug,
@@ -126,11 +129,11 @@ function toPublic({ a, v, author }: Awaited<ReturnType<typeof withVersions>>[num
     headline: sanitizeHeadline(v.headline),
     seoTitle: sanitizeHeadline(v.seoTitle),
     metaDescription: sanitizeHeadline(v.metaDescription),
-    intro: sanitizeHeadline(v.intro),
-    bodyMarkdown: v.bodyMarkdown,
+    intro: sanitizeHeadline(scrubForeignContacts(v.intro).text),
+    bodyMarkdown,
     featuredImage: (v.featuredImage as FeaturedImage | null) ?? null,
     citations: v.citations.map((c) => ({ position: c.position, publisher: c.publisher, url: c.url, title: c.title, language: c.language, publishedAt: c.publishedAt })),
-    readTime: readTime(v.bodyMarkdown),
+    readTime: readTime(bodyMarkdown),
     isLegacy: Boolean(a.legacyContentId),
     author,
   };

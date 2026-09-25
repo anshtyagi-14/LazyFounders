@@ -8,5 +8,6 @@ export type { ArticleStatus, GateResult, PublishGateInput } from './state-machin
 export { renderSources, slugify, versionContentHash } from './render';
 export type { Citation, InternalLink } from './render';
 export { cleanAuthor } from '../content/author';
+export { scrubForeignContacts, findForeignEmails, OWN_EMAIL_DOMAINS } from '../content/contacts';
 export { STAGES, bullJobId, queueName } from '../jobs/stages';
 export type { Stage } from '../jobs/stages';
