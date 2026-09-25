@@ -20,6 +20,8 @@
   _Built by Builders, for Builders._
 
 > **Pipeline v2 (trusted-source ingestion & publishing):** see [docs/pipeline.md](docs/pipeline.md) for setup, source onboarding (`sources/`), scheduling, workers, environment variables (`.env.example`), migrations, retries and dead-letter recovery.
+>
+> **Architecture overview (deployment + pipeline workflow):** see [docs/architecture.md](docs/architecture.md).
 
 </div>
 

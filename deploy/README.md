@@ -79,17 +79,33 @@ already exist:
 | Hosted zone | `Z005056223VN82AG864O2` |
 | Certificate | `.../certificate/d94691a8-aa80-416f-b527-3a0619fcdfa4` (ap-south-1) |
 
-Nothing is live yet. The domain still resolves through GoDaddy, so the
-certificate sits in `PENDING_VALIDATION`. To finish:
+`https://lazyfounder.in` is live. The GoDaddy nameservers point at Route53,
+the certificate is `ISSUED`, the ALB has an HTTPS:443 listener, and
+`deploy/.env.production` already uses the domain for `NEXT_PUBLIC_SITE_URL`
+and `REVALIDATE_URL`.
 
-1. Set these nameservers on `lazyfounder.in` at GoDaddy:
-   `ns-584.awsdns-09.net`, `ns-1767.awsdns-28.co.uk`, `ns-374.awsdns-46.com`,
-   `ns-1364.awsdns-42.org`
-2. Wait for the certificate to validate, then re-run the script without
-   `--dns-only` to add the HTTPS listener and the 80 to 443 redirect.
-3. Point the app at the domain in `deploy/.env.production`
-   (`NEXT_PUBLIC_SITE_URL`, `REVALIDATE_URL`) and run
-   `node deploy/update-task-defs.mjs --deploy`.
+As of 2026-09-25 two listener changes are still missing:
+
+- HTTP:80 forwards to the app instead of returning a 301 to HTTPS.
+- `www.lazyfounder.in` serves the whole site instead of a 301 to the apex.
+
+Both are in section 6 of the script. They only need `elasticloadbalancing`,
+so `github-action` can apply them directly:
+
+```bash
+L80=arn:aws:elasticloadbalancing:ap-south-1:248746142729:listener/app/lf-dashboard-alb/42c5f49b556f28d8/a24fefa6615ad930
+L443=arn:aws:elasticloadbalancing:ap-south-1:248746142729:listener/app/lf-dashboard-alb/42c5f49b556f28d8/50054ca042912e66
+
+aws elbv2 modify-listener --region ap-south-1 --listener-arn "$L80" \
+  --default-actions 'Type=redirect,RedirectConfig={Protocol=HTTPS,Port=443,StatusCode=HTTP_301}'
+
+aws elbv2 create-rule --region ap-south-1 --listener-arn "$L443" --priority 10 \
+  --conditions 'Field=host-header,Values=www.lazyfounder.in' \
+  --actions 'Type=redirect,RedirectConfig={Protocol=HTTPS,Host=lazyfounder.in,Port=443,Path=/#{path},Query=#{query},StatusCode=HTTP_301}'
+```
+
+In Git Bash, set `MSYS_NO_PATHCONV=1` first so the `/#{path}` argument is not
+rewritten into a Windows path.
 
 Credentials are split on this account: `route53` and `acm` need the `dhando-dev`
 keys, `elasticloadbalancing` needs `github-action`. Pass the latter as
