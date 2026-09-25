@@ -21,11 +21,6 @@ type Props = {
   searchParams: Promise<{ page?: string }>;
 };
 
-/** Empty on purpose: no build-time pages, but on-demand ISR (see the article page). */
-export async function generateStaticParams() {
-  return [];
-}
-
 /** `?page=` is reader input: anything that is not a positive integer is page 1. */
 function readPage(raw: string | undefined): number {
   const n = Number(raw);
