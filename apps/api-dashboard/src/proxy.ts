@@ -37,7 +37,16 @@ export function proxy(req: NextRequest) {
 
   const editor = verifyBasicAuth(req.headers.get('authorization'));
   if (!editor) {
-    return new NextResponse('Authentication Required', { status: 401, headers: { 'WWW-Authenticate': 'Basic realm="LazyFounders Editorial"' } });
+    // Only challenge a real page navigation. A background request (a <Link> prefetch
+    // scrolled into view, a fetch) that gets WWW-Authenticate makes the browser pop a
+    // login dialog on a public page. Next strips its own prefetch headers before the
+    // proxy runs, so use the browser's Sec-Fetch-Mode; clients without it (curl) are challenged.
+    const mode = req.headers.get('sec-fetch-mode');
+    const challenge = !mode || mode === 'navigate';
+    return new NextResponse('Authentication Required', {
+      status: 401,
+      headers: challenge ? { 'WWW-Authenticate': 'Basic realm="LazyFounders Editorial"' } : {},
+    });
   }
   if (editor.role !== 'admin' && ADMIN_ONLY.some((re) => re.test(pathname))) {
     return new NextResponse('Forbidden', { status: 403 });

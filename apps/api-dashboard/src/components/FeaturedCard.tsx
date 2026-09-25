@@ -10,6 +10,8 @@ export interface ArticleProps {
   title: string;
   authorInitials: string;
   authorName: string;
+  /** Author page, for LazyFounders stories (cards are links already, so only pages use it). */
+  authorUrl?: string;
   readTime: string | number;
   publishedDate: string;
   description?: string;

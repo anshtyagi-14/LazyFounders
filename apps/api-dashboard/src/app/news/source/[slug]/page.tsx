@@ -10,7 +10,7 @@ import { PoweredByBlogy } from "../../../../components/PoweredByBlogy";
 import { getSourceStory, listPublishedArticles, sourceStoryPath } from "@/lib/articles";
 import { pageMetadata } from "@/lib/seo";
 
-type Props = { params: Promise<{ id: string }> };
+type Props = { params: Promise<{ slug: string }> };
 
 /** Empty on purpose: no build-time pages, but on-demand ISR (see the article page). */
 export async function generateStaticParams() {
@@ -18,15 +18,15 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
-  const result = await getSourceStory(id);
+  const { slug } = await params;
+  const result = await getSourceStory(decodeURIComponent(slug));
   if (!result || result.kind !== "story") return { title: "Story not found", robots: { index: false } };
   const { story } = result;
   const image = story.imageUrl;
   return pageMetadata({
     title: story.headline,
     description: story.excerpt,
-    path: sourceStoryPath(story.id),
+    path: sourceStoryPath(story.id, story.headline),
     image,
     imageAlt: story.headline,
     type: "article",
@@ -39,10 +39,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function SourceStoryPage({ params }: Props) {
-  const { id } = await params;
-  const result = await getSourceStory(id);
+  const { slug } = await params;
+  const result = await getSourceStory(decodeURIComponent(slug));
   if (!result) notFound();
   if (result.kind === "published") permanentRedirect(`/news/article/${result.slug}`);
+  if (result.kind === "moved") permanentRedirect(result.path);
   const { story } = result;
 
   const latest = await listPublishedArticles({ take: 4 });

@@ -53,6 +53,11 @@ export default function AboutPage() {
           : `${BRAND} is an independent publication based in ${SITE_CONTACTS.jurisdiction}.`}{' '}
         It is free to read, with no paywall or registration.
       </p>
+      <p>
+        {BRAND} is edited by <Link href="/author/tarun-mottlia">Tarun Mottlia</Link>, whose byline appears on every{' '}
+        {BRAND} story. A byline names the editor responsible for the story; it does not mean the story was written
+        without AI. How AI is used is set out in our <Link href="/ai-policy">AI policy</Link>.
+      </p>
 
       <h2>Contact</h2>
       <p>

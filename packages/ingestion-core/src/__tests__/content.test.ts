@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { cleanAuthor } from '../content/author';
 import { extractArticle } from '../content/extract';
 import { detectLanguage } from '../content/language';
 import { detectPaywall } from '../content/paywall';
@@ -91,5 +92,21 @@ describe('language detection (country/language agnostic)', () => {
   it('falls back to markup and then to the source default', () => {
     expect(detectLanguage('短い', { htmlLang: 'ja-JP' }).language).toBe('ja');
     expect(detectLanguage('', { sourceDefault: 'fr' })).toMatchObject({ language: 'fr', method: 'source_default' });
+  });
+});
+
+describe('cleanAuthor', () => {
+  it('drops template keys, URLs, emails and the publisher name', () => {
+    expect(cleanAuthor('list.metadata.agency')).toBeNull();
+    expect(cleanAuthor('https://www.livemint.com/authors/jane')).toBeNull();
+    expect(cleanAuthor('desk@livemint.com')).toBeNull();
+    expect(cleanAuthor('{{author}}')).toBeNull();
+    expect(cleanAuthor('mint', 'Mint')).toBeNull();
+    expect(cleanAuthor('   ')).toBeNull();
+  });
+  it('keeps real names and strips a "By" prefix', () => {
+    expect(cleanAuthor('By Jane Doe')).toBe('Jane Doe');
+    expect(cleanAuthor('Aadit Palicha')).toBe('Aadit Palicha');
+    expect(cleanAuthor('J.R. Smith')).toBe('J.R. Smith');
   });
 });

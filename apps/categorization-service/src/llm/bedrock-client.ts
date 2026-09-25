@@ -33,6 +33,8 @@ Analyze the URL and provide the following:
 5. sentiment: Positive, Negative, or Neutral.
 6. confidenceScore: Your confidence in this categorization (0.0 to 1.0).
 
+Write every value (category, tags, summary) in English, even when the input is in another language.
+
 You MUST respond with ONLY a valid JSON object matching this schema:
 {
   "primaryCategory": "string",
@@ -91,6 +93,8 @@ Analyze the text and provide the following:
 4. entities: Key people, companies, or products mentioned in the text.
 5. sentiment: Positive, Negative, or Neutral.
 6. confidenceScore: Your confidence in this categorization (0.0 to 1.0).
+
+Write every value (category, tags, summary) in English, even when the input is in another language.
 
 You MUST respond with ONLY a valid JSON object matching this schema:
 {

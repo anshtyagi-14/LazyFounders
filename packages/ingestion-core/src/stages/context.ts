@@ -18,6 +18,8 @@ export interface PipelineConfig {
   siteUrl: string;
   autoPublishEnabled: boolean;
   dedupWindowDays: number;
+  /** Author slug credited on new articles. */
+  defaultAuthorSlug: string;
 }
 
 export function loadPipelineConfig(env: NodeJS.ProcessEnv = process.env): PipelineConfig {
@@ -27,6 +29,7 @@ export function loadPipelineConfig(env: NodeJS.ProcessEnv = process.env): Pipeli
     siteUrl: (env.NEXT_PUBLIC_SITE_URL || 'https://lazyfounders.com').replace(/\/$/, ''),
     autoPublishEnabled: env.AUTO_PUBLISH_ENABLED === 'true',
     dedupWindowDays: Number(env.DEDUP_WINDOW_DAYS || 7),
+    defaultAuthorSlug: env.DEFAULT_AUTHOR_SLUG || 'tarun-mottlia',
   };
 }
 

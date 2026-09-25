@@ -7,5 +7,6 @@ export { ARTICLE_STATUSES, assertTransition, canTransition, evaluatePublishGates
 export type { ArticleStatus, GateResult, PublishGateInput } from './state-machine';
 export { renderSources, slugify, versionContentHash } from './render';
 export type { Citation, InternalLink } from './render';
+export { cleanAuthor } from '../content/author';
 export { STAGES, bullJobId, queueName } from '../jobs/stages';
 export type { Stage } from '../jobs/stages';

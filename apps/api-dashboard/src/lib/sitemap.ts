@@ -1,6 +1,7 @@
 import 'server-only';
 import { prisma } from '@/lib/prisma';
 import { BRAND, SITE_URL } from '@/lib/articles';
+import { authorPath } from '@/lib/authors';
 import { SITE_LANG, xmlEscape } from '@/lib/seo';
 import { SITE_CATEGORIES } from '@/lib/topics';
 import { MIN_COMPANY_STORIES } from '@/lib/companies';
@@ -13,7 +14,7 @@ import { recordSiteError } from '@/lib/site-errors';
  * The sitemap set:
  *
  *   /sitemap.xml                 index of the files below
- *   /sitemaps/static.xml         home, trust pages
+ *   /sitemaps/static.xml         home, trust pages, author pages
  *   /sitemaps/news.xml           Google News: stories from the last 48 hours
  *   /sitemaps/articles-N.xml     every published story, ARTICLES_PER_FILE per file
  *   /sitemaps/companies-N.xml    company hubs with enough coverage to index
@@ -104,8 +105,17 @@ async function newestPublished(): Promise<Date | null> {
 }
 
 export async function staticEntries(): Promise<UrlEntry[]> {
-  const newest = await newestPublished();
-  return STATIC_PATHS.map((p) => ({ loc: `${SITE_URL}${p === '/' ? '/' : p}`, lastmod: p === '/' ? newest : undefined }));
+  const [newest, authors] = await Promise.all([newestPublished(), authorEntries()]);
+  return [...STATIC_PATHS.map((p) => ({ loc: `${SITE_URL}${p === '/' ? '/' : p}`, lastmod: p === '/' ? newest : undefined })), ...authors];
+}
+
+/** Author pages with at least one published story (an empty one is noindex). */
+async function authorEntries(): Promise<UrlEntry[]> {
+  const rows = await prisma.article.groupBy({ by: ['authorId'], where: { ...PUBLIC_WHERE, authorId: { not: null } }, _max: { publishedAt: true } });
+  if (rows.length === 0) return [];
+  const authors = await prisma.author.findMany({ where: { id: { in: rows.map((r) => r.authorId!) } }, select: { id: true, slug: true } });
+  const lastmod = new Map(rows.map((r) => [r.authorId, r._max.publishedAt]));
+  return authors.map((a) => ({ loc: `${SITE_URL}${authorPath(a.slug)}`, lastmod: lastmod.get(a.id) ?? undefined }));
 }
 
 export async function categoryEntries(): Promise<UrlEntry[]> {

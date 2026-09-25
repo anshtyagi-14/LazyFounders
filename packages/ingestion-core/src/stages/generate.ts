@@ -59,6 +59,12 @@ export async function generateVersion(llm: LlmClient, ctx: GenerationContext, co
   };
 }
 
+/** The configured byline; null (credited to the default at render time) if the row is missing. */
+async function defaultAuthorId(tx: Prisma.TransactionClient, slug: string): Promise<string | null> {
+  const author = await tx.author.findUnique({ where: { slug }, select: { id: true } });
+  return author?.id ?? null;
+}
+
 /** article.generate: build (or revise) the story's LazyFounders article as a new immutable version. */
 export function generateHandler(deps: PipelineDeps): StageHandler<{ storyId: string; revision: string }> {
   return async (env) => {
@@ -67,7 +73,17 @@ export function generateHandler(deps: PipelineDeps): StageHandler<{ storyId: str
       include: {
         claims: true,
         article: true,
-        sources: { orderBy: { createdAt: 'asc' }, include: { sourceArticle: { include: { source: true } } } },
+        sources: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            sourceArticle: {
+              include: {
+                source: true,
+                translations: { where: { targetLanguage: deps.config.publishLanguage, status: 'VALID' }, orderBy: { createdAt: 'desc' }, take: 1 },
+              },
+            },
+          },
+        },
       },
     });
     if (!story) throw new TerminalError('Story not found', 'not_found');
@@ -81,7 +97,8 @@ export function generateHandler(deps: PipelineDeps): StageHandler<{ storyId: str
       position: i + 1,
       publisher: s.sourceArticle.source.name,
       url: s.sourceArticle.canonicalUrl ?? s.sourceArticle.finalUrl ?? s.sourceArticle.originalUrl,
-      title: s.sourceArticle.headline,
+      // Readers see this title in the Sources list: never show it in the source language.
+      title: s.sourceArticle.language === deps.config.publishLanguage ? s.sourceArticle.headline : (s.sourceArticle.translations[0]?.headline ?? null),
       language: s.sourceArticle.language,
       publishedAt: s.sourceArticle.publishedAt,
       sourceArticleId: s.sourceArticle.id,
@@ -113,7 +130,7 @@ export function generateHandler(deps: PipelineDeps): StageHandler<{ storyId: str
       if (!(err instanceof LlmOutputError || err instanceof LlmRefusalError)) throw err;
       deps.metrics?.llmValidationFailures.inc({ task: 'generate' });
       await deps.prisma.$transaction(async (tx) => {
-        const article = story.article ?? (await tx.article.create({ data: { storyId: story.id, slug: `${slugify(story.headline)}-${story.id.slice(0, 6)}`, status: 'NEEDS_REVIEW' } }));
+        const article = story.article ?? (await tx.article.create({ data: { storyId: story.id, slug: `${slugify(story.headline)}-${story.id.slice(0, 6)}`, status: 'NEEDS_REVIEW', authorId: await defaultAuthorId(tx, deps.config.defaultAuthorSlug) } }));
         await tx.article.update({ where: { id: article.id }, data: { status: 'NEEDS_REVIEW' } });
         await tx.editorialAction.create({
           data: { articleId: article.id, actor: 'pipeline', action: 'generate_failed', fromStatus: article.status, toStatus: 'NEEDS_REVIEW', note: err.message.slice(0, 500) },
@@ -134,7 +151,7 @@ export function generateHandler(deps: PipelineDeps): StageHandler<{ storyId: str
       if (!article) {
         let slug = `${generated.article.slug}-${story.id.slice(0, 6)}`;
         if (await tx.article.findUnique({ where: { slug } })) slug = `${slug}-${Date.now().toString(36)}`;
-        article = await tx.article.create({ data: { storyId: story.id, slug, status: 'GENERATED' } });
+        article = await tx.article.create({ data: { storyId: story.id, slug, status: 'GENERATED', authorId: await defaultAuthorId(tx, deps.config.defaultAuthorSlug) } });
       }
       const dup = await tx.articleVersion.findUnique({ where: { articleId_contentHash: { articleId: article.id, contentHash: generated.contentHash } } });
       if (dup) return; // identical content: no new version

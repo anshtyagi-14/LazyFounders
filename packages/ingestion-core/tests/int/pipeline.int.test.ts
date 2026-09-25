@@ -264,7 +264,7 @@ suite('v2 pipeline end-to-end (PostgreSQL)', () => {
       snapshots: new FsSnapshotStorage(mkdtempSync(join(tmpdir(), 'lf-snap-'))),
       llm: llm(),
       embeddings: new FakeEmbeddingClient(),
-      config: { publishLanguage: 'en', brand: 'LazyFounders', siteUrl: 'https://lazyfounders.com', autoPublishEnabled: false, dedupWindowDays: 7 },
+      config: { publishLanguage: 'en', brand: 'LazyFounders', siteUrl: 'https://lazyfounders.com', autoPublishEnabled: false, dedupWindowDays: 7, defaultAuthorSlug: 'tarun-mottlia' },
       logger: { info: () => undefined, warn: () => undefined, error: () => undefined },
       resolver: fakeResolver(),
       transport,
@@ -325,7 +325,13 @@ suite('v2 pipeline end-to-end (PostgreSQL)', () => {
     const sa = articles.find((a) => a.storyId === sakana.id)!;
     const sv = sa.versions[0];
     expect(sv.citations[0]).toMatchObject({ publisher: 'THE BRIDGE', url: BRIDGE_URL, language: 'ja' });
-    expect(sv.generator).toMatchObject({ model: 'fake-model', promptVersion: 'generate.v1' });
+    // Readers see the citation title: it is the English translation, never the Japanese headline.
+    expect(sv.citations[0].title).toBe(tr.headline);
+    expect(sv.bodyMarkdown).not.toMatch(/[぀-ヿ㐀-鿿]/);
+    expect(sv.generator).toMatchObject({ model: 'fake-model', promptVersion: 'generate.v2' });
+    // Every article is credited to the seeded default author.
+    const author = await prisma.author.findUniqueOrThrow({ where: { slug: 'tarun-mottlia' } });
+    for (const a of articles) expect(a.authorId).toBe(author.id);
   });
 
   it('an unchanged source creates no new work', async () => {

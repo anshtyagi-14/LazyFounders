@@ -1,6 +1,7 @@
 import { normalizeForCompare } from '../dedup/similarity';
 import { extractNumbers, sameNumber, unsupportedNumbers, valueSet } from './numbers';
 import { normalizeForEvidence } from './grounding';
+import { detectLanguage } from '../content/language';
 
 export interface CheckIssue {
   check: string;
@@ -122,6 +123,26 @@ export function checkTranslation(input: TranslationCheckInput): CheckIssue[] {
   const introduced = unsupportedNumbers(input.translatedTexts.join('\n'), originalValues);
   if (introduced.length) {
     issues.push({ check: 'translation.numbers', severity: 'error', message: `Numbers introduced by translation: ${introduced.map((n) => n.raw).slice(0, 10).join(', ')}` });
+  }
+  return issues;
+}
+
+// Scripts that never belong in an English story (proper nouns are written in Latin script).
+const NON_LATIN = /[Ѐ-ӿ֐-ۿऀ-෿฀-໿぀-ヿ㐀-鿿가-힯]/gu;
+
+/**
+ * The reader-facing text must be in the publish language: the whole text is detected, and for
+ * a Latin-script target any run of non-Latin characters (a leaked source sentence or name) fails.
+ */
+export function checkOutputLanguage(text: string, target: string): CheckIssue[] {
+  const issues: CheckIssue[] = [];
+  const detected = detectLanguage(text);
+  if (detected.method === 'text' && detected.language !== target) {
+    issues.push({ check: 'output_language', severity: 'error', message: `Article text reads as "${detected.language}", expected "${target}"` });
+  }
+  if (target === 'en') {
+    const foreign = text.match(NON_LATIN)?.length ?? 0;
+    if (foreign >= 5) issues.push({ check: 'output_language', severity: 'error', message: `${foreign} non-Latin characters in the article text` });
   }
   return issues;
 }

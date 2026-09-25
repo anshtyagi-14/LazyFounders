@@ -19,6 +19,7 @@ import { ShareBar } from "../../../../components/ShareBar";
 import { EmailCapture } from "../../../../components/EmailCapture";
 import { cardLinkProps } from "../../../../components/FeaturedCard";
 import { BRAND, SITE_URL, getPublishedArticle, slugifyCategory, type PublicArticle } from "@/lib/articles";
+import { authorInitials as initialsOf, authorPath } from "@/lib/authors";
 import { listCategoryFeed } from "@/lib/feed";
 import { categoryForArticle, type SiteCategory } from "@/lib/topics";
 import { resolveImage, type ResolvedImage } from "@/lib/images";
@@ -32,6 +33,8 @@ import {
   extractFaq,
   faqSchema,
   pageMetadata,
+  personId,
+  personSchema,
   stripMarkdown,
   wordCount,
   type Crumb,
@@ -141,7 +144,7 @@ function jsonLd(article: PublicArticle, category: SiteCategory, image: ResolvedI
         ...(image.credit ? { creditText: image.credit } : {}),
       },
     ],
-    author: { "@id": ORGANIZATION_ID },
+    author: article.author ? { "@id": personId(article.author.slug), "@type": "Person", name: article.author.name, url: `${SITE_URL}${authorPath(article.author.slug)}` } : { "@id": ORGANIZATION_ID },
     publisher: { "@id": ORGANIZATION_ID },
     isPartOf: { "@id": WEBSITE_ID },
     about: article.companies.map((name) => ({ "@type": "Organization", name })),
@@ -163,6 +166,7 @@ function jsonLd(article: PublicArticle, category: SiteCategory, image: ResolvedI
     "@context": "https://schema.org",
     "@graph": [
       newsArticle,
+      ...(article.author ? [personSchema(article.author)] : []),
       breadcrumbSchema(crumbsFor(article, category)),
       // Only emitted when the story actually contains question-shaped sections, which render visibly.
       ...(faqs.length ? [{ ...faqSchema(faqs), "@id": `${url}#faq` }] : []),
@@ -198,7 +202,8 @@ export default async function ArticlePage({ params }: Props) {
   const image = articleImage(article);
   const modified = modifiedAt(article);
   const related = await listCategoryFeed(category.slug, { perPage: 4, excludeId: article.id }).catch(() => ({ items: [], total: 0 }));
-  const authorInitials = BRAND.slice(0, 2).toUpperCase();
+  const author = article.author;
+  const authorInitials = author ? initialsOf(author.name) : BRAND.slice(0, 2).toUpperCase();
   const canonical = `${SITE_URL}/news/article/${article.slug}`;
   const sourceCount = article.citations.length;
 
@@ -233,9 +238,23 @@ export default async function ArticlePage({ params }: Props) {
                     className="rounded-full overflow-hidden bg-teal-100 dark:bg-teal-950/50 ring-2 ring-slate-200 dark:ring-white/10 shrink-0 flex items-center justify-center font-bold text-teal-700 dark:text-teal-400"
                     style={{ width: 48, height: 48 }}
                   >
-                    {authorInitials}
+                    {author?.avatarUrl ? <SafeImage src={author.avatarUrl} alt="" width={48} height={48} className="w-full h-full object-cover" /> : authorInitials}
                   </div>
-                  <p className="font-bold text-slate-900 dark:text-white leading-tight text-base">{BRAND}</p>
+                  {author ? (
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white leading-tight text-base">
+                        By{" "}
+                        <Link href={authorPath(author.slug)} rel="author" className="hover:text-teal-700 dark:hover:text-teal-400 hover:underline">
+                          {author.name}
+                        </Link>
+                      </p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        {author.jobTitle}, {BRAND}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="font-bold text-slate-900 dark:text-white leading-tight text-base">{BRAND}</p>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600 dark:text-slate-400">
                   <span>

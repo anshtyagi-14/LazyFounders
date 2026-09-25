@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, test } from 'vitest';
 import { NextRequest } from 'next/server';
 
 import { proxy } from './proxy';
+import { CATEGORY_LINKS, FOLLOW_LINKS, HEADER_CATEGORY_LINKS, TRUST_LINKS } from './lib/nav';
 
 const basic = (user: string, pass: string) => `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`;
 
@@ -41,6 +42,24 @@ describe('proxy', () => {
       const res = run(p);
       expect(res.status, p).toBe(401);
       expect(res.headers.get('www-authenticate')).toContain('Basic');
+    }
+  });
+
+  test('a background request to a protected path is refused without a login prompt', () => {
+    // A <Link> prefetch or fetch: 401, but no WWW-Authenticate, so the browser shows no dialog.
+    for (const mode of ['cors', 'same-origin', 'no-cors']) {
+      const res = run('/developers', { headers: { 'sec-fetch-mode': mode } });
+      expect(res.status, mode).toBe(401);
+      expect(res.headers.get('www-authenticate'), mode).toBeNull();
+    }
+    // Opening the page itself still prompts.
+    expect(run('/admin', { headers: { 'sec-fetch-mode': 'navigate' } }).headers.get('www-authenticate')).toContain('Basic');
+  });
+
+  test('every masthead and footer link is public', () => {
+    const links = [...HEADER_CATEGORY_LINKS, ...CATEGORY_LINKS, ...TRUST_LINKS, ...FOLLOW_LINKS.filter((l) => !l.external)];
+    for (const l of [...links, { href: '/author/tarun-mottlia' }, { href: '/news/source/some-story-54a9bdcb' }]) {
+      expect(passedThrough(run(l.href)), l.href).toBe(true);
     }
   });
 

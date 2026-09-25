@@ -8,7 +8,7 @@
 export const PROMPT_VERSIONS = {
   extract: 'extract.v1',
   translate: 'translate.v1',
-  generate: 'generate.v1',
+  generate: 'generate.v2',
 } as const;
 
 export interface PromptPair {
@@ -98,12 +98,22 @@ export interface GeneratePromptInput {
   categories: readonly string[];
 }
 
+/** "en" -> "English": models follow a language name far better than an ISO code. */
+export function languageName(code: string): string {
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'language' }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
+
 export function generatePrompt(input: GeneratePromptInput): PromptPair {
   return {
     version: PROMPT_VERSIONS.generate,
     system: [
       `You write original news stories for ${input.brand}, a publication about startups, founders, funding, technology and business.`,
-      `Write in ${input.publishLanguage}. Tone: clear, factual, useful to founders and operators; no hype, no clickbait.`,
+      `Write every output field in ${languageName(input.publishLanguage)} only. Some facts may be in another language: translate names of roles, titles, products and descriptions into ${languageName(input.publishLanguage)}, and keep proper nouns (people, companies, funds) in their usual Latin-script form. Never copy non-${languageName(input.publishLanguage)} text into the output.`,
+      'Tone: clear, factual, useful to founders and operators; no hype, no clickbait.',
       'You receive verified facts and claims, not the source articles. Use ONLY these facts. Never add numbers, names, dates or events that are not in the facts.',
       'Structure:',
       '- sections[kind="reported"]: what the sources report. Attribute claims ("according to <publisher>").',

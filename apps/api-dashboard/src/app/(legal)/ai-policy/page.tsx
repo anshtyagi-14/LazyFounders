@@ -40,6 +40,11 @@ export default function AiPolicyPage() {
         check can be published automatically; drafts that fail any check are held for an editor. We do not claim that an
         individual story was reviewed by a person unless it says so.
       </p>
+      <p>
+        Stories carry the byline of our editor, <Link href="/author/tarun-mottlia">Tarun Mottlia</Link>, who is
+        responsible for the publication and its corrections. The byline does not mean the story was written or reviewed
+        by hand; the AI-assisted label on each story still applies.
+      </p>
 
       <h2>How sources are shown</h2>
       <p>

@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma';
+import { cleanAuthor, slugify } from '@lazyfounders/ingestion-core/editorial';
+import { authorInitials, authorPath, loadAuthors, type PublicAuthor } from '@/lib/authors';
 import type { ArticleProps } from '../components/FeaturedCard';
 
 /**
@@ -51,6 +53,8 @@ export interface PublicArticle {
   citations: PublicCitation[];
   readTime: number;
   isLegacy: boolean;
+  /** Byline; null only when no author row exists at all (the brand is shown). */
+  author: PublicAuthor | null;
 }
 
 export function slugifyCategory(c: string): string {
@@ -104,12 +108,13 @@ async function withVersions(rows: ArticleRow[]) {
     ? await prisma.articleVersion.findMany({ where: { id: { in: ids } }, include: { citations: { orderBy: { position: 'asc' } } } })
     : [];
   const byId = new Map(versions.map((v) => [v.id, v]));
+  const authorOf = await loadAuthors(rows.map((r) => r.authorId));
   return rows
-    .map((a) => ({ a, v: a.publishedVersionId ? byId.get(a.publishedVersionId) : undefined }))
-    .filter((x): x is { a: ArticleRow; v: NonNullable<typeof x.v> } => Boolean(x.v));
+    .map((a) => ({ a, v: a.publishedVersionId ? byId.get(a.publishedVersionId) : undefined, author: authorOf(a.authorId) }))
+    .filter((x): x is { a: ArticleRow; v: NonNullable<typeof x.v>; author: PublicAuthor | null } => Boolean(x.v));
 }
 
-function toPublic(a: ArticleRow, v: Awaited<ReturnType<typeof withVersions>>[number]['v']): PublicArticle {
+function toPublic({ a, v, author }: Awaited<ReturnType<typeof withVersions>>[number]): PublicArticle {
   return {
     id: a.id,
     slug: a.slug,
@@ -127,6 +132,7 @@ function toPublic(a: ArticleRow, v: Awaited<ReturnType<typeof withVersions>>[num
     citations: v.citations.map((c) => ({ position: c.position, publisher: c.publisher, url: c.url, title: c.title, language: c.language, publishedAt: c.publishedAt })),
     readTime: readTime(v.bodyMarkdown),
     isLegacy: Boolean(a.legacyContentId),
+    author,
   };
 }
 
@@ -137,8 +143,9 @@ export function toArticleProps(p: PublicArticle): ArticleProps {
     category: p.category,
     title: sanitizeHeadline(p.headline),
     description: sanitizeHeadline(p.metaDescription),
-    authorInitials: BRAND.slice(0, 2).toUpperCase(),
-    authorName: BRAND,
+    authorInitials: p.author ? authorInitials(p.author.name) : BRAND.slice(0, 2).toUpperCase(),
+    authorName: p.author?.name ?? BRAND,
+    authorUrl: p.author ? authorPath(p.author.slug) : undefined,
     readTime: p.readTime,
     publishedDate: formatDate(p.publishedAt),
     id: p.id,
@@ -148,7 +155,7 @@ export function toArticleProps(p: PublicArticle): ArticleProps {
 }
 
 export async function listPublishedArticles(
-  opts: { take?: number; skip?: number; categories?: string[]; companies?: string[]; excludeId?: string } = {},
+  opts: { take?: number; skip?: number; categories?: string[]; companies?: string[]; excludeId?: string; authorId?: string } = {},
 ): Promise<PublicArticle[]> {
   const rows = await prisma.article.findMany({
     where: {
@@ -157,17 +164,22 @@ export async function listPublishedArticles(
       ...(opts.categories ? { category: { in: opts.categories } } : {}),
       ...(opts.companies?.length ? { companies: { hasSome: opts.companies } } : {}),
       ...(opts.excludeId ? { id: { not: opts.excludeId } } : {}),
+      ...(opts.authorId ? { authorId: opts.authorId } : {}),
     },
     orderBy: { publishedAt: 'desc' },
     skip: opts.skip,
     take: opts.take ?? 28,
   });
-  return (await withVersions(rows)).map(({ a, v }) => toPublic(a, v));
+  return (await withVersions(rows)).map(toPublic);
 }
 
-export async function countPublishedArticles(opts: { categories?: string[] } = {}): Promise<number> {
+export async function countPublishedArticles(opts: { categories?: string[]; authorId?: string } = {}): Promise<number> {
   return prisma.article.count({
-    where: { ...PUBLIC_WHERE, ...(opts.categories ? { category: { in: opts.categories } } : {}) },
+    where: {
+      ...PUBLIC_WHERE,
+      ...(opts.categories ? { category: { in: opts.categories } } : {}),
+      ...(opts.authorId ? { authorId: opts.authorId } : {}),
+    },
   });
 }
 
@@ -182,7 +194,7 @@ export async function getPublishedArticle(slug: string): Promise<PublicArticle |
   if (!a) return null;
   const [row] = await withVersions([a]);
   if (!row) return null;
-  const article = toPublic(row.a, row.v);
+  const article = toPublic(row);
   if (!article.featuredImage?.url && a.storyId) article.sourceImage = await storySourceImage(a.storyId);
   return article;
 }
@@ -205,7 +217,7 @@ async function storySourceImage(storyId: string): Promise<FeaturedImage | null> 
 
 /**
  * Stories straight from trusted sources, stored in the LazyFounders database and read on
- * /news/source/[id] with a courtesy link back to the original publisher. Items that
+ * /news/source/[slug] with a courtesy link back to the original publisher. Items that
  * already belong to a published LazyFounders story are left out so a story never shows twice.
  */
 export interface SourceHeadline {
@@ -237,10 +249,23 @@ const SOURCE_VISIBLE_WHERE = {
   paywalled: false,
   state: { notIn: HIDDEN_SOURCE_STATES },
   source: { trustStatus: 'APPROVED', enabled: true },
+  // Wire copies are shown as scraped, untranslated: only English ones reach readers.
+  // Other languages appear once the pipeline turns them into a LazyFounders story.
+  language: 'en',
 };
 
-export function sourceStoryPath(id: string): string {
-  return `/news/source/${id}`;
+/** Hex characters of the id carried in the slug; enough to find the row by primary key. */
+const SOURCE_ID_PREFIX = 8;
+
+/** "/news/source/<headline-slug>-<first 8 hex of the id>" */
+export function sourceStoryPath(id: string, headline: string): string {
+  // Whole words only, up to ~70 characters: a cut word reads as a typo in search results.
+  let words = '';
+  for (const w of slugify(sanitizeHeadline(headline)).split('-')) {
+    if (words && words.length + w.length + 1 > 70) break;
+    words = words ? `${words}-${w}` : w;
+  }
+  return `/news/source/${words}-${id.slice(0, SOURCE_ID_PREFIX).toLowerCase()}`;
 }
 
 function httpUrl(u: string | null | undefined): string | null {
@@ -319,17 +344,34 @@ function toParagraphs(text: string | null | undefined): string[] {
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SOURCE_SLUG_RE = /^(?:.*-)?([0-9a-f]{8})$/i;
 
 export type SourceStoryResult =
   | { kind: 'story'; story: SourceStory }
   /** The source already fed a published LazyFounders story: send readers there instead. */
   | { kind: 'published'; slug: string }
+  /** Old UUID link or an out-of-date slug: send readers to the current path. */
+  | { kind: 'moved'; path: string }
   | null;
 
-export async function getSourceStory(id: string): Promise<SourceStoryResult> {
-  if (!UUID_RE.test(id)) return null;
-  const r = await prisma.sourceArticle.findFirst({
-    where: { id, ...SOURCE_VISIBLE_WHERE },
+/**
+ * Id filter for a /news/source/ param: a full UUID (links made before slugs) or a slug
+ * ending in the id's first 8 hex characters, matched as a primary-key range.
+ */
+function sourceIdWhere(param: string) {
+  if (UUID_RE.test(param)) return { id: param.toLowerCase() };
+  const m = SOURCE_SLUG_RE.exec(param);
+  if (!m) return null;
+  const hex = m[1].toLowerCase();
+  return { id: { gte: `${hex}-0000-0000-0000-000000000000`, lte: `${hex}-ffff-ffff-ffff-ffffffffffff` } };
+}
+
+export async function getSourceStory(param: string): Promise<SourceStoryResult> {
+  const idWhere = sourceIdWhere(param);
+  if (!idWhere) return null;
+  const candidates = await prisma.sourceArticle.findMany({
+    where: { ...idWhere, ...SOURCE_VISIBLE_WHERE },
+    take: 5,
     select: {
       id: true, headline: true, subheadline: true, author: true, bodyText: true,
       leadImage: true, imageCredit: true, publisher: true, language: true,
@@ -338,11 +380,15 @@ export async function getSourceStory(id: string): Promise<SourceStoryResult> {
       source: { select: { imagePolicy: true } },
     },
   });
+  // Two ids sharing 8 hex characters is rare; the one whose headline matches the slug wins.
+  const r = candidates.find((c) => c.headline && param === sourceStoryPath(c.id, c.headline).split('/').pop()) ?? candidates[0];
   if (!r || !r.headline) return null;
   const article = r.storySource?.story?.article;
   if (article?.publishedVersionId && !['ARCHIVED', 'REJECTED'].includes(article.status)) {
     return { kind: 'published', slug: article.slug };
   }
+  const path = sourceStoryPath(r.id, r.headline);
+  if (path !== `/news/source/${param}`) return { kind: 'moved', path };
   const sourceUrl = httpUrl(r.canonicalUrl) ?? httpUrl(r.finalUrl) ?? httpUrl(r.originalUrl);
   if (!sourceUrl) return null;
   return {
@@ -353,7 +399,8 @@ export async function getSourceStory(id: string): Promise<SourceStoryResult> {
       headline: sanitizeHeadline(r.headline),
       subheadline: sanitizeHeadline(r.subheadline),
       excerpt: excerptOf(sanitizeHeadline(r.subheadline || r.bodyText)),
-      author: r.author,
+      // Stored rows predate extraction-time cleaning: drop template keys and URLs here too.
+      author: cleanAuthor(r.author, r.publisher),
       imageUrl: r.source.imagePolicy === 'none' ? null : httpUrl(r.leadImage),
       imageCredit: r.imageCredit,
       publisher: r.publisher,
@@ -370,7 +417,7 @@ export async function getSourceStory(id: string): Promise<SourceStoryResult> {
 
 export function headlineToArticleProps(h: SourceHeadline): ArticleProps {
   return {
-    url: sourceStoryPath(h.id),
+    url: sourceStoryPath(h.id, h.headline),
     imageUrl: h.imageUrl || FALLBACK_IMAGE_PATH,
     category: h.publisher,
     title: sanitizeHeadline(h.headline),
@@ -421,5 +468,5 @@ export async function listPublishedArticlesByIds(ids: string[]): Promise<PublicA
   const rows = await prisma.article.findMany({ where: { id: { in: ids }, ...PUBLIC_WHERE } });
   const byId = new Map(rows.map((r) => [r.id, r]));
   const ordered = ids.map((id) => byId.get(id)).filter((r): r is NonNullable<typeof r> => Boolean(r));
-  return (await withVersions(ordered)).map(({ a, v }) => toPublic(a, v));
+  return (await withVersions(ordered)).map(toPublic);
 }

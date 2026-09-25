@@ -3,6 +3,7 @@ import { JSDOM, VirtualConsole } from 'jsdom';
 import { Readability } from '@mozilla/readability';
 import type { SourceAdapter } from '../registry/adapters';
 import { htmlToText, sanitizeArticleHtml } from './sanitize';
+import { cleanAuthor } from './author';
 
 export interface ExtractedArticle {
   canonicalUrl: string | null;
@@ -168,7 +169,7 @@ export function extractArticle(html: string, url: string, adapter?: SourceAdapte
     canonicalUrl: canonical ? safeAbs(canonical, url) : null,
     headline: fromAdapter.headline ?? str(ld?.headline) ?? meta($, 'og:title', 'twitter:title') ?? ($('h1').first().text().trim() || null),
     subheadline: fromAdapter.subheadline ?? str(ld?.alternativeHeadline) ?? str(ld?.description) ?? meta($, 'og:description', 'description'),
-    author: fromAdapter.author ?? str(ld?.author) ?? meta($, 'author', 'article:author'),
+    author: cleanAuthor(fromAdapter.author ?? str(ld?.author) ?? meta($, 'author', 'article:author'), str(ld?.publisher) ?? meta($, 'og:site_name')),
     publishedAt: toDate(fromAdapter.publishedAt) ?? toDate(ld?.datePublished) ?? toDate(meta($, 'article:published_time')) ?? toDate($('time[datetime]').first().attr('datetime')),
     modifiedAt: toDate(fromAdapter.modifiedAt) ?? toDate(ld?.dateModified) ?? toDate(meta($, 'article:modified_time', 'og:updated_time')),
     bodyHtml: safeHtml,

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { sanitizeHeadline } from './articles';
+import { sanitizeHeadline, sourceStoryPath } from './articles';
 import { normalizeTopic, normalizeTopics } from './topics';
 import { normalizeQuery } from './search';
 
@@ -12,6 +12,15 @@ describe('sanitizeHeadline', () => {
     );
     expect(sanitizeHeadline('A &amp; B <strong>headline</strong>')).toBe('A & B headline');
     expect(sanitizeHeadline('  &nbsp;  Hello&nbsp;world  ')).toBe('Hello world');
+  });
+});
+
+describe('sourceStoryPath', () => {
+  test('is a readable slug ending in the first 8 hex of the id', () => {
+    expect(sourceStoryPath('54a9bdcb-c668-450a-8f79-e87fc0430f98', 'Australia steps up response to AI after OpenAI bot breaches health system database')).toBe(
+      '/news/source/australia-steps-up-response-to-ai-after-openai-bot-breaches-health-54a9bdcb',
+    );
+    expect(sourceStoryPath('ABCDEF12-0000-0000-0000-000000000000', 'Zepto &amp; Blinkit')).toBe('/news/source/zepto-blinkit-abcdef12');
   });
 });
 

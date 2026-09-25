@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { renderArticleMarkdown, renderSources, versionContentHash, type Citation } from '../editorial/render';
 import { canTransition, evaluatePublishGates, type PublishGateInput } from '../editorial/state-machine';
 import { decidePublish } from '../stages/validate-publish';
-import { checkNumbersGrounded, checkOriginality, checkSeo } from '../validate/checks';
+import { checkNumbersGrounded, checkOriginality, checkOutputLanguage, checkSeo } from '../validate/checks';
 import { ZEPTO_TEXT } from './fixtures/facts';
 
 const citations: Citation[] = [
   { position: 1, publisher: 'YourStory', url: 'https://yourstory.com/2026/09/zepto', title: 'Zepto raises $25M', language: 'en', publishedAt: new Date('2026-09-20'), sourceArticleId: 'sa-1' },
-  { position: 2, publisher: 'THE BRIDGE', url: 'https://thebridge.jp/2026/09/zepto', title: 'Zepto、2500万ドル調達', language: 'ja', publishedAt: null, sourceArticleId: 'sa-2' },
+  { position: 2, publisher: 'THE BRIDGE', url: 'https://thebridge.jp/2026/09/zepto', title: 'Zepto raises $25 million', language: 'ja', publishedAt: null, sourceArticleId: 'sa-2' },
 ];
 
 function gateInput(p: Partial<PublishGateInput> = {}): PublishGateInput {
@@ -93,7 +93,7 @@ describe('editorial workflow', () => {
     );
     expect(md).toContain('## Sources');
     expect(md).toContain('1. [YourStory](https://yourstory.com/2026/09/zepto)');
-    expect(md).toContain('2. [THE BRIDGE](https://thebridge.jp/2026/09/zepto) — Zepto、2500万ドル調達 (JA)');
+    expect(md).toContain('2. [THE BRIDGE](https://thebridge.jp/2026/09/zepto) — Zepto raises $25 million (JA)');
     // Template markers the public page understands, and analysis clearly labelled.
     expect(md).toMatch(/### 30 SEC SUMMARY[\s\S]*### TABLE OF CONTENTS[\s\S]*### KEY HIGHLIGHTS/);
     expect(md).toContain('*LazyFounders analysis');
@@ -111,5 +111,13 @@ describe('editorial workflow', () => {
     expect(checkOriginality('Zepto secured fresh capital; Nexus led the round.', [ZEPTO_TEXT])).toEqual([]);
     expect(checkOriginality(`As the CEO put it, "We are building the fastest grocery delivery in India," he said.`, [ZEPTO_TEXT])).toEqual([]);
     expect(checkSeo({ headline: 'h', seoTitle: 'short', metaDescription: 'x', slug: 'Bad Slug' }).filter((i) => i.severity === 'error')).toHaveLength(3);
+  });
+
+  it('requires the article text to be in the publish language', () => {
+    const ja = '東京を拠点とするAIスタートアップのサカナAIは、シリーズAラウンドで30億円の資金調達を実施したと発表した。同社は大規模言語モデルの研究開発を進めている。';
+    expect(checkOutputLanguage(ZEPTO_TEXT, 'en')).toEqual([]);
+    expect(checkOutputLanguage(ja, 'en').map((i) => i.check)).toContain('output_language');
+    // An English story with one leaked source sentence still fails.
+    expect(checkOutputLanguage(`${ZEPTO_TEXT}\n${ja.slice(0, 30)}`, 'en')).toHaveLength(1);
   });
 });

@@ -24,6 +24,7 @@
     "jobs:list": "tsx packages/ingestion-core/src/cli/jobs.ts list",
     "jobs:replay": "tsx packages/ingestion-core/src/cli/jobs.ts replay",
     "pipeline:smoke": "tsx packages/ingestion-core/src/cli/smoke.ts",
+    "content:language-audit": "tsx packages/ingestion-core/src/cli/language-audit.ts",
     "auth:hash": "node apps/api-dashboard/scripts/hash-password.mjs"
   },
   "engines": {

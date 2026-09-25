@@ -109,8 +109,9 @@ CHECKLIST & CONSTRAINTS:
 5. Tone: Professional, Informative, Student-friendly.
 6. Year References: Use 2026 throughout the article.
 7. Originality: 100% original content. Do NOT copy-paste from the raw text.
+8. Language: Write every field in English, even when the raw text is in another language. Translate it; never copy non-English sentences. Keep proper nouns in their usual Latin-script form.
 
-8. Companies: Extract an array of ONLY the exact names of startups, tech companies, or VC firms this article is about (e.g. ['Zomato', 'Peak XV']). Do not include generic topics or people.
+9. Companies: Extract an array of ONLY the exact names of startups, tech companies, or VC firms this article is about (e.g. ['Zomato', 'Peak XV']). Do not include generic topics or people.
 
 HTML BODY STRUCTURE (All of this goes inside the "bodyMarkdown" JSON field):
 - Write the article in standard Markdown format instead of HTML. This is critical to save tokens.

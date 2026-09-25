@@ -4,7 +4,7 @@ import { TerminalError } from '../errors';
 import type { StageHandler } from '../jobs/execute';
 import { emitEvent } from '../jobs/outbox';
 import { STAGES } from '../jobs/stages';
-import { checkNumbersGrounded, checkOriginality, checkSafety, checkSeo, hasErrors, type CheckIssue } from '../validate/checks';
+import { checkNumbersGrounded, checkOriginality, checkOutputLanguage, checkSafety, checkSeo, hasErrors, type CheckIssue } from '../validate/checks';
 import type { PipelineConfig, PipelineDeps } from './context';
 
 export interface ValidationReport {
@@ -76,6 +76,7 @@ export function validateHandler(deps: PipelineDeps): StageHandler<{ articleId: s
       ...checkOriginality(text, sources.map((s) => s.bodyText ?? '')),
       ...checkSeo({ headline: version.headline, seoTitle: version.seoTitle, metaDescription: version.metaDescription, slug: article.slug }),
       ...checkSafety(`${text}\n${version.whatThisMeans ?? ''}`),
+      ...checkOutputLanguage(`${text}\n${version.whatThisMeans ?? ''}`, deps.config.publishLanguage),
     ];
     if (version.citations.length === 0) issues.push({ check: 'attribution', severity: 'error', message: 'No source citations' });
 

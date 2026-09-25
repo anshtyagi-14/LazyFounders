@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { BRAND, FALLBACK_IMAGE_PATH, SITE_URL } from '@/lib/articles';
 import { DEFAULT_TWITTER_HANDLE, SOCIAL_PROFILE_LIST } from '@/lib/social';
+import { authorPath, type PublicAuthor } from '@/lib/authors';
 
 export { BRAND, FALLBACK_IMAGE_PATH, SITE_URL };
 
@@ -184,6 +185,25 @@ export function organizationSchema() {
     correctionsPolicy: `${SITE_URL}/corrections`,
     ethicsPolicy: `${SITE_URL}/editorial-policy`,
     actionableFeedbackPolicy: `${SITE_URL}/contact`,
+  };
+}
+
+export function personId(slug: string): string {
+  return `${SITE_URL}/author/${slug}#person`;
+}
+
+/** A LazyFounders byline, as the Person entity that article JSON-LD points at by @id. */
+export function personSchema(author: PublicAuthor) {
+  return {
+    '@type': 'Person',
+    '@id': personId(author.slug),
+    name: author.name,
+    url: absoluteUrl(authorPath(author.slug)),
+    jobTitle: author.jobTitle,
+    description: author.bio,
+    ...(author.avatarUrl ? { image: absoluteUrl(author.avatarUrl) } : {}),
+    ...(author.sameAs.length ? { sameAs: author.sameAs } : {}),
+    worksFor: { '@id': ORGANIZATION_ID },
   };
 }
 
