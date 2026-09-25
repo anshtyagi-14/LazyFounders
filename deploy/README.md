@@ -89,8 +89,10 @@ As of 2026-09-25 two listener changes are still missing:
 - HTTP:80 forwards to the app instead of returning a 301 to HTTPS.
 - `www.lazyfounder.in` serves the whole site instead of a 301 to the apex.
 
-Both are in section 6 of the script. They only need `elasticloadbalancing`,
-so `github-action` can apply them directly:
+Both are in section 6 of the script. Neither `github-action` nor `dhando-dev`
+has `elasticloadbalancing:ModifyListener` or `CreateRule`, so apply them in
+the console (EC2 → Load Balancers → `lf-dashboard-alb` → Listeners), or grant
+those two actions and run:
 
 ```bash
 L80=arn:aws:elasticloadbalancing:ap-south-1:248746142729:listener/app/lf-dashboard-alb/42c5f49b556f28d8/a24fefa6615ad930
