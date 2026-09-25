@@ -89,6 +89,31 @@ export function scrubForeignContacts(text: string, allowed: readonly string[] = 
   return { text: lines.join('\n').replace(/\n{3,}/g, '\n\n').trim(), removed };
 }
 
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Drop a reporter bio from the end of a scraped story ("Tim De Chant is a senior
+ * climate reporter at TechCrunch…", "About the author"). Text stored before
+ * extraction removed bio boxes still carries them. `reporter` is the name the
+ * publisher credited; it is used only to recognise the bio, never shown.
+ */
+export function stripAuthorBio(paragraphs: string[], reporter?: string | null): string[] {
+  const names = [reporter?.trim(), reporter?.trim().split(/\s+/)[0]].filter((n): n is string => Boolean(n && n.length > 1));
+  const bioStart = names.length
+    ? new RegExp(`^(?:${names.map(escapeRegex).join('|')})\\b[^.]{0,80}?\\b(?:is|was|has been|covers|writes|joined|reports|leads)\\b`, 'i')
+    : null;
+  const aboutAuthor = /^(?:about the author|about the reporter)\b/i;
+  // A bio sits at the end; never cut into the first half of the story.
+  const from = Math.max(1, Math.floor(paragraphs.length / 2));
+  for (let i = from; i < paragraphs.length; i++) {
+    const p = paragraphs[i];
+    if (aboutAuthor.test(p) || (bioStart?.test(p) && paragraphs.length - i <= 4)) return paragraphs.slice(0, i);
+  }
+  return paragraphs;
+}
+
 /** Publish-time check, same shape as the other validate/checks. */
 export function checkForeignContacts(text: string, allowed: readonly string[] = OWN_EMAIL_DOMAINS) {
   const found = [...new Set(findForeignEmails(text, allowed))];

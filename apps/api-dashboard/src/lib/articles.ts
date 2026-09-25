@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
-import { cleanAuthor, scrubForeignContacts, slugify } from '@lazyfounders/ingestion-core/editorial';
-import { authorInitials, authorPath, loadAuthors, type PublicAuthor } from '@/lib/authors';
+import { scrubForeignContacts, slugify, stripAuthorBio } from '@lazyfounders/ingestion-core/editorial';
+import { authorInitials, authorPath, defaultAuthor, loadAuthors, type PublicAuthor } from '@/lib/authors';
 import type { ArticleProps } from '../components/FeaturedCard';
 
 /**
@@ -235,11 +235,15 @@ export interface SourceHeadline {
   /** Raw publisher category labels. Normalise with normalizeTopics() before display. */
   categories?: string[];
   readTime: number;
+  /**
+   * Our byline on a syndicated story: the LazyFounders editor who curated it. The
+   * publisher's own reporter is never shown; the publisher is credited instead.
+   */
+  editor: PublicAuthor | null;
 }
 
 export interface SourceStory extends SourceHeadline {
   subheadline: string | null;
-  author: string | null;
   imageCredit: string | null;
   language: string | null;
   paragraphs: string[];
@@ -303,6 +307,7 @@ export async function countSourceHeadlines(opts: { categories?: string[] } = {})
 
 export async function listSourceHeadlines(opts: { take?: number; categories?: string[] } = {}): Promise<SourceHeadline[]> {
   const take = opts.take ?? 24;
+  const editorP = defaultAuthor();
   const rows = await prisma.sourceArticle.findMany({
     where: sourceListWhere(opts.categories),
     orderBy: [{ publishedAt: { sort: 'desc', nulls: 'last' } }, { fetchedAt: 'desc' }],
@@ -314,6 +319,7 @@ export async function listSourceHeadlines(opts: { take?: number; categories?: st
       source: { select: { imagePolicy: true } },
     },
   });
+  const editor = await editorP;
   const seen = new Set<string>();
   const out: SourceHeadline[] = [];
   for (const r of rows) {
@@ -324,7 +330,7 @@ export async function listSourceHeadlines(opts: { take?: number; categories?: st
       id: r.id,
       sourceUrl: url,
       headline: sanitizeHeadline(r.headline),
-      excerpt: excerptOf(sanitizeHeadline(r.subheadline || r.bodyText)),
+      excerpt: excerptOf(sanitizeHeadline(scrubForeignContacts(r.subheadline || r.bodyText || '').text)),
       // A source that has not licensed its images for display gets the brand card.
       imageUrl: r.source.imagePolicy === 'none' ? null : httpUrl(r.leadImage),
       publisher: r.publisher,
@@ -333,6 +339,7 @@ export async function listSourceHeadlines(opts: { take?: number; categories?: st
       // not subjects, and folding them in turns company names into topic sections.
       categories: r.categories ?? [],
       readTime: readTime(r.bodyText ?? ''),
+      editor,
     });
     if (out.length >= take) break;
   }
@@ -372,6 +379,7 @@ function sourceIdWhere(param: string) {
 export async function getSourceStory(param: string): Promise<SourceStoryResult> {
   const idWhere = sourceIdWhere(param);
   if (!idWhere) return null;
+  const editorP = defaultAuthor();
   const candidates = await prisma.sourceArticle.findMany({
     where: { ...idWhere, ...SOURCE_VISIBLE_WHERE },
     take: 5,
@@ -394,16 +402,19 @@ export async function getSourceStory(param: string): Promise<SourceStoryResult> 
   if (path !== `/news/source/${param}`) return { kind: 'moved', path };
   const sourceUrl = httpUrl(r.canonicalUrl) ?? httpUrl(r.finalUrl) ?? httpUrl(r.originalUrl);
   if (!sourceUrl) return null;
+  // Stored text predates extraction-time cleaning: drop reporter bios and any
+  // third-party contact here, so neither ever reaches the page.
+  const paragraphs = stripAuthorBio(toParagraphs(scrubForeignContacts(r.bodyText ?? '').text), r.author);
+  const bodyText = paragraphs.join('\n');
   return {
     kind: 'story',
     story: {
       id: r.id,
       sourceUrl,
       headline: sanitizeHeadline(r.headline),
-      subheadline: sanitizeHeadline(r.subheadline),
-      excerpt: excerptOf(sanitizeHeadline(r.subheadline || r.bodyText)),
-      // Stored rows predate extraction-time cleaning: drop template keys and URLs here too.
-      author: cleanAuthor(r.author, r.publisher),
+      subheadline: sanitizeHeadline(scrubForeignContacts(r.subheadline ?? '').text) || null,
+      excerpt: excerptOf(sanitizeHeadline(r.subheadline || bodyText)),
+      editor: await editorP,
       imageUrl: r.source.imagePolicy === 'none' ? null : httpUrl(r.leadImage),
       imageCredit: r.imageCredit,
       publisher: r.publisher,
@@ -412,8 +423,8 @@ export async function getSourceStory(param: string): Promise<SourceStoryResult> 
       // Categories only: tags are entities ("Meta", "OpenAI", "TechCrunch Disrupt"),
       // not subjects, and folding them in turns company names into topic sections.
       categories: r.categories ?? [],
-      readTime: readTime(r.bodyText ?? ''),
-      paragraphs: toParagraphs(r.bodyText),
+      readTime: readTime(bodyText),
+      paragraphs,
     },
   };
 }
@@ -425,8 +436,8 @@ export function headlineToArticleProps(h: SourceHeadline): ArticleProps {
     category: h.publisher,
     title: sanitizeHeadline(h.headline),
     description: sanitizeHeadline(h.excerpt),
-    authorInitials: h.publisher.slice(0, 2).toUpperCase(),
-    authorName: h.publisher,
+    authorInitials: h.editor ? authorInitials(h.editor.name) : BRAND.slice(0, 2).toUpperCase(),
+    authorName: h.editor?.name ?? BRAND,
     readTime: h.readTime,
     publishedDate: formatDate(h.publishedAt),
     id: h.id,

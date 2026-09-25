@@ -35,7 +35,8 @@ export async function getAuthor(slug: string): Promise<PublicAuthor | null> {
 const DEFAULT_TTL_MS = 10 * 60 * 1000;
 let defaultCache: { author: PublicAuthor | null; expires: number } | null = null;
 
-async function defaultAuthor(): Promise<PublicAuthor | null> {
+/** The LazyFounders byline, also shown as the curating editor on syndicated stories. */
+export async function defaultAuthor(): Promise<PublicAuthor | null> {
   if (defaultCache && defaultCache.expires > Date.now()) return defaultCache.author;
   const author = await getAuthor(DEFAULT_AUTHOR_SLUG);
   defaultCache = { author, expires: Date.now() + DEFAULT_TTL_MS };

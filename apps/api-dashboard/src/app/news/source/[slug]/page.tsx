@@ -8,7 +8,8 @@ import { SafeImage } from "../../../../components/SafeImage";
 import { BrandBadge } from "../../../../components/BrandBadge";
 import { PoweredByBlogy } from "../../../../components/PoweredByBlogy";
 import { getSourceStory, listPublishedArticles, sourceStoryPath } from "@/lib/articles";
-import { pageMetadata } from "@/lib/seo";
+import { authorInitials, authorPath } from "@/lib/authors";
+import { BRAND, pageMetadata } from "@/lib/seo";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -83,11 +84,18 @@ export default async function SourceStoryPage({ params }: Props) {
                     className="rounded-full overflow-hidden bg-teal-100 dark:bg-teal-950/50 ring-2 ring-slate-200 dark:ring-white/10 shrink-0 flex items-center justify-center font-bold text-teal-600 dark:text-teal-400"
                     style={{ width: 48, height: 48 }}
                   >
-                    {story.publisher.slice(0, 2).toUpperCase()}
+                    {story.editor ? authorInitials(story.editor.name) : BRAND.slice(0, 2).toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 dark:text-white leading-tight text-base">{story.author || story.publisher}</p>
-                    {story.author ? <p className="text-sm text-slate-500 dark:text-slate-400">{story.publisher}</p> : null}
+                    {/* Our editor curated this; the words are the publisher's, credited below. */}
+                    <p className="font-bold text-slate-900 dark:text-white leading-tight text-base">
+                      {story.editor ? (
+                        <>Curated by <Link href={authorPath(story.editor.slug)} className="hover:underline">{story.editor.name}</Link></>
+                      ) : (
+                        <>Curated by {BRAND}</>
+                      )}
+                    </p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Via {story.publisher}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
@@ -120,8 +128,7 @@ export default async function SourceStoryPage({ params }: Props) {
                   Courtesy
                 </h2>
                 <p className="text-sm text-slate-700 dark:text-slate-300 mb-3">
-                  This story was originally published by <span className="font-semibold text-slate-900 dark:text-white">{story.publisher}</span>
-                  {story.author ? <> and written by {story.author}</> : null}. All rights belong to the original publisher.
+                  This story was originally published by <span className="font-semibold text-slate-900 dark:text-white">{story.publisher}</span>. All rights belong to the original publisher.
                 </p>
                 <a
                   href={story.sourceUrl}

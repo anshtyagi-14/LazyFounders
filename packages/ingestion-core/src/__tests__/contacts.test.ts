@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkForeignContacts, findForeignEmails, scrubForeignContacts } from '../content/contacts';
+import { checkForeignContacts, findForeignEmails, scrubForeignContacts, stripAuthorBio } from '../content/contacts';
 import { extractArticle } from '../content/extract';
 
 const STORY = [
@@ -50,6 +50,27 @@ describe('scrubForeignContacts', () => {
   it('leaves social handles and ordinary text alone', () => {
     const text = 'Follow @TechCrunch for updates. The deal values the company at $1.2 billion.';
     expect(scrubForeignContacts(text)).toEqual({ text, removed: [] });
+  });
+});
+
+describe('stripAuthorBio', () => {
+  it('cuts the trailing reporter bio from stored source text', () => {
+    const paras = [
+      ...STORY,
+      'Tim De Chant is a senior climate reporter at TechCrunch. He has written for a wide range of publications.',
+      'He holds his BA degree in environmental studies, English, and biology from St. Olaf College.',
+    ];
+    expect(stripAuthorBio(paras, 'Tim De Chant')).toEqual(STORY);
+  });
+
+  it('cuts at an "About the author" heading without a name', () => {
+    expect(stripAuthorBio([...STORY, 'About the author', 'Jane writes about fintech.'], null)).toEqual(STORY);
+  });
+
+  it('keeps the story when the reporter is not the subject of a late paragraph', () => {
+    const paras = [...STORY, 'The company did not respond to a request for comment.'];
+    expect(stripAuthorBio(paras, 'Tim De Chant')).toEqual(paras);
+    expect(stripAuthorBio(STORY, null)).toEqual(STORY);
   });
 });
 
