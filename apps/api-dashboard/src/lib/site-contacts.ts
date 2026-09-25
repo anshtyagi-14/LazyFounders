@@ -2,19 +2,20 @@
  * Contact details shown on the trust pages (/about, /contact, /corrections,
  * /terms, /disclaimer) and in security.txt.
  *
- * TODO(contacts): these are PLACEHOLDERS. Replace every value below with the
- * real addresses and legal entity before launch, and update
- * public/.well-known/security.txt to match.
+ * Every address routes to one inbox. Keep public/.well-known/security.txt in
+ * sync with `security`.
  */
+const INBOX = 'tarun.kumar@blogy.in';
+
 export const SITE_CONTACTS = {
   /** General enquiries and feedback. */
-  general: 'hello@lazyfounder.in',
+  general: INBOX,
   /** Corrections, factual disputes, source complaints. */
-  editorial: 'corrections@lazyfounder.in',
+  editorial: INBOX,
   /** Partnerships and advertising. */
-  commercial: 'partnerships@lazyfounder.in',
+  commercial: INBOX,
   /** Vulnerability reports. */
-  security: 'security@lazyfounder.in',
+  security: INBOX,
   /** Registered legal entity that operates the site. Empty until confirmed. */
   legalEntity: '',
   /** Registered office / jurisdiction for the terms. */
@@ -22,4 +23,4 @@ export const SITE_CONTACTS = {
 } as const;
 
 /** Set to true once the values above are real, to drop the "placeholder" notice. */
-export const CONTACTS_CONFIRMED = false;
+export const CONTACTS_CONFIRMED = true;
