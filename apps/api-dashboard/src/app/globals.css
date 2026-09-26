@@ -370,14 +370,14 @@ ul { list-style: none; }
   font-size: 1rem;
 }
 
-.table-of-contents ol {
+.table-of-contents :is(ol, ul) {
   list-style-type: none;
   padding-left: 0;
   margin: 0;
   counter-reset: toc-counter;
 }
 
-.table-of-contents ol li {
+.table-of-contents :is(ol, ul) li {
   position: relative;
   counter-increment: toc-counter;
   padding-left: 2.5rem;
@@ -387,9 +387,9 @@ ul { list-style: none; }
   line-height: 1.5;
   transition: color 0.15s;
 }
-.table-of-contents ol li:hover { color: #ffffff; }
+.table-of-contents :is(ol, ul) li:hover { color: #ffffff; }
 
-.table-of-contents ol li::before {
+.table-of-contents :is(ol, ul) li::before {
   content: counter(toc-counter, decimal-leading-zero);
   position: absolute;
   left: 0;
@@ -406,11 +406,17 @@ ul { list-style: none; }
   justify-content: center;
 }
 
-.table-of-contents ol li a {
+.table-of-contents :is(ol, ul) li p {
+  margin: 0;
+  color: inherit;
+  line-height: inherit;
+}
+
+.table-of-contents :is(ol, ul) li a {
   color: inherit !important;
   text-decoration: none !important;
 }
-.table-of-contents ol li a:hover {
+.table-of-contents :is(ol, ul) li a:hover {
   color: var(--teal-300) !important;
 }
 
@@ -656,20 +662,20 @@ ul { list-style: none; }
 }
 .dark .prose-custom a { color: var(--teal-400); }
 
-.prose-custom ul:not(.summary-box ul, .key-highlights ul) {
+.prose-custom ul:not(.summary-box ul, .key-highlights ul, .table-of-contents ul) {
   margin-top: 0;
   margin-bottom: 1.5rem;
   padding-left: 1.5rem;
   list-style-type: none;
 }
-.dark .prose-custom ul:not(.summary-box ul, .key-highlights ul) { color: #f1f5f9; }
+.dark .prose-custom ul:not(.summary-box ul, .key-highlights ul, .table-of-contents ul) { color: #f1f5f9; }
 
-.prose-custom ul:not(.summary-box ul, .key-highlights ul) > li {
+.prose-custom ul:not(.summary-box ul, .key-highlights ul, .table-of-contents ul) > li {
   position: relative;
   padding-left: 0.5rem;
   margin-bottom: 0.75rem;
 }
-.prose-custom ul:not(.summary-box ul, .key-highlights ul) > li::before {
+.prose-custom ul:not(.summary-box ul, .key-highlights ul, .table-of-contents ul) > li::before {
   content: "";
   position: absolute;
   left: -1.25rem;

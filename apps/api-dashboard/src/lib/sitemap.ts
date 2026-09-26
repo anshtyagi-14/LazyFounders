@@ -14,7 +14,7 @@ import { recordSiteError } from '@/lib/site-errors';
  * The sitemap set:
  *
  *   /sitemap.xml                 index of the files below
- *   /sitemaps/static.xml         home, trust pages, author pages
+ *   /sitemaps/static.xml         home, trust pages, /authors and author pages
  *   /sitemaps/news.xml           Google News: stories from the last 48 hours
  *   /sitemaps/articles-N.xml     every published story, ARTICLES_PER_FILE per file
  *   /sitemaps/companies-N.xml    company hubs with enough coverage to index
@@ -109,17 +109,24 @@ export async function staticEntries(): Promise<UrlEntry[]> {
   return [...STATIC_PATHS.map((p) => ({ loc: `${SITE_URL}${p === '/' ? '/' : p}`, lastmod: p === '/' ? newest : undefined })), ...authors];
 }
 
-/** Author pages with at least one published story (an empty one is noindex). */
+/**
+ * Author pages with at least one published story, and the
+ * /authors hub that links them.
+ */
 async function authorEntries(): Promise<UrlEntry[]> {
   const rows = await prisma.article.groupBy({ by: ['authorId'], where: { ...PUBLIC_WHERE, authorId: { not: null } }, _max: { publishedAt: true } });
   if (rows.length === 0) return [];
-  const authors = await prisma.author.findMany({ where: { id: { in: rows.map((r) => r.authorId!) } }, select: { id: true, slug: true } });
+  const authors = await prisma.author.findMany({ where: { id: { in: rows.map((r) => r.authorId!) } }, select: { id: true, slug: true, updatedAt: true } });
   const lastmod = new Map(rows.map((r) => [r.authorId, r._max.publishedAt]));
-  return authors.map((a) => ({ loc: `${SITE_URL}${authorPath(a.slug)}`, lastmod: lastmod.get(a.id) ?? undefined }));
+  const hubLastmod = authors.reduce<Date | null>((max, a) => (!max || a.updatedAt > max ? a.updatedAt : max), null);
+  return [
+    { loc: `${SITE_URL}/authors`, lastmod: hubLastmod },
+    ...authors.map((a) => ({ loc: `${SITE_URL}${authorPath(a.slug)}`, lastmod: lastmod.get(a.id) ?? undefined })),
+  ];
 }
 
 export async function categoryEntries(): Promise<UrlEntry[]> {
-  // Only sections that have something in them: an empty section page is noindex.
+  // Only sections that have something in them.
   const { listCategoryFeed } = await import('@/lib/feed');
   const out: UrlEntry[] = [];
   for (const c of SITE_CATEGORIES) {

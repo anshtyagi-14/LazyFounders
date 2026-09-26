@@ -684,7 +684,7 @@ model EditorialAction {
 model EmailSignup {
   id             String   @id @default(uuid()) @db.Uuid
   email          String   @unique /// lowercased and trimmed before insert
-  signupLocation String   @map("signup_location") /// homepage | footer | article
+  signupLocation String   @map("signup_location") /// homepage | footer | article | about
   utmSource      String?  @map("utm_source")
   utmMedium      String?  @map("utm_medium")
   utmCampaign    String?  @map("utm_campaign")

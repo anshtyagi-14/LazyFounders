@@ -4,7 +4,7 @@ import Link from "next/link";
 export const revalidate = 300;
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
@@ -17,13 +17,15 @@ import { Breadcrumbs } from "../../../../components/Breadcrumbs";
 import { ArticleTracker } from "../../../../components/ArticleTracker";
 import { ShareBar } from "../../../../components/ShareBar";
 import { EmailCapture } from "../../../../components/EmailCapture";
+import { ContactStrip } from "../../../../components/ContactStrip";
 import { cardLinkProps } from "../../../../components/FeaturedCard";
 import { BRAND, SITE_URL, getPublishedArticle, slugifyCategory, type PublicArticle } from "@/lib/articles";
 import { authorInitials as initialsOf, authorPath } from "@/lib/authors";
 import { listCategoryFeed } from "@/lib/feed";
 import { categoryForArticle, type SiteCategory } from "@/lib/topics";
-import { resolveImage, type ResolvedImage } from "@/lib/images";
+import { imageObjectSchema, resolveImage, type ResolvedImage } from "@/lib/images";
 import { gaAttrs } from "@/lib/ga-attrs";
+import { splitBodyNearMiddle } from "@/lib/article-body";
 import {
   ORGANIZATION_ID,
   SITE_LANG,
@@ -60,6 +62,21 @@ const sanitizeSchema = {
     div: [...(defaultSchema.attributes?.div ?? []), ["className", "summary-box", "table-of-contents", "key-highlights"]],
   },
 };
+
+/**
+ * Raw HTML in the model's markdown can carry an <img> with no alt. Every body image
+ * gets one: its own alt, else its title, else the headline it illustrates.
+ */
+function bodyComponents(headline: string): Components {
+  return {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    img: ({ node, alt, title, ...props }) => (
+      // Remote publisher images of unknown size: next/image cannot size them.
+      // eslint-disable-next-line @next/next/no-img-element
+      <img {...props} title={title} alt={alt?.trim() || title?.trim() || headline} loading="lazy" decoding="async" />
+    ),
+  };
+}
 
 /** One image for the hero, og:image, twitter:image and NewsArticle.image. */
 function articleImage(article: PublicArticle): ResolvedImage {
@@ -108,6 +125,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     publishedTime: article.publishedAt.toISOString(),
     modifiedTime: modified?.toISOString(),
     section: categoryForArticle(article.category).label,
+    authors: article.author ? [{ name: article.author.name, url: authorPath(article.author.slug) }] : undefined,
   });
 }
 
@@ -135,15 +153,7 @@ function jsonLd(article: PublicArticle, category: SiteCategory, image: ResolvedI
     timeRequired: `PT${article.readTime}M`,
     isAccessibleForFree: true,
     articleBody: clamp(body, 5000),
-    image: [
-      {
-        "@type": "ImageObject",
-        url: image.url,
-        ...(image.width && image.height ? { width: image.width, height: image.height } : {}),
-        ...(image.isFallback ? {} : { caption: article.headline }),
-        ...(image.credit ? { creditText: image.credit } : {}),
-      },
-    ],
+    image: [imageObjectSchema(image, article.headline)],
     author: article.author ? { "@id": personId(article.author.slug), "@type": "Person", name: article.author.name, url: `${SITE_URL}${authorPath(article.author.slug)}` } : { "@id": ORGANIZATION_ID },
     publisher: { "@id": ORGANIZATION_ID },
     isPartOf: { "@id": WEBSITE_ID },
@@ -206,6 +216,7 @@ export default async function ArticlePage({ params }: Props) {
   const authorInitials = author ? initialsOf(author.name) : BRAND.slice(0, 2).toUpperCase();
   const canonical = `${SITE_URL}/news/article/${article.slug}`;
   const sourceCount = article.citations.length;
+  const [bodyTop, bodyBottom] = splitBodyNearMiddle(prepareBody(article.bodyMarkdown));
 
   return (
     <div className="App min-h-screen flex flex-col bg-white dark:bg-[#05070A]">
@@ -324,12 +335,52 @@ export default async function ArticlePage({ params }: Props) {
               </figure>
 
               <div className="prose-custom max-w-none" data-article-body>
-                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}>
-                  {prepareBody(article.bodyMarkdown)}
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]} components={bodyComponents(article.headline)}>
+                  {bodyTop}
                 </ReactMarkdown>
+                <ContactStrip surface="article" className="my-8" />
+                {bodyBottom ? (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]} components={bodyComponents(article.headline)}>
+                    {bodyBottom}
+                  </ReactMarkdown>
+                ) : null}
               </div>
 
               <SourcesSection citations={article.citations} brand={BRAND} articleId={article.id} />
+
+              {author ? (
+                <section
+                  aria-labelledby="about-author"
+                  className="mt-10 flex flex-col gap-4 rounded-2xl border border-slate-200 p-5 sm:flex-row sm:items-start dark:border-white/10"
+                >
+                  <div
+                    aria-hidden="true"
+                    className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-teal-100 text-xl font-bold text-teal-700 ring-2 ring-slate-200 dark:bg-teal-950/50 dark:text-teal-400 dark:ring-white/10"
+                  >
+                    {author.avatarUrl ? <SafeImage src={author.avatarUrl} alt="" width={64} height={64} className="h-full w-full object-cover" /> : authorInitials}
+                  </div>
+                  <div className="min-w-0">
+                    <h2 id="about-author" className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                      About the author
+                    </h2>
+                    <p className="mt-1 text-lg font-bold text-slate-900 dark:text-white">
+                      <Link href={authorPath(author.slug)} rel="author" className="hover:text-teal-700 hover:underline dark:hover:text-teal-400">
+                        {author.name}
+                      </Link>
+                    </p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      {author.jobTitle}, {BRAND}
+                    </p>
+                    <p className="mt-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300">{author.bio}</p>
+                    <Link
+                      href={authorPath(author.slug)}
+                      className="mt-3 inline-block text-sm font-semibold text-teal-800 underline dark:text-teal-400"
+                    >
+                      More stories by {author.name}
+                    </Link>
+                  </div>
+                </section>
+              ) : null}
 
               <div className="mt-10 border-t border-slate-200 pt-6 dark:border-white/10">
                 <ShareBar url={canonical} title={article.headline} id={article.id} />

@@ -2,7 +2,7 @@ import 'server-only';
 import { z } from 'zod';
 import { prisma } from './prisma';
 
-export const SIGNUP_LOCATIONS = ['homepage', 'footer', 'article'] as const;
+export const SIGNUP_LOCATIONS = ['homepage', 'footer', 'article', 'about'] as const;
 export type SignupLocation = (typeof SIGNUP_LOCATIONS)[number];
 
 export const SIGNUP_SUCCESS_MESSAGE =

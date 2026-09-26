@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { ArticleCard } from "../../../../components/ArticleCard";
 import { Breadcrumbs } from "../../../../components/Breadcrumbs";
 import { JsonLd } from "../../../../components/JsonLd";
+import { withContactStrip } from "../../../../components/ContactStrip";
 import { listCategoryFeed } from "@/lib/feed";
 import { SITE_CATEGORIES, resolveCategorySlug, type SiteCategory } from "@/lib/topics";
 import { gaAttrs } from "@/lib/ga-attrs";
@@ -71,8 +72,6 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     path: pagePath(category.slug, page),
     image: lead?.props.imageUrl,
     keywords: [category.label, `${category.label} news`, `${category.label} startups`],
-    // An empty category is thin content: keep it crawlable but out of the index.
-    index: total > 0,
   });
 }
 
@@ -143,13 +142,16 @@ export default async function CategoryPage({ params, searchParams }: Props) {
           <>
             <h2 className="sr-only">Latest {category.label} stories</h2>
             <div className="mb-10 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {items.map((item, idx) => (
-                <ArticleCard
-                  key={item.id}
-                  article={item.props}
-                  context={{ surface: `category_${category.slug}`, position: (page - 1) * PER_PAGE + idx + 1 }}
-                />
-              ))}
+              {withContactStrip(
+                items.map((item, idx) => (
+                  <ArticleCard
+                    key={item.id}
+                    article={item.props}
+                    context={{ surface: `category_${category.slug}`, position: (page - 1) * PER_PAGE + idx + 1 }}
+                  />
+                )),
+                `category_${category.slug}`,
+              )}
             </div>
 
             {pageCount > 1 ? (

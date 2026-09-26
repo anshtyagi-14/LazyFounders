@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { triggerDiscovery, checkDiscoveryStatus } from '../../actions';
+import { ContactStrip } from '../../../components/ContactStrip';
 
 export default function DiscoveryEnginePage() {
   const [url, setUrl] = useState('');
@@ -118,6 +119,8 @@ export default function DiscoveryEnginePage() {
               )}
             </div>
           </div>
+
+          <ContactStrip surface="tools_discovery_engine" />
         </div>
 
         {/* Right Column: API Docs and Info */}

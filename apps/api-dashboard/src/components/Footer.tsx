@@ -1,10 +1,10 @@
-import React from 'react';
-import Link from 'next/link';
-import { BRAND } from '@/lib/articles';
-import { CATEGORY_LINKS, FOLLOW_LINKS, TRUST_LINKS } from '@/lib/nav';
-import { gaAttrs } from '@/lib/ga-attrs';
-import { EmailCapture } from './EmailCapture';
-import { Wordmark } from './site/Wordmark';
+import React from "react";
+import Link from "next/link";
+import { BRAND } from "@/lib/articles";
+import { CATEGORY_LINKS, FOLLOW_LINKS, TRUST_LINKS } from "@/lib/nav";
+import { gaAttrs } from "@/lib/ga-attrs";
+import { EmailCapture } from "./EmailCapture";
+import { Wordmark } from "./site/Wordmark";
 
 /**
  * Static footer: the six categories, the trust pages, where to follow, and the
@@ -13,13 +13,23 @@ import { Wordmark } from './site/Wordmark';
 
 function ColumnHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-4 font-display text-[0.68rem] font-bold uppercase tracking-[0.16em] text-teal-700 dark:text-teal-500">{children}</h2>
+    <h2 className="mb-4 font-display text-[0.68rem] font-bold uppercase tracking-[0.16em] text-teal-700 dark:text-teal-500">
+      {children}
+    </h2>
   );
 }
 
-function FooterLink({ href, children, ...rest }: { href: string; children: React.ReactNode } & Record<string, string>) {
+function FooterLink({
+  href,
+  children,
+  ...rest
+}: { href: string; children: React.ReactNode } & Record<string, string>) {
   return (
-    <Link href={href} {...rest} className="block py-1.5 text-sm text-gray-600 transition-colors hover:text-teal-700 dark:text-gray-400 dark:hover:text-teal-400">
+    <Link
+      href={href}
+      {...rest}
+      className="block py-1.5 text-sm text-gray-600 transition-colors hover:text-teal-700 dark:text-gray-400 dark:hover:text-teal-400"
+    >
       {children}
     </Link>
   );
@@ -36,7 +46,14 @@ export function Footer() {
           <nav aria-label="Sections">
             <ColumnHeading>Sections</ColumnHeading>
             {CATEGORY_LINKS.map((l) => (
-              <FooterLink key={l.href} href={l.href} {...gaAttrs('category_select', { category: l.label, source_surface: 'footer' })}>
+              <FooterLink
+                key={l.href}
+                href={l.href}
+                {...gaAttrs("category_select", {
+                  category: l.label,
+                  source_surface: "footer",
+                })}
+              >
                 {l.label}
               </FooterLink>
             ))}
@@ -60,14 +77,21 @@ export function Footer() {
                   href={l.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  {...gaAttrs(l.event, { content_id: l.label, source_surface: 'footer' })}
+                  {...gaAttrs(l.event, {
+                    content_id: l.label,
+                    source_surface: "footer",
+                  })}
                   className="block py-1.5 text-sm text-gray-600 transition-colors hover:text-teal-700 dark:text-gray-400 dark:hover:text-teal-400"
                 >
                   {l.label}
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
               ) : (
-                <FooterLink key={l.href} href={l.href} {...gaAttrs(l.event, { source_surface: 'footer' })}>
+                <FooterLink
+                  key={l.href}
+                  href={l.href}
+                  {...gaAttrs(l.event, { source_surface: "footer" })}
+                >
                   {l.label}
                 </FooterLink>
               ),
@@ -90,7 +114,10 @@ export function Footer() {
       <div className="mx-auto max-w-7xl overflow-hidden px-4 sm:px-6 lg:px-8">
         {/* Sized to bleed off the edge, clipped by the wrapper: without the clip
             this single word widens the document and the whole page scrolls sideways. */}
-        <p aria-hidden="true" className="select-none whitespace-nowrap border-t border-black/10 pt-10 font-display text-[13vw] font-extrabold uppercase leading-[0.8] tracking-[-0.045em] text-black/5 dark:border-white/10 dark:text-white/8 lg:text-[10.5rem]">
+        <p
+          aria-hidden="true"
+          className="select-none whitespace-nowrap border-t border-black/10 pt-10 font-display text-[13vw] font-extrabold uppercase leading-[0.8] tracking-[-0.045em] text-black/5 dark:border-white/10 dark:text-white/8 lg:text-[10.5rem]"
+        >
           {BRAND}
         </p>
       </div>
@@ -99,9 +126,35 @@ export function Footer() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-6 text-xs text-gray-500 dark:border-white/10">
           <p>
             &copy; {new Date().getFullYear()} {BRAND}. All rights reserved.
+            {" · "}
+            <a
+              href="/sitemap.xml"
+              className="underline hover:text-teal-700 dark:hover:text-teal-400"
+            >
+              Sitemap
+            </a>
           </p>
           <p>
-            AI-assisted reporting from cited sources. <Link href="/ai-policy" className="underline hover:text-teal-700 dark:hover:text-teal-400">How we use AI</Link>
+            <p>
+              Powered by{" "}
+              <a
+                href="https://blogy.in"
+                target="_blank"
+                rel="noopener"
+                className="underline hover:text-teal-700 dark:hover:text-teal-400"
+              >
+                Blogy
+              </a>
+            </p>
+            Developed and managed by{" "}
+            <a
+              href="https://gigzman.com"
+              target="_blank"
+              rel="noopener"
+              className="underline hover:text-teal-700 dark:hover:text-teal-400"
+            >
+              gigzman.com
+            </a>
           </p>
         </div>
       </div>

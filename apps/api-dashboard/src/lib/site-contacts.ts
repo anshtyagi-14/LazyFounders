@@ -16,6 +16,8 @@ export const SITE_CONTACTS = {
   commercial: INBOX,
   /** Vulnerability reports. */
   security: INBOX,
+  /** WhatsApp chat link for readers who would rather message than email. */
+  whatsapp: 'https://wa.me/917210499455',
   /** Registered legal entity that operates the site. Empty until confirmed. */
   legalEntity: '',
   /** Registered office / jurisdiction for the terms. */

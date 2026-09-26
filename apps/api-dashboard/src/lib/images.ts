@@ -1,4 +1,4 @@
-import { DEFAULT_IMAGE, FALLBACK_IMAGE_PATH, absoluteUrl } from '@/lib/seo';
+import { DEFAULT_IMAGE, FALLBACK_IMAGE_PATH, OWNED_IMAGE_RIGHTS, absoluteUrl } from '@/lib/seo';
 
 /**
  * One image decision per story, shared by the hero, og:image, twitter:image and
@@ -72,4 +72,46 @@ export function resolveImage(candidates: ImageCandidate[], alt: string): Resolve
     creditUrl: null,
     isFallback: true,
   };
+}
+
+/**
+ * The story image as a schema.org ImageObject with Google's Image Metadata fields.
+ *
+ * Our brand card gets our full rights set. A publisher's image is credited to that
+ * publisher, with the original story as the place to ask about licensing; it gets no
+ * `license`, because we do not know the publisher's terms and must not invent them.
+ */
+export function imageObjectSchema(image: ResolvedImage, caption: string): Record<string, unknown> {
+  const base = {
+    '@type': 'ImageObject',
+    url: image.url,
+    contentUrl: image.url,
+    ...(image.width && image.height ? { width: image.width, height: image.height } : {}),
+  };
+  if (image.isFallback) return { ...base, ...OWNED_IMAGE_RIGHTS };
+
+  const origin = safeOrigin(image.creditUrl);
+  const owner = image.credit?.trim() || (origin ? new URL(origin).hostname.replace(/^www\./, '') : null);
+  return {
+    ...base,
+    caption,
+    ...(owner
+      ? {
+          creator: { '@type': 'Organization', name: owner, ...(origin ? { url: origin } : {}) },
+          creditText: owner,
+          copyrightNotice: `© ${owner}`,
+        }
+      : {}),
+    ...(image.creditUrl && origin ? { acquireLicensePage: image.creditUrl } : {}),
+  };
+}
+
+function safeOrigin(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.origin : null;
+  } catch {
+    return null;
+  }
 }

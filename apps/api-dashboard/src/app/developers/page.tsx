@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { ContactStrip } from '../../components/ContactStrip';
 
 export default function DevelopersDashboard() {
   const [keys, setKeys] = useState<any[]>([]);
@@ -217,6 +218,8 @@ export default function DevelopersDashboard() {
             </table>
           </div>
         </section>
+
+        <ContactStrip surface="developers" className="mb-10" />
 
         {/* API Reference — Horizontal Cards */}
         <section>

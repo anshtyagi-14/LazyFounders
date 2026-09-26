@@ -17,6 +17,7 @@ import { BreakingTicker } from "../components/news/BreakingTicker";
 import { HeroSlot } from "../components/news/HeroSlot";
 import { JustInLedger } from "../components/news/JustInLedger";
 import { EmailCapture } from "../components/EmailCapture";
+import { withContactStrip } from "../components/ContactStrip";
 import { TopicSection } from "../components/news/TopicSection";
 import { SectionHeading } from "../components/news/SectionHeading";
 import { StoryRow } from "../components/news/StoryRow";
@@ -111,9 +112,11 @@ export default async function NewsDashboard() {
               </section>
             ) : null}
 
-            {sections.map((section) => (
-              <TopicSection key={section.slug} section={section} />
-            ))}
+            {withContactStrip(
+              sections.map((section) => <TopicSection key={section.slug} section={section} />),
+              'home',
+              'my-6',
+            )}
 
             {wire.length > 0 ? (
               <section className="py-10">

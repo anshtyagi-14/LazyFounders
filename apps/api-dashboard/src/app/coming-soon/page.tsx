@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
-import { privateMetadata } from '@/lib/seo';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = privateMetadata('Coming soon');
+export const metadata: Metadata = pageMetadata({ title: 'Coming soon', description: '', path: '/coming-soon' });
 
 import React from 'react';
 import Link from 'next/link';
+import { ContactStrip } from '../../components/ContactStrip';
 
-// Static copy behind a noindex. Nothing to rebuild per request.
+// Static copy. Nothing to rebuild per request.
 
 export default function ComingSoonPage() {
   return (
@@ -32,6 +33,8 @@ export default function ComingSoonPage() {
         <p className="text-lg text-zinc-600 max-w-lg mx-auto leading-relaxed dark:text-zinc-400">
           We&apos;re currently brewing something amazing behind the scenes. This section of the platform is under construction and will be launching soon.
         </p>
+
+        <ContactStrip surface="coming_soon" className="text-left" />
 
         {/* Action */}
         <div className="pt-8">

@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from "react";
 import Link from 'next/link';
+import { ContactStrip } from '../../../components/ContactStrip';
 
 export default function PipelinePage() {
   const [url, setUrl] = useState('');
@@ -77,6 +78,8 @@ export default function PipelinePage() {
           Trigger the complete end-to-end pipeline.
         </p>
       </div>
+
+      <ContactStrip surface="tools_pipeline" className="mb-8" />
 
       <div className="bg-card border border-border p-8 rounded-xl shadow-lg">
         <form onSubmit={handlePipelineTrigger} className="flex flex-col sm:flex-row gap-4 mb-8">

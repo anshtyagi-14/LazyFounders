@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import { Archivo, Newsreader, Outfit } from 'next/font/google';
 import './globals.css';
 import { Footer } from '../components/Footer';
+import { ContactBanner } from '../components/ContactBanner';
+import { WhatsAppFloat } from '../components/WhatsAppFloat';
 import { SiteHeader } from '../components/site/SiteHeader';
 import { JsonLd } from '../components/JsonLd';
 import { Analytics } from '../components/Analytics';
@@ -62,11 +64,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
+      { url: '/favicon.ico', sizes: '16x16 32x32 48x48', type: 'image/x-icon' },
       { url: '/favicon-64.png', type: 'image/png', sizes: '64x64' },
       { url: '/logo192.png', type: 'image/png', sizes: '192x192' },
     ],
-    apple: [{ url: '/logo192.png', sizes: '192x192' }],
+    // iOS ignores transparency, so the touch icon is the mark on a solid square.
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
     shortcut: ['/favicon.ico'],
   },
   manifest: '/manifest.webmanifest',
@@ -137,7 +140,9 @@ export default function RootLayout({
         <div id="content" tabIndex={-1} className="flex-1 outline-none">
           {children}
         </div>
+        <ContactBanner />
         <Footer />
+        <WhatsAppFloat />
         <Analytics />
         <WebVitals />
       </body>

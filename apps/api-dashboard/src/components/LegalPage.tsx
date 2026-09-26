@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Breadcrumbs } from './Breadcrumbs';
 import { JsonLd } from './JsonLd';
+import { withContactStrip } from './ContactStrip';
 import { TRUST_LINKS } from '@/lib/nav';
 import { ORGANIZATION_ID, WEBSITE_ID, absoluteUrl, breadcrumbSchema } from '@/lib/seo';
 
@@ -24,6 +25,14 @@ export function LegalPage({
   updated: string;
   children: React.ReactNode;
 }) {
+  // Contact strip goes halfway through the policy text. A page that wraps its
+  // body in a fragment is unwrapped first so the split lands between sections.
+  let blocks = React.Children.toArray(children);
+  if (blocks.length === 1 && React.isValidElement<{ children?: React.ReactNode }>(blocks[0]) && blocks[0].type === React.Fragment) {
+    blocks = React.Children.toArray(blocks[0].props.children);
+  }
+  const body = withContactStrip(blocks, path, '');
+
   const crumbs = [
     { name: 'Home', path: '/' },
     { name: title, path },
@@ -60,7 +69,7 @@ export function LegalPage({
             </time>
           </p>
           <div className="legal-prose mt-10 space-y-5 text-[0.97rem] leading-relaxed text-gray-800 dark:text-gray-300 [&_a]:font-medium [&_a]:text-teal-800 [&_a]:underline dark:[&_a]:text-teal-400 [&_h2]:mt-10 [&_h2]:font-headline [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:text-gray-950 dark:[&_h2]:text-white [&_li]:ml-5 [&_li]:list-disc [&_li]:pl-1 [&_ul]:space-y-2">
-            {children}
+            {body}
           </div>
         </article>
         <nav aria-label="Policies" className="lg:pt-2">

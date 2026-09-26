@@ -20,6 +20,10 @@ function slugifyCompany(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 }
 
+const MOBILE_COMPANIES = [
+  ...new Set(COMPANY_GROUPS.flatMap((group) => group.items.slice(0, 6))),
+];
+
 export function SiteHeader() {
   const companyPanel = (
     <div className="grid w-[46rem] max-w-[80vw] grid-cols-4 gap-x-8 gap-y-1">
@@ -66,7 +70,7 @@ export function SiteHeader() {
             <div>
               <p className="mb-3 font-display text-[0.68rem] font-bold uppercase tracking-[0.14em] text-teal-500">Companies</p>
               <div className="grid grid-cols-2 gap-x-6">
-                {COMPANY_GROUPS.flatMap((g) => g.items.slice(0, 6)).map((name) => (
+                {MOBILE_COMPANIES.map((name) => (
                   <Link
                     key={name}
                     href={'/company/' + slugifyCompany(name)}

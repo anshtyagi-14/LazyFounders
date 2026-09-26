@@ -24,6 +24,17 @@ describe('urlsetXml', () => {
     expect(xml).toContain('xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"');
   });
 
+  test('drops characters XML 1.0 forbids, which would make the whole file unparseable', () => {
+    const xml = urlsetXml([
+      {
+        loc: 'https://lazyfounder.in/news/article/a',
+        news: { title: 'Pay\u0008tm \u000Braises\u0000 ￾$10M \uD800in 🚀 round\tnow', publishedAt: new Date(0) },
+      },
+    ]);
+    expect(xml).not.toMatch(/[^\t\n\r -퟿-�\u{10000}-\u{10FFFF}]/u);
+    expect(xml).toContain('<news:title>Paytm raises $10M in 🚀 round\tnow</news:title>');
+  });
+
   test('omits optional elements it has no value for', () => {
     const xml = urlsetXml([{ loc: 'https://lazyfounder.in/about' }]);
     expect(xml).not.toContain('<lastmod>');

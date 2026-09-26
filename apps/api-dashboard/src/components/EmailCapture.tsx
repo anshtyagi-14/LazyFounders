@@ -3,7 +3,7 @@
 import React, { useId, useRef, useState } from 'react';
 import { reportError, track } from '@/lib/analytics';
 
-type Location = 'homepage' | 'footer' | 'article';
+type Location = 'homepage' | 'footer' | 'article' | 'about';
 type Status = 'idle' | 'submitting' | 'success' | 'error';
 
 const DEFAULT_SUCCESS =

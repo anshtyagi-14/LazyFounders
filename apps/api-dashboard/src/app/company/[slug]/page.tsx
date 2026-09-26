@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { SafeImage } from '../../../components/SafeImage';
 import { BrandBadge } from '../../../components/BrandBadge';
 import { JsonLd } from '../../../components/JsonLd';
+import { withContactStrip } from '../../../components/ContactStrip';
 import { BRAND, collectionPageSchema, pageMetadata } from '@/lib/seo';
 import { notFound } from 'next/navigation';
-import { ALL_COMPANIES, MIN_COMPANY_STORIES } from '@/lib/companies';
+import { ALL_COMPANIES } from '@/lib/companies';
 import { companyIndex, type CompanyEntry } from '@/lib/company-index';
 
 // A company hub moves only when a new story mentions it.
@@ -78,8 +79,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     path: `/company/${slug}`,
     image: articles.find((a) => a.headerImage)?.headerImage,
     keywords: [matchedCompany, `${matchedCompany} news`, `${matchedCompany} funding`],
-    // A company hub with one story or none is thin content: crawlable, but not indexable.
-    index: count >= MIN_COMPANY_STORIES,
   });
 }
 
@@ -137,7 +136,7 @@ export default async function CompanyNewsPage({ params }: Props) {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {articles.map((article) => (
+            {withContactStrip(articles.map((article) => (
               <Link href={`/news/article/${article.slug}`} key={article.id} className="group">
                 <div className="bg-white border border-black/10 rounded-2xl overflow-hidden hover:border-teal-500/30 transition-all duration-300 h-full flex flex-col shadow-lg hover:shadow-teal-500/10 hover:-translate-y-1 dark:bg-[#0c1017] dark:border-white/5">
                   
@@ -184,7 +183,7 @@ export default async function CompanyNewsPage({ params }: Props) {
                   </div>
                 </div>
               </Link>
-            ))}
+            )), "company_page")}
           </div>
         )}
       </div>

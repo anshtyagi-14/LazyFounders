@@ -5,6 +5,7 @@ export const revalidate = 300;
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { SafeImage } from "../../../../components/SafeImage";
+import { withContactStrip } from "../../../../components/ContactStrip";
 import { BrandBadge } from "../../../../components/BrandBadge";
 import { PoweredByBlogy } from "../../../../components/PoweredByBlogy";
 import { getSourceStory, listPublishedArticles, sourceStoryPath } from "@/lib/articles";
@@ -118,9 +119,11 @@ export default async function SourceStoryPage({ params }: Props) {
               ) : null}
 
               <div className="prose-custom max-w-none">
-                {body.map((p, i) => (
-                  <p key={i}>{p}</p>
-                ))}
+                {withContactStrip(
+                  body.map((p, i) => <p key={i}>{p}</p>),
+                  "source_story",
+                  "my-8",
+                )}
               </div>
 
               <section className="content-courtesy mt-12 rounded-2xl bg-slate-50 dark:bg-[#0d1117] ring-1 ring-slate-200 dark:ring-white/10 p-5" aria-labelledby="courtesy-heading">

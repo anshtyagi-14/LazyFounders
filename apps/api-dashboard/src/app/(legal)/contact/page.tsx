@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Email, LegalPage } from '@/components/LegalPage';
 import { SITE_CONTACTS } from '@/lib/site-contacts';
+import { WhatsAppIcon, whatsAppLinkProps } from '@/components/WhatsApp';
 import { BRAND, pageMetadata } from '@/lib/seo';
 
 const PATH = '/contact';
@@ -17,6 +18,16 @@ export default function ContactPage() {
       <h2>General enquiries</h2>
       <p>
         Questions, feedback and story tips: <Email address={SITE_CONTACTS.general} />.
+      </p>
+
+      <h2>WhatsApp</h2>
+      <p>
+        Prefer to message?{' '}
+        <a {...whatsAppLinkProps('contact_page')} className="inline-flex items-center gap-1.5">
+          <WhatsAppIcon className="h-4 w-4" />
+          Chat with us on WhatsApp
+        </a>
+        .
       </p>
 
       <h2>Corrections and editorial</h2>

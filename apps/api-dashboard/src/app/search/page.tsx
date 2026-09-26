@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { ArticleCard } from '../../components/ArticleCard';
+import { withContactStrip } from '../../components/ContactStrip';
 import { SearchBox } from '../../components/site/SearchBox';
 import { SearchTracker } from '../../components/SearchTracker';
 import { matchCompanies, normalizeQuery, searchStories } from '@/lib/search';
@@ -103,9 +104,12 @@ export default async function SearchPage({ searchParams }: Props) {
                 {results.length} {results.length === 1 ? 'story' : 'stories'} matching &ldquo;{query}&rdquo;
               </h2>
               <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                {results.map((r, i) => (
-                  <ArticleCard key={r.props.url} article={r.props} context={{ surface: 'search', position: i + 1 }} />
-                ))}
+                {withContactStrip(
+                  results.map((r, i) => (
+                    <ArticleCard key={r.props.url} article={r.props} context={{ surface: 'search', position: i + 1 }} />
+                  )),
+                  'search',
+                )}
               </div>
             </section>
           ) : null}

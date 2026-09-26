@@ -83,7 +83,8 @@ export function SafeImage({ src, fallbackSrc = BRAND_FALLBACK, alt, className, p
       {...props}
       className={className}
       src={imgSrc}
-      alt={alt}
+      // A null from the data layer would drop the attribute entirely; empty keeps it.
+      alt={alt ?? ''}
       onError={handleError}
     />
   );

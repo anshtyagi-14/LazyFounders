@@ -3,12 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ArticleCard } from "../../../components/ArticleCard";
+import { withContactStrip } from "../../../components/ContactStrip";
 import { Breadcrumbs } from "../../../components/Breadcrumbs";
 import { JsonLd } from "../../../components/JsonLd";
 import { SafeImage } from "../../../components/SafeImage";
 import { countPublishedArticles, listPublishedArticles } from "@/lib/articles";
-import { authorInitials, authorPath, getAuthor, type PublicAuthor } from "@/lib/authors";
+import { authorBeats, authorInitials, authorPath, getAuthor, type PublicAuthor } from "@/lib/authors";
 import { ownToFeedItem } from "@/lib/feed";
+import { categoryForArticle } from "@/lib/topics";
 import { BRAND, SITE_LANG, absoluteUrl, breadcrumbSchema, itemListSchema, pageMetadata, personSchema, WEBSITE_ID } from "@/lib/seo";
 
 // A byline page moves only when that author publishes.
@@ -38,17 +40,41 @@ async function loadAuthor(params: Props["params"], searchParams: Props["searchPa
   const author = await getAuthor(decodeURIComponent(resolvedParams.slug).toLowerCase());
   if (!author) notFound();
   const page = readPage(resolvedSearch.page);
-  const [articles, total] = await Promise.all([
+  const [articles, total, rawBeats] = await Promise.all([
     listPublishedArticles({ authorId: author.id, take: PER_PAGE, skip: (page - 1) * PER_PAGE }),
     countPublishedArticles({ authorId: author.id }),
+    authorBeats(author.id),
   ]);
   const pageCount = Math.max(1, Math.ceil(total / PER_PAGE));
-  return { author, items: articles.map(ownToFeedItem), total, page, pageCount };
+  // Raw categories fold into the six site sections; several can land on the same one.
+  const beats = [...new Map(rawBeats.map((c) => categoryForArticle(c)).map((c) => [c.slug, c])).values()];
+  return { author, items: articles.map(ownToFeedItem), total, page, pageCount, beats };
+}
+
+const PROFILE_SITES: Array<[RegExp, string]> = [
+  [/linkedin\.com/i, "LinkedIn"],
+  [/(^|\.)(twitter|x)\.com/i, "X"],
+  [/instagram\.com/i, "Instagram"],
+  [/github\.com/i, "GitHub"],
+  [/youtube\.com/i, "YouTube"],
+  [/wikipedia\.org/i, "Wikipedia"],
+];
+
+/** A sameAs URL's visible link text: the network's name, or the bare host. */
+function profileLabel(href: string): string {
+  let host: string;
+  try {
+    host = new URL(href).hostname;
+  } catch {
+    return "Profile";
+  }
+  return PROFILE_SITES.find(([re]) => re.test(host))?.[1] ?? host.replace(/^www\./, "");
 }
 
 function crumbs(author: PublicAuthor) {
   return [
     { name: "Home", path: "/" },
+    { name: "Authors", path: "/authors" },
     { name: author.name, path: authorPath(author.slug) },
   ];
 }
@@ -63,12 +89,11 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     image: author.avatarUrl,
     imageAlt: author.name,
     keywords: [author.name, `${author.name} ${BRAND}`],
-    index: total > 0,
   });
 }
 
 export default async function AuthorPage({ params, searchParams }: Props) {
-  const { author, items, total, page, pageCount } = await loadAuthor(params, searchParams);
+  const { author, items, total, page, pageCount, beats } = await loadAuthor(params, searchParams);
   if (page > pageCount && total > 0) notFound();
 
   const url = absoluteUrl(pagePath(author.slug, page));
@@ -82,13 +107,16 @@ export default async function AuthorPage({ params, searchParams }: Props) {
         name: `${author.name} — ${BRAND}`,
         inLanguage: SITE_LANG,
         isPartOf: { "@id": WEBSITE_ID },
-        mainEntity: personSchema(author),
+        // Google's ProfilePage recommendations: when the profile was created and last edited.
+        dateCreated: author.createdAt.toISOString(),
+        dateModified: author.updatedAt.toISOString(),
+        mainEntity: personSchema(author, { knowsAbout: beats.map((b) => b.label), storyCount: total }),
         breadcrumb: breadcrumbSchema(crumbs(author)),
         hasPart: itemListSchema(items.map((i) => ({ path: i.props.url, name: i.props.title }))),
       },
     ],
   };
-  const linkedIn = author.sameAs.find((u) => /linkedin\.com/i.test(u));
+  const profiles = author.sameAs.map((href) => ({ href, label: profileLabel(href) }));
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">
@@ -116,12 +144,25 @@ export default async function AuthorPage({ params, searchParams }: Props) {
               {author.jobTitle}, {BRAND}
             </p>
             <p className="mt-4 max-w-3xl text-lg text-slate-600 dark:text-gray-400">{author.bio}</p>
+            {beats.length ? (
+              <p className="mt-3 text-sm text-slate-600 dark:text-gray-400">
+                <span className="font-semibold text-slate-900 dark:text-white">Covers: </span>
+                {beats.map((b, i) => (
+                  <React.Fragment key={b.slug}>
+                    {i > 0 ? ", " : null}
+                    <Link href={`/news/category/${b.slug}`} className="hover:underline">
+                      {b.label}
+                    </Link>
+                  </React.Fragment>
+                ))}
+              </p>
+            ) : null}
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-              {linkedIn ? (
-                <a href={linkedIn} target="_blank" rel="noopener noreferrer me" className="font-semibold text-teal-700 hover:underline dark:text-teal-400">
-                  LinkedIn ↗
+              {profiles.map((p) => (
+                <a key={p.href} href={p.href} target="_blank" rel="noopener noreferrer me" className="font-semibold text-teal-700 hover:underline dark:text-teal-400">
+                  {p.label} ↗
                 </a>
-              ) : null}
+              ))}
               <span className="text-slate-500 dark:text-gray-400">
                 {total} {total === 1 ? "story" : "stories"}
               </span>
@@ -138,13 +179,16 @@ export default async function AuthorPage({ params, searchParams }: Props) {
           <>
             <h2 className="mb-6 font-headline text-2xl font-semibold text-slate-900 dark:text-white">Stories by {author.name}</h2>
             <div className="mb-10 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {items.map((item, idx) => (
-                <ArticleCard
-                  key={item.id}
-                  article={item.props}
-                  context={{ surface: "author_page", position: (page - 1) * PER_PAGE + idx + 1 }}
-                />
-              ))}
+              {withContactStrip(
+                items.map((item, idx) => (
+                  <ArticleCard
+                    key={item.id}
+                    article={item.props}
+                    context={{ surface: "author_page", position: (page - 1) * PER_PAGE + idx + 1 }}
+                  />
+                )),
+                "author_page",
+              )}
             </div>
 
             {pageCount > 1 ? (

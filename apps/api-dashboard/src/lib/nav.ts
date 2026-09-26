@@ -20,9 +20,10 @@ export const HEADER_CATEGORY_LINKS: NavLink[] = SITE_CATEGORIES.filter((c) => c.
 
 export const CATEGORY_LINKS: NavLink[] = SITE_CATEGORIES.map((c) => ({ label: c.label, href: `/news/category/${c.slug}` }));
 
-/** The seven trust pages, in the order a reader looks for them. */
+/** The trust pages, in the order a reader looks for them. */
 export const TRUST_LINKS: NavLink[] = [
   { label: 'About', href: '/about' },
+  { label: 'Authors', href: '/authors' },
   { label: 'Contact', href: '/contact' },
   { label: 'Editorial Policy', href: '/editorial-policy' },
   { label: 'AI Policy', href: '/ai-policy' },

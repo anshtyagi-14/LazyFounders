@@ -63,8 +63,16 @@ export function absoluteUrl(path = '/'): string {
  * separators such as `?width=1200&format=jpeg` are routine) produces an
  * `EntityRef` parse error and truncates the sitemap at that line.
  */
+/**
+ * Characters XML 1.0 forbids outright, escaped or not: C0 controls other than tab/LF/CR,
+ * lone surrogates and U+FFFE/U+FFFF. One of these in a scraped headline makes the whole
+ * sitemap or feed unparseable, so they are dropped.
+ */
+const XML_ILLEGAL = /[^\t\n\r -퟿-�\u{10000}-\u{10FFFF}]/gu;
+
 export function xmlEscape(s: string): string {
   return s
+    .replace(XML_ILLEGAL, '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -100,6 +108,11 @@ type PageMetaInput = {
   section?: string;
   /** Point search engines at a different URL (used for syndicated source stories). */
   canonical?: string;
+  /**
+   * The people credited on the page. Replaces the site-wide `meta name="author"` (the brand)
+   * and, on articles, adds `article:author` pointing at each byline page.
+   */
+  authors?: { name: string; url: string }[];
 };
 
 /**
@@ -123,6 +136,7 @@ export function pageMetadata(input: PageMetaInput): Metadata {
     title,
     description,
     keywords: input.keywords?.length ? input.keywords : undefined,
+    ...(input.authors?.length ? { authors: input.authors.map((a) => ({ name: a.name, url: absoluteUrl(a.url) })) } : {}),
     alternates: {
       canonical: input.canonical ?? url,
       // One locale, stated rather than inferred: the copy, the currency and the
@@ -139,7 +153,13 @@ export function pageMetadata(input: PageMetaInput): Metadata {
       locale: SITE_LOCALE,
       images: [{ url: image, ...size, alt: input.imageAlt || title }],
       ...(input.type === 'article'
-        ? { publishedTime: input.publishedTime, modifiedTime: input.modifiedTime, section: input.section, tags: input.keywords }
+        ? {
+            publishedTime: input.publishedTime,
+            modifiedTime: input.modifiedTime,
+            section: input.section,
+            tags: input.keywords,
+            ...(input.authors?.length ? { authors: input.authors.map((a) => absoluteUrl(a.url)) } : {}),
+          }
         : {}),
     },
     twitter: {
@@ -169,6 +189,18 @@ export function privateMetadata(title: string, description?: string): Metadata {
 export const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 export const WEBSITE_ID = `${SITE_URL}/#website`;
 
+/**
+ * Google Image Metadata fields for images we made (logo, brand card). /terms says the
+ * name, logo and design belong to us; /contact is where to ask about reuse.
+ */
+export const OWNED_IMAGE_RIGHTS = {
+  creator: { '@id': ORGANIZATION_ID },
+  creditText: BRAND,
+  copyrightNotice: `© ${BRAND}`,
+  license: `${SITE_URL}/terms`,
+  acquireLicensePage: `${SITE_URL}/contact`,
+};
+
 export function organizationSchema() {
   return {
     '@type': 'NewsMediaOrganization',
@@ -177,7 +209,7 @@ export function organizationSchema() {
     alternateName: SITE_TAGLINE,
     url: SITE_URL,
     description: SITE_DESCRIPTION,
-    logo: { '@type': 'ImageObject', url: SITE_LOGO, width: 512, height: 512 },
+    logo: { '@type': 'ImageObject', url: SITE_LOGO, contentUrl: SITE_LOGO, width: 512, height: 512, ...OWNED_IMAGE_RIGHTS },
     image: SITE_LOGO,
     ...(SOCIAL_PROFILES.length ? { sameAs: SOCIAL_PROFILES } : {}),
     // The trust pages, as schema.org names them for news publishers.
@@ -192,18 +224,45 @@ export function personId(slug: string): string {
   return `${SITE_URL}/author/${slug}#person`;
 }
 
-/** A LazyFounders byline, as the Person entity that article JSON-LD points at by @id. */
-export function personSchema(author: PublicAuthor) {
+/**
+ * A LazyFounders byline, as the Person entity that article JSON-LD points at by @id.
+ *
+ * Every page emits the same node under the same @id, so Google merges what each page says
+ * into one entity: the byline page (ProfilePage.mainEntity), every story it wrote, and the
+ * sameAs profiles that tie it to the person off-site.
+ */
+export function personSchema(
+  author: PublicAuthor,
+  extra: {
+    /** Subjects the author demonstrably covers: only what their published stories show. */
+    knowsAbout?: string[];
+    /** Published story count, as the byline page's agentInteractionStatistic. */
+    storyCount?: number;
+  } = {},
+) {
   return {
     '@type': 'Person',
     '@id': personId(author.slug),
+    // Google's ProfilePage docs: a unique identifier used within the site.
+    identifier: author.slug,
     name: author.name,
     url: absoluteUrl(authorPath(author.slug)),
+    mainEntityOfPage: absoluteUrl(authorPath(author.slug)),
     jobTitle: author.jobTitle,
     description: author.bio,
-    ...(author.avatarUrl ? { image: absoluteUrl(author.avatarUrl) } : {}),
+    ...(author.avatarUrl ? { image: { '@type': 'ImageObject', url: absoluteUrl(author.avatarUrl), caption: author.name } } : {}),
     ...(author.sameAs.length ? { sameAs: author.sameAs } : {}),
     worksFor: { '@id': ORGANIZATION_ID },
+    ...(extra.knowsAbout?.length ? { knowsAbout: extra.knowsAbout } : {}),
+    ...(extra.storyCount !== undefined
+      ? {
+          agentInteractionStatistic: {
+            '@type': 'InteractionCounter',
+            interactionType: 'https://schema.org/WriteAction',
+            userInteractionCount: extra.storyCount,
+          },
+        }
+      : {}),
   };
 }
 

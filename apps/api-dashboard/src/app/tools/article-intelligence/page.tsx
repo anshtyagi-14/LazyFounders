@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { triggerPipeline, checkPipelineStatus } from '../../actions';
+import { ContactStrip } from '../../../components/ContactStrip';
 
 export default function ArticleIntelligencePage() {
   const [url, setUrl] = useState('');
@@ -118,6 +119,8 @@ export default function ArticleIntelligencePage() {
               )}
             </div>
           </div>
+
+          <ContactStrip surface="tools_article_intelligence" />
         </div>
 
         {/* Right Column: API Docs and Info */}
