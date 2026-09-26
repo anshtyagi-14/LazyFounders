@@ -4,19 +4,25 @@
 # The ECS cluster runs on Graviton (t4g.medium), so the build host and the AMI
 # must both be arm64 - an x86 image will not run on it at all.
 #
-# For accounts where CodeBuild is not available and there is no local Docker.
-# The instance terminates itself when the build finishes or fails.
+# This account has no CodeBuild project and there is no local Docker, so this
+# is how images get built. The instance terminates itself when the build
+# finishes or fails; this script waits for that and exits non-zero on failure.
 #
-#   bash deploy/ec2-build.sh
+#   bash deploy/ec2-build.sh              # build HEAD and wait for the result
+#   NO_WAIT=true bash deploy/ec2-build.sh # launch and return immediately
 #
-# Credentials: ECR and S3 use the default profile (needs ECR push + write to
-# the source bucket). Launching the instance needs ec2:RunInstances, which on
-# this account is a different user - point EC2_AWS_PROFILE at it, or set
-# EC2_AWS_ACCESS_KEY_ID / EC2_AWS_SECRET_ACCESS_KEY.
+# Credentials: ECR and S3 use the default profile (github-action). Launching
+# the instance needs ec2:RunInstances, which only dhando-dev has, so
+# EC2_AWS_PROFILE defaults to "dhando-dev". Set it to another profile, or set
+# EC2_AWS_ACCESS_KEY_ID / EC2_AWS_SECRET_ACCESS_KEY instead.
 #
 # Nothing long-lived is placed on the instance: it receives a 12-hour ECR
 # authorization token and a presigned URL for the source archive.
 set -euo pipefail
+
+if [ -z "${EC2_AWS_ACCESS_KEY_ID:-}" ]; then
+  EC2_AWS_PROFILE="${EC2_AWS_PROFILE:-dhando-dev}"
+fi
 
 AWS_REGION="${AWS_REGION:-ap-south-1}"
 ACCOUNT_ID="${ACCOUNT_ID:-248746142729}"
@@ -45,6 +51,13 @@ ec2_aws() {
     aws "$@"
   fi
 }
+
+# Fail before archiving anything if the launch credentials are missing.
+if ! ec2_aws sts get-caller-identity --region "$AWS_REGION" >/dev/null 2>&1; then
+  echo "Cannot use the EC2 launch credentials (profile: ${EC2_AWS_PROFILE:-<keys from env>})." >&2
+  echo "Create the profile once with:  aws configure --profile ${EC2_AWS_PROFILE:-dhando-dev}" >&2
+  exit 1
+fi
 
 if [ -n "$(git status --porcelain)" ]; then
   echo "WARNING: working tree is dirty; only committed files are built."
@@ -157,9 +170,48 @@ INSTANCE_ID="$(ec2_aws ec2 run-instances --region "$AWS_REGION" \
   --query 'Instances[0].InstanceId' --output text)"
 
 echo "Instance: $INSTANCE_ID"
-echo "Console:  aws ec2 get-console-output --instance-id $INSTANCE_ID --output text"
-echo
-echo "The instance terminates itself when it finishes. Watch ECR for new pushes:"
-echo "  aws ecr describe-images --repository-name lf-api-dashboard --image-ids imageTag=$TAG"
-echo
+echo "Console:  aws --profile ${EC2_AWS_PROFILE:-default} ec2 get-console-output --instance-id $INSTANCE_ID --output text"
 echo "TAG=$TAG"
+
+if [ "${NO_WAIT:-}" = "true" ]; then
+  exit 0
+fi
+
+# --- wait --------------------------------------------------------------------
+# Success means every repo has the new tag. Images are pushed only after all
+# six build, so a partial set means the push step failed.
+REPOS="lf-api-dashboard lf-discovery-service lf-scraper-service lf-categorization-service lf-intelligence-service lf-publishing-service"
+all_pushed() {
+  for r in $REPOS; do
+    aws ecr describe-images --region "$AWS_REGION" --repository-name "$r" \
+      --image-ids "imageTag=$TAG" >/dev/null 2>&1 || return 1
+  done
+}
+
+echo "Waiting for the build (usually 15-25 minutes)..."
+DEADLINE=$(( $(date +%s) + ${BUILD_TIMEOUT_MIN:-60} * 60 ))
+while true; do
+  if all_pushed; then
+    echo "All six images pushed as $TAG."
+    exit 0
+  fi
+  STATE="$(ec2_aws ec2 describe-instances --region "$AWS_REGION" --instance-ids "$INSTANCE_ID" \
+    --query 'Reservations[0].Instances[0].State.Name' --output text 2>/dev/null | tr -d '\r')"
+  case "$STATE" in
+    shutting-down|terminated|stopped)
+      # The last push can land just before shutdown; check once more.
+      sleep 20
+      all_pushed && { echo "All six images pushed as $TAG."; exit 0; }
+      echo "Build host $INSTANCE_ID is $STATE but images are missing. Console tail:" >&2
+      ec2_aws ec2 get-console-output --region "$AWS_REGION" --instance-id "$INSTANCE_ID" \
+        --latest --output text 2>/dev/null | grep -E 'LF-BUILD-RESULT|error|ERROR' | tail -20 >&2 || true
+      exit 1 ;;
+  esac
+  if [ "$(date +%s)" -gt "$DEADLINE" ]; then
+    echo "Timed out waiting for $INSTANCE_ID; terminating it." >&2
+    ec2_aws ec2 terminate-instances --region "$AWS_REGION" --instance-ids "$INSTANCE_ID" >/dev/null || true
+    exit 1
+  fi
+  echo "  $(date +%H:%M:%S) host $STATE, images not all pushed yet"
+  sleep 60
+done

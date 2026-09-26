@@ -4,25 +4,31 @@ The six services run on ECS (EC2 launch type) in cluster `lazyfounders-cluster`,
 region `ap-south-1`, account `248746142729`. The dashboard sits behind the
 `lf-dashboard-alb` load balancer. Images live in ECR as `lf-*`.
 
-Images are built by **AWS CodeBuild**, not locally — the build needs Docker and
-pulls two large Playwright base images.
+Images are built on a **throwaway arm64 EC2 host** (`deploy/ec2-build.sh`),
+not locally and not on CodeBuild — the `lazyfounders-build` CodeBuild project
+was never created on this account. The cluster runs Graviton, so images must
+be arm64.
 
-## One-time bootstrap (needs admin credentials)
+## One-time machine setup
 
-The day-to-day deploy user (`github-action`) cannot create CodeBuild projects or
-IAM roles. Someone with admin on the account runs this once:
+Deploying uses two AWS users:
+
+| Profile | User | Used for |
+|---|---|---|
+| default | `github-action` | S3 source upload, ECR, ECS rollout |
+| `dhando-dev` | `dhando-dev` | launching the build host (`ec2:RunInstances`) |
+
+Add the second one once per machine:
 
 ```bash
-AWS_PROFILE=<admin-profile> bash deploy/codebuild-setup.sh
-
-aws iam put-user-policy --user-name github-action \
-  --policy-name lazyfounders-deploy \
-  --policy-document file://deploy/deployer-policy.json
+aws configure --profile dhando-dev    # region ap-south-1
 ```
 
-That creates the source bucket, a scoped CodeBuild role, and the
-`lazyfounders-build` project, then grants `github-action` just enough to start
-builds and watch the rollout.
+`dhando-dev` needs the grant in `deploy/build-host-policy.json`. To use a
+different profile, set `EC2_AWS_PROFILE`.
+
+`deploy/codebuild-setup.sh` and `buildspec.yml` are kept in case an admin
+bootstraps CodeBuild later; nothing calls them today.
 
 ## Environment
 
@@ -51,22 +57,24 @@ Two things to know:
 ## Deploying
 
 ```bash
-# 1. Migrations first - additive, but the new code expects the v2 tables.
+# Only if the commit adds a Prisma migration:
 DATABASE_URL=<prod-url> npm run db:migrate
 
-# 2. Build and push images, but do not roll the services yet.
-SKIP_ECS_DEPLOY=true bash deploy/deploy.sh
-
-# 3. Register task definitions with current env and roll everything once.
-node deploy/update-task-defs.mjs --deploy
+bash deploy/deploy.sh
 ```
 
-Running step 2 without `SKIP_ECS_DEPLOY` also works, but then the services roll
-twice — once onto the new images with the old environment, and again in step 3.
+That one command builds all six images on EC2 and waits for them (15–25
+minutes), registers task definitions with `deploy/.env.production`, rolls every
+service once, waits for ECS to stabilise, and smoke-tests
+`https://lazyfounder.in`. It exits non-zero at the first step that fails.
+
+`SKIP_ECS_DEPLOY=true` stops after the images are pushed.
 
 `deploy.sh` archives `git HEAD`, not your working tree, so commit before
-deploying. It tags each image with the commit sha as well as `latest`, so a
-rollback is `aws ecs update-service --task-definition <family>:<older-revision>`.
+deploying. Images are tagged with the first 12 characters of the commit sha as
+well as `latest`. Task definitions point at `latest`, so switching a service
+to an older task definition revision does not bring back old code. To roll
+back, check out the older commit and run `deploy.sh` again.
 
 ## Domain and HTTPS
 
