@@ -32,6 +32,22 @@ fi
 echo "Deploying $(git rev-parse --short HEAD) ($(git log -1 --format=%s))"
 echo
 
+# The Docker build has no database. A page that queries Postgres while being
+# prerendered passes locally (where .env has DATABASE_URL) and fails only on
+# the build host, 5 minutes and one EC2 instance later. Catch it here instead.
+if [ "${SKIP_LOCAL_BUILD:-}" != "true" ]; then
+  echo "Checking that the dashboard builds without a database..."
+  if ! (cd apps/api-dashboard && DATABASE_URL='postgresql://build:build@127.0.0.1:1/none' \
+        NEXT_PUBLIC_SITE_URL="$SITE_URL" npx next build > "${TMPDIR:-/tmp}/lf-local-build.log" 2>&1); then
+    grep -E 'Export encountered|Error occurred prerendering|Type error|Failed to compile' \
+      "${TMPDIR:-/tmp}/lf-local-build.log" | head -10 >&2 || true
+    echo "Local build failed - full log: ${TMPDIR:-/tmp}/lf-local-build.log (SKIP_LOCAL_BUILD=true to bypass)" >&2
+    exit 1
+  fi
+  echo "  ok"
+  echo
+fi
+
 bash deploy/ec2-build.sh
 
 if [ "${SKIP_ECS_DEPLOY:-}" = "true" ]; then

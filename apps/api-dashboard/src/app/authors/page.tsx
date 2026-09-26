@@ -17,8 +17,20 @@ const CRUMBS = [
   { name: "Authors", path: PATH },
 ];
 
+/**
+ * The Docker image is built without database access. Prerender an empty roster
+ * then; ISR replaces it on the first request after deploy. At runtime a
+ * database failure is a real error and goes to error.tsx.
+ */
+function loadAuthors(): Promise<AuthorWithCount[]> {
+  return listAuthors().catch((err) => {
+    if (process.env.NEXT_PHASE === "phase-production-build") return [];
+    throw err;
+  });
+}
+
 export async function generateMetadata(): Promise<Metadata> {
-  const authors = await listAuthors();
+  const authors = await loadAuthors();
   return pageMetadata({
     title: `Authors and editors at ${BRAND}`,
     description: `The people behind ${BRAND}: who edits and signs off every story, what they cover, and where to find their work.`,
@@ -68,7 +80,7 @@ function schema(authors: AuthorWithCount[]) {
 }
 
 export default async function AuthorsPage() {
-  const authors = await listAuthors();
+  const authors = await loadAuthors();
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">

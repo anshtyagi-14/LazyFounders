@@ -70,6 +70,15 @@ service once, waits for ECS to stabilise, and smoke-tests
 
 `SKIP_ECS_DEPLOY=true` stops after the images are pushed.
 
+Before launching EC2 it runs `next build` for the dashboard locally with an
+unreachable `DATABASE_URL`, because the Docker build has no database: a page
+that queries Postgres while prerendering must fall back when
+`NEXT_PHASE === 'phase-production-build'` (see `app/page.tsx`). Skip the check
+with `SKIP_LOCAL_BUILD=true`.
+
+If the build host fails, the script prints the `LF-BUILD-RESULT` line and the
+errors from its console log.
+
 `deploy.sh` archives `git HEAD`, not your working tree, so commit before
 deploying. Images are tagged with the first 12 characters of the commit sha as
 well as `latest`. Task definitions point at `latest`, so switching a service

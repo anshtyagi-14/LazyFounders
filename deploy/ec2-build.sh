@@ -103,7 +103,9 @@ echo "AMI=$AMI_ID Subnet=$SUBNET_ID Type=$INSTANCE_TYPE"
 # can be used to follow or post-mortem the build.
 cat > "$TMPD/user-data.sh" <<USERDATA
 #!/bin/bash
-exec > >(tee -a /var/log/lf-build.log > /dev/console) 2>&1
+# ASCII only on the console: the Windows AWS CLI v1 crashes decoding
+# characters like the arrows in Next.js build output.
+exec > >(tee -a /var/log/lf-build.log | tr -cd '\11\12\40-\176' > /dev/console) 2>&1
 set -x
 
 REGISTRY="$REGISTRY"
@@ -121,6 +123,7 @@ finish() {
   echo "=== LF-BUILD-RESULT: \$1 ==="
   sleep 30
   shutdown -h now
+  exit 0
 }
 
 dnf install -y docker unzip || finish FAILED_DEPS
@@ -202,9 +205,20 @@ while true; do
       # The last push can land just before shutdown; check once more.
       sleep 20
       all_pushed && { echo "All six images pushed as $TAG."; exit 0; }
-      echo "Build host $INSTANCE_ID is $STATE but images are missing. Console tail:" >&2
-      ec2_aws ec2 get-console-output --region "$AWS_REGION" --instance-id "$INSTANCE_ID" \
-        --latest --output text 2>/dev/null | grep -E 'LF-BUILD-RESULT|error|ERROR' | tail -20 >&2 || true
+      echo "Build host $INSTANCE_ID is $STATE but images are missing." >&2
+      # EC2 posts console output a few minutes after shutdown; poll for it.
+      echo "Fetching its console log (can take up to 5 minutes)..." >&2
+      for _ in 1 2 3 4 5 6 7 8 9 10; do
+        LOG="$(ec2_aws ec2 get-console-output --region "$AWS_REGION" --instance-id "$INSTANCE_ID" \
+          --output text 2>/dev/null | tr -d '\r' || true)"
+        if grep -q 'LF-BUILD-RESULT' <<<"$LOG"; then
+          grep -m1 'LF-BUILD-RESULT' <<<"$LOG" >&2
+          grep -E 'Error|error:|ERR!|failed' <<<"$LOG" | head -25 >&2 || true
+          exit 1
+        fi
+        sleep 30
+      done
+      echo "Console log not available yet. Later: aws --profile ${EC2_AWS_PROFILE:-default} ec2 get-console-output --instance-id $INSTANCE_ID --output text" >&2
       exit 1 ;;
   esac
   if [ "$(date +%s)" -gt "$DEADLINE" ]; then
