@@ -698,6 +698,17 @@ model EmailSignup {
   @@map("email_signups")
 }
 
+/// Site-wide switches editors flip from the admin console (e.g. story_images).
+/// One row per key; a missing row means the code default.
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}
+
 /// Enquiries from the /contact form: prospective clients, partners and advertisers.
 /// Listed under Leads in the admin console; nothing is emailed.
 model Lead {

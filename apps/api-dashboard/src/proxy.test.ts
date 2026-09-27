@@ -67,6 +67,10 @@ describe('proxy', () => {
     expect(passedThrough(run('/admin', { auth: basic('ed', 'editor-pass') }))).toBe(true);
     expect(run('/admin/registry', { auth: basic('ed', 'editor-pass') }).status).toBe(403);
     expect(passedThrough(run('/admin/registry', { auth: basic('root', 'admin-pass') }))).toBe(true);
+    // Site-wide switches (story images) are admins' call, including the server action POST.
+    expect(run('/admin/settings', { auth: basic('ed', 'editor-pass') }).status).toBe(403);
+    expect(run('/admin/settings', { auth: basic('ed', 'editor-pass'), method: 'POST', headers: { 'next-action': 'x' } }).status).toBe(403);
+    expect(passedThrough(run('/admin/settings', { auth: basic('root', 'admin-pass') }))).toBe(true);
   });
 
   test('a server action posted to a public page still needs a login', () => {

@@ -12,6 +12,7 @@ import {
   type SourceHeadline,
 } from '@/lib/articles';
 import { HOMEPAGE_SECTIONS, categoryForArticle, labelsForCategory, normalizeTopics, type CategorySlug, type TopicSectionSpec } from '@/lib/topics';
+import { currentStoryImageMode } from '@/lib/site-settings';
 
 /**
  * The homepage reads one merged feed, not two.
@@ -32,7 +33,7 @@ export interface FeedItem {
   /** Normalised topic labels. The first is the one shown on the card. */
   topics: string[];
   publishedAt: Date;
-  /** Always true now that every story has its own cover (lib/covers); kept for the layout pickers. */
+  /** Whether the card shows a real image (always, in the covers story_images mode). Lead slots prefer these. */
   hasImage: boolean;
   /** True for our own published reporting, false for a stored source story. */
   isOwn: boolean;
@@ -59,7 +60,7 @@ export function ownToFeedItem(a: PublicArticle): FeedItem {
     props: { ...props, category: topics[0] ?? props.category },
     topics,
     publishedAt: a.publishedAt,
-    hasImage: true,
+    hasImage: currentStoryImageMode() === 'covers' || Boolean(a.featuredImage?.url),
     isOwn: true,
     citationCount: a.citations.length,
   };
@@ -75,7 +76,7 @@ export function sourceToFeedItem(h: SourceHeadline): FeedItem {
     props: { ...props, category: topics[0] ?? h.publisher },
     topics,
     publishedAt: h.publishedAt,
-    hasImage: true,
+    hasImage: currentStoryImageMode() === 'covers' || Boolean(h.publisherImageUrl),
     isOwn: false,
     citationCount: 0,
   };

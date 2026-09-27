@@ -7,6 +7,8 @@ import { SITE_CATEGORIES, categoryForArticle, type CategorySlug } from '@/lib/to
 import { MIN_COMPANY_STORIES } from '@/lib/companies';
 import { companyIndex } from '@/lib/company-index';
 import { coverPath } from '@/lib/covers';
+import { usableImageUrl } from '@/lib/images';
+import { loadStoryImageMode } from '@/lib/site-settings';
 import { stampSitemapGenerated } from '@/lib/health';
 import { recordSiteError } from '@/lib/site-errors';
 
@@ -87,16 +89,30 @@ ${body}
 
 // --- data --------------------------------------------------------------------
 
-/** Headline per published version (Google News needs it). */
-async function headlinesByVersion(versionIds: string[]): Promise<Map<string, string>> {
+/** Headline and stored publisher image per published version. */
+async function versionsById(versionIds: string[]): Promise<Map<string, { headline: string; publisherImage: string | null }>> {
   if (versionIds.length === 0) return new Map();
-  const versions = await prisma.articleVersion.findMany({ where: { id: { in: versionIds } }, select: { id: true, headline: true } });
-  return new Map(versions.map((v) => [v.id, v.headline]));
+  const versions = await prisma.articleVersion.findMany({ where: { id: { in: versionIds } }, select: { id: true, headline: true, featuredImage: true } });
+  return new Map(
+    versions.map((v) => {
+      const url = usableImageUrl((v.featuredImage as { url?: string } | null)?.url);
+      return [v.id, { headline: v.headline, publisherImage: url && /^https:/.test(url) ? url : null }];
+    }),
+  );
 }
 
-/** Every story's image is our own cover card, never the publisher's photo. */
-function coverUrl(slug: string): string {
-  return `${SITE_URL}${coverPath(slug)}`;
+/** The story image by the story_images setting: our cover card, or the publisher's photo when there is one. */
+async function imagesFor(rows: { slug: string; publishedVersionId: string | null }[]) {
+  const mode = await loadStoryImageMode();
+  const versions = await versionsById(rows.map((r) => r.publishedVersionId).filter((x): x is string => Boolean(x)));
+  return {
+    versions,
+    image(r: { slug: string; publishedVersionId: string | null }): string[] | undefined {
+      if (mode === 'covers') return [`${SITE_URL}${coverPath(r.slug)}`];
+      const img = r.publishedVersionId ? versions.get(r.publishedVersionId)?.publisherImage : null;
+      return img ? [img] : undefined;
+    },
+  };
 }
 
 async function newestPublished(): Promise<Date | null> {
@@ -174,15 +190,16 @@ export async function articleEntries(bucket: SectionBucket, page: number): Promi
   if (inSection.length === 0) return [];
   const rows = await prisma.article.findMany({
     where: { ...PUBLIC_WHERE, OR: inSection },
-    select: { slug: true, updatedAt: true, publishedAt: true },
+    select: { slug: true, updatedAt: true, publishedAt: true, publishedVersionId: true },
     orderBy: [{ publishedAt: 'desc' }, { id: 'asc' }],
     skip: (page - 1) * ARTICLES_PER_FILE,
     take: ARTICLES_PER_FILE,
   });
+  const { image } = await imagesFor(rows);
   return rows.map((r) => ({
     loc: `${SITE_URL}${articlePath(r.slug)}`,
     lastmod: r.updatedAt ?? r.publishedAt,
-    images: [coverUrl(r.slug)],
+    images: image(r),
   }));
 }
 
@@ -193,15 +210,15 @@ export async function newsEntries(now = Date.now()): Promise<UrlEntry[]> {
     orderBy: { publishedAt: 'desc' },
     take: NEWS_MAX,
   });
-  const headlines = await headlinesByVersion(rows.map((r) => r.publishedVersionId).filter((x): x is string => Boolean(x)));
+  const { versions, image } = await imagesFor(rows);
   const out: UrlEntry[] = [];
   for (const r of rows) {
-    const headline = r.publishedVersionId ? headlines.get(r.publishedVersionId) : undefined;
+    const headline = r.publishedVersionId ? versions.get(r.publishedVersionId)?.headline : undefined;
     if (!headline || !r.publishedAt) continue;
     out.push({
       loc: `${SITE_URL}${articlePath(r.slug)}`,
       news: { title: headline, publishedAt: r.publishedAt },
-      images: [coverUrl(r.slug)],
+      images: image(r),
     });
   }
   return out;

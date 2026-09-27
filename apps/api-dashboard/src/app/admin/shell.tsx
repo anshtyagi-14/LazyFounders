@@ -16,6 +16,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     { name: 'Jobs & Dead Letters', href: '/admin/jobs', icon: '🧯' },
     { name: 'Sources & Cron (legacy)', href: '/admin/sources', icon: '📡' },
     { name: 'System Logs', href: '/admin/logs', icon: '📝' },
+    { name: 'Settings', href: '/admin/settings', icon: '⚙️' },
     { name: 'API Command Center', href: '/dashboard', icon: '⚡' },
 
     { name: 'API Reference', href: '/developers', icon: '👨‍💻' },

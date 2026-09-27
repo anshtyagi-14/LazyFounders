@@ -1,9 +1,8 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { listPublishedArticles } from '@/lib/articles';
+import { listPublishedArticles, toArticleProps } from '@/lib/articles';
 import Link from 'next/link';
 import { SafeImage } from '../../../components/SafeImage';
-import { coverPath } from '@/lib/covers';
 import { JsonLd } from '../../../components/JsonLd';
 import { withContactStrip } from '../../../components/ContactStrip';
 import { BRAND, collectionPageSchema, pageMetadata } from '@/lib/seo';
@@ -56,7 +55,7 @@ async function loadCompany(params: Props['params']) {
     articles = published.map((a) => ({
       id: a.id,
       slug: a.slug,
-      headerImage: coverPath(a.slug, 'art'),
+      headerImage: toArticleProps(a).imageUrl ?? null,
       seoTitle: a.headline,
       metaDescription: a.metaDescription,
       createdAt: a.publishedAt,

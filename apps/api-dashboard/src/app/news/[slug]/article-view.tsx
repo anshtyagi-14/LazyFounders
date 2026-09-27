@@ -19,7 +19,8 @@ import { BRAND, SITE_URL, articlePath, slugifyCategory, type PublicArticle } fro
 import { authorInitials as initialsOf, authorPath } from "@/lib/authors";
 import { listCategoryFeed } from "@/lib/feed";
 import { canonicalSitePath, categoryForArticle, type SiteCategory } from "@/lib/topics";
-import { coverImage, imageObjectSchema, type ResolvedImage } from "@/lib/images";
+import { coverImage, imageObjectSchema, resolveImage, type ResolvedImage } from "@/lib/images";
+import { currentStoryImageMode } from "@/lib/site-settings";
 import { gaAttrs } from "@/lib/ga-attrs";
 import { splitBodyNearMiddle } from "@/lib/article-body";
 import {
@@ -68,11 +69,19 @@ function bodyComponents(headline: string): Components {
 }
 
 /**
- * One image for the hero, og:image, twitter:image and NewsArticle.image: our own
- * cover card. The publisher's photo is never reused (rights, and their logo on it).
+ * One image for the hero, og:image, twitter:image and NewsArticle.image. The
+ * story_images setting (/admin/settings) picks our own cover card, or the
+ * publisher's photo with credit (then another cited source's, then the brand card).
  */
 function articleImage(article: PublicArticle): ResolvedImage {
-  return coverImage(article.slug, article.headline);
+  if (currentStoryImageMode() === "covers") return coverImage(article.slug, article.headline);
+  return resolveImage(
+    [
+      { url: article.featuredImage?.url, credit: article.featuredImage?.credit ?? article.featuredImage?.publisher, creditUrl: article.featuredImage?.sourceUrl },
+      { url: article.sourceImage?.url, credit: article.sourceImage?.credit ?? article.sourceImage?.publisher, creditUrl: article.sourceImage?.sourceUrl },
+    ],
+    article.headline,
+  );
 }
 
 /**
@@ -280,10 +289,31 @@ export async function ArticleView({ article }: { article: PublicArticle }) {
               </aside>
 
               <figure className="rounded-2xl overflow-hidden mb-10 bg-slate-100 ring-1 ring-slate-200 dark:bg-[#121820] dark:ring-white/10">
-                <div className="aspect-[40/21] relative">
-                  {/* Decorative: the headline is the H1 right above it. */}
-                  <SafeImage src={image.displayUrl} alt="" width={image.width} height={image.height} priority className="w-full h-full object-cover" />
+                <div className={`${image.owned ? "aspect-[40/21]" : "aspect-video"} relative`}>
+                  {/* A cover card is decorative (the headline is the H1 right above it); a photo is described. */}
+                  <SafeImage
+                    src={image.displayUrl}
+                    alt={image.owned || image.isFallback ? "" : article.headline}
+                    width={image.width ?? 1200}
+                    height={image.height ?? 675}
+                    priority
+                    className="w-full h-full object-cover"
+                  />
                 </div>
+                {image.credit ? (
+                  <figcaption className="px-4 py-2 text-xs text-slate-600 dark:text-slate-400">
+                    Image: {image.credit}
+                    {image.creditUrl ? (
+                      <>
+                        {" "}
+                        via{" "}
+                        <a href={image.creditUrl} target="_blank" rel="noopener noreferrer nofollow" className="underline">
+                          source
+                        </a>
+                      </>
+                    ) : null}
+                  </figcaption>
+                ) : null}
               </figure>
 
               <div className="prose-custom max-w-none" data-article-body>

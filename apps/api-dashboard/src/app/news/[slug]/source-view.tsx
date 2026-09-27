@@ -6,6 +6,7 @@ import { withContactStrip } from "@/components/ContactStrip";
 import { PoweredByBlogy } from "@/components/PoweredByBlogy";
 import { articlePath, listPublishedArticles, sourceStoryPath, type SourceStory } from "@/lib/articles";
 import { COVER_HEIGHT, COVER_WIDTH, coverPath, coverPathForStoryUrl } from "@/lib/covers";
+import { currentStoryImageMode } from "@/lib/site-settings";
 import { authorInitials, authorPath } from "@/lib/authors";
 import { BRAND, pageMetadata } from "@/lib/seo";
 
@@ -16,10 +17,10 @@ export function sourceMetadata(story: SourceStory): Metadata {
     title: story.headline,
     description: story.excerpt,
     path,
-    // Our cover card, never the publisher's photo.
-    image: coverPathForStoryUrl(path, "social"),
-    imageWidth: COVER_WIDTH,
-    imageHeight: COVER_HEIGHT,
+    // Our cover card, or in "publisher" mode the publisher's photo (sizes unknown).
+    ...(currentStoryImageMode() === "covers"
+      ? { image: coverPathForStoryUrl(path, "social"), imageWidth: COVER_WIDTH, imageHeight: COVER_HEIGHT }
+      : { image: story.publisherImageUrl ?? undefined }),
     imageAlt: story.headline,
     type: "article",
     publishedTime: story.publishedAt.toISOString(),
@@ -31,6 +32,7 @@ export function sourceMetadata(story: SourceStory): Metadata {
 }
 
 export async function SourceView({ story }: { story: SourceStory }) {
+  const covers = currentStoryImageMode() === "covers";
   const latest = await listPublishedArticles({ take: 4 });
   const publishedDate = story.publishedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const sourceHost = new URL(story.sourceUrl).hostname.replace(/^www\./, "");
@@ -89,12 +91,21 @@ export async function SourceView({ story }: { story: SourceStory }) {
                 </div>
               </div>
 
-              <figure className="rounded-2xl overflow-hidden mb-10 bg-slate-100 ring-1 ring-slate-200 dark:bg-[#121820] dark:ring-white/10">
-                <div className="aspect-[40/21] relative">
-                  {/* Decorative: the headline is the H1 right above it. */}
-                  <SafeImage src={story.imageUrl} alt="" width={COVER_WIDTH} height={COVER_HEIGHT} className="w-full h-full object-cover" />
-                </div>
-              </figure>
+              {covers ? (
+                <figure className="rounded-2xl overflow-hidden mb-10 bg-slate-100 ring-1 ring-slate-200 dark:bg-[#121820] dark:ring-white/10">
+                  <div className="aspect-[40/21] relative">
+                    {/* Decorative: the headline is the H1 right above it. */}
+                    <SafeImage src={story.imageUrl} alt="" width={COVER_WIDTH} height={COVER_HEIGHT} className="w-full h-full object-cover" />
+                  </div>
+                </figure>
+              ) : story.publisherImageUrl ? (
+                <figure className="rounded-2xl overflow-hidden mb-10 bg-slate-100 ring-1 ring-slate-200 dark:bg-[#121820] dark:ring-white/10">
+                  <div className="aspect-video relative">
+                    <SafeImage src={story.publisherImageUrl} alt={story.headline} className="w-full h-full object-cover" />
+                  </div>
+                  <figcaption className="px-4 py-2 text-xs text-slate-500 dark:text-slate-400">Image: {story.imageCredit ?? story.publisher}</figcaption>
+                </figure>
+              ) : null}
 
               <div className="prose-custom max-w-none">
                 {withContactStrip(
@@ -132,7 +143,7 @@ export async function SourceView({ story }: { story: SourceStory }) {
                     {latest.map((l) => (
                       <Link key={l.id} href={articlePath(l.slug)} className="group flex gap-3 items-start">
                         <SafeImage
-                          src={coverPath(l.slug, "art")}
+                          src={covers ? coverPath(l.slug, "art") : l.featuredImage?.url || "/fallback.webp"}
                           alt=""
                           className="w-16 h-16 rounded-lg object-cover bg-slate-100 dark:bg-[#121820] shrink-0 ring-1 ring-slate-200 dark:ring-white/10"
                           loading="lazy"
