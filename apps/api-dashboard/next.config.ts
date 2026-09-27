@@ -14,12 +14,14 @@ const isDev = process.env.NODE_ENV !== "production";
 // A static policy rather than a per-request nonce: a nonce forces every page to
 // render dynamically, which would throw away the ISR caching on the public
 // pages. Inline scripts (theme bootstrap, JSON-LD, gtag init) therefore need
-// 'unsafe-inline'; everything else is pinned to this origin and Google Analytics.
+// 'unsafe-inline'; everything else is pinned to this origin, Google Analytics and
+// AdSense (whose units render in iframes, hence frame-src).
 // Article images are hotlinked from publishers, hence img-src https:.
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://www.googletagmanager.com`,
-  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://www.googletagmanager.com https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.adtrafficquality.google https://adservice.google.com https://www.google.com`,
+  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.adtrafficquality.google https://*.doubleclick.net https://www.google.com",
+  "frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://*.googlesyndication.com https://*.adtrafficquality.google https://www.google.com",
   "img-src 'self' data: blob: https:",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
@@ -43,6 +45,19 @@ const nextConfig: NextConfig = {
   },
   turbopack: {
     root: monorepoRoot,
+  },
+  images: {
+    // Story images come from whichever publisher the pipeline ingested, so the
+    // host list is open-ended; https only, and private IPs stay blocked.
+    remotePatterns: [{ protocol: "https", hostname: "**" }],
+    // WebP only: AVIF saves a little more but costs far more CPU to encode, and a
+    // news feed keeps asking for images nobody has requested yet.
+    formats: ["image/webp"],
+    qualities: [75],
+    // Publisher images at a given URL do not change; a day keeps the optimizer's
+    // CPU and upstream fetches down without pinning a bad image for long.
+    minimumCacheTTL: 86400,
+    maximumRedirects: 3,
   },
   async redirects() {
     return [

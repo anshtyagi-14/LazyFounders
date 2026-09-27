@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { SafeImage } from "@/components/SafeImage";
 import { withContactStrip } from "@/components/ContactStrip";
 import { PoweredByBlogy } from "@/components/PoweredByBlogy";
+import { AdSlot } from "@/components/AdSlot";
+import { AD_SLOTS } from "@/lib/ads";
 import { articlePath, listPublishedArticles, sourceStoryPath, type SourceStory } from "@/lib/articles";
 import { COVER_HEIGHT, COVER_WIDTH, coverPath, coverPathForStoryUrl } from "@/lib/covers";
 import { currentStoryImageMode } from "@/lib/site-settings";
@@ -95,13 +97,13 @@ export async function SourceView({ story }: { story: SourceStory }) {
                 <figure className="rounded-2xl overflow-hidden mb-10 bg-slate-100 ring-1 ring-slate-200 dark:bg-[#121820] dark:ring-white/10">
                   <div className="aspect-[40/21] relative">
                     {/* Decorative: the headline is the H1 right above it. */}
-                    <SafeImage src={story.imageUrl} alt="" width={COVER_WIDTH} height={COVER_HEIGHT} className="w-full h-full object-cover" />
+                    <SafeImage src={story.imageUrl} alt="" sizes="(min-width: 1024px) 760px, 100vw" priority width={COVER_WIDTH} height={COVER_HEIGHT} className="w-full h-full object-cover" />
                   </div>
                 </figure>
               ) : story.publisherImageUrl ? (
                 <figure className="rounded-2xl overflow-hidden mb-10 bg-slate-100 ring-1 ring-slate-200 dark:bg-[#121820] dark:ring-white/10">
                   <div className="aspect-video relative">
-                    <SafeImage src={story.publisherImageUrl} alt={story.headline} className="w-full h-full object-cover" />
+                    <SafeImage src={story.publisherImageUrl} alt={story.headline} sizes="(min-width: 1024px) 760px, 100vw" priority className="w-full h-full object-cover" />
                   </div>
                   <figcaption className="px-4 py-2 text-xs text-slate-500 dark:text-slate-400">Image: {story.imageCredit ?? story.publisher}</figcaption>
                 </figure>
@@ -157,6 +159,8 @@ export async function SourceView({ story }: { story: SourceStory }) {
                   </div>
                 </section>
               )}
+
+              <AdSlot slot={AD_SLOTS.articleSidebar} format="rectangle" />
             </aside>
           </div>
         </div>

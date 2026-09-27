@@ -8,6 +8,7 @@ import { SiteHeader } from '../components/site/SiteHeader';
 import { JsonLd } from '../components/JsonLd';
 import { Analytics } from '../components/Analytics';
 import { WebVitals } from '../components/WebVitals';
+import { AdSenseScript } from '../components/AdSense';
 import {
   BRAND,
   SITE_DESCRIPTION,
@@ -126,6 +127,7 @@ export default function RootLayout({
         <link rel="alternate" type="application/rss+xml" title={`${BRAND} — latest stories`} href="/feed.xml" />
         <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
         <JsonLd data={siteSchema} />
+        <AdSenseScript />
       </head>
       <body className={`${outfit.variable} ${archivo.variable} ${newsreader.variable} ${outfit.className} min-h-screen flex flex-col`}>
         <a

@@ -930,3 +930,10 @@ html:not(.dark) :is(.group:hover .group-hover\:text-teal-400, .group:hover .grou
     scroll-behavior: auto !important;
   }
 }
+
+/* AdSense marks a unit it could not fill; drop it and its label rather than
+   leave an empty box in the layout. */
+.ad-slot:has(ins.adsbygoogle[data-ad-status="unfilled"]),
+ins.adsbygoogle[data-ad-status="unfilled"] {
+  display: none !important;
+}

@@ -8,6 +8,8 @@ import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import { SafeImage } from "@/components/SafeImage";
 import { SourcesSection } from "@/components/SourcesSection";
 import { PoweredByBlogy } from "@/components/PoweredByBlogy";
+import { AdSlot } from "@/components/AdSlot";
+import { AD_SLOTS } from "@/lib/ads";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ArticleTracker } from "@/components/ArticleTracker";
@@ -296,6 +298,7 @@ export async function ArticleView({ article }: { article: PublicArticle }) {
                     alt={image.owned || image.isFallback ? "" : article.headline}
                     width={image.width ?? 1200}
                     height={image.height ?? 675}
+                    sizes="(min-width: 1024px) 760px, 100vw"
                     priority
                     className="w-full h-full object-cover"
                   />
@@ -416,6 +419,8 @@ export async function ArticleView({ article }: { article: PublicArticle }) {
                   </Link>
                 </section>
               )}
+
+              <AdSlot slot={AD_SLOTS.articleSidebar} format="rectangle" />
 
               {article.companies.length > 0 && (
                 <section aria-labelledby="companies-heading" className="rounded-2xl bg-white dark:bg-[#0d1117] ring-1 ring-slate-200 dark:ring-white/10 p-5">

@@ -21,6 +21,8 @@ import { withContactStrip } from "../components/ContactStrip";
 import { TopicSection } from "../components/news/TopicSection";
 import { SectionHeading } from "../components/news/SectionHeading";
 import { StoryRow } from "../components/news/StoryRow";
+import { AdSlot } from "../components/AdSlot";
+import { AD_SLOTS } from "@/lib/ads";
 import { loadHomepageFeed, pickJustIn, pickTopStories, resolveSections, type HomepageFeed } from "@/lib/feed";
 import { BRAND, SITE_DESCRIPTION, SITE_TAGLINE, collectionPageSchema, pageMetadata } from "@/lib/seo";
 
@@ -138,6 +140,8 @@ export default async function NewsDashboard() {
         <div className="py-10">
           <EmailCapture location="homepage" />
         </div>
+
+        <AdSlot slot={AD_SLOTS.homeStrip} format="horizontal" className="pb-4" />
       </main>
     </>
   );

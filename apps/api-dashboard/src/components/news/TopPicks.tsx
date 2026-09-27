@@ -1,6 +1,8 @@
 import React from 'react';
 import { LeadStory } from './LeadStory';
 import { StoryRow } from './StoryRow';
+import { AdSlot } from '../AdSlot';
+import { AD_SLOTS } from '@/lib/ads';
 import type { FeedItem } from '@/lib/feed';
 
 /**
@@ -22,6 +24,7 @@ export function TopPicks({ items }: { items: FeedItem[] }) {
           {rest.map((item, i) => (
             <StoryRow key={item.id} item={item} showThumb context={{ surface: 'top_picks', position: i + 2 }} />
           ))}
+          <AdSlot slot={AD_SLOTS.topPicksRail} format="rectangle" className="mt-6" />
         </div>
       ) : null}
     </div>
