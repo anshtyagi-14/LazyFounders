@@ -11,7 +11,15 @@ import type { ArticleProps } from '../components/FeaturedCard';
 const PUBLIC_WHERE = { publishedVersionId: { not: null }, status: { notIn: ['ARCHIVED', 'REJECTED'] } };
 
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
-export const BRAND = process.env.SITE_BRAND_NAME || 'LazyFounders';
+export const BRAND = process.env.SITE_BRAND_NAME || 'Lazyfounder';
+
+/**
+ * Every story, ours or syndicated, lives at /news/<slug>. Our slugs end in 6 hex
+ * characters and syndicated ones in 8 (see sourceStoryPath), so one route serves both.
+ */
+export function articlePath(slug: string): string {
+  return `/news/${slug}`;
+}
 /** Lightweight brand card (1200x630 WebP) for cards and heroes with no usable image. */
 export const FALLBACK_IMAGE_PATH = '/fallback.webp';
 
@@ -141,7 +149,7 @@ function toPublic({ a, v, author }: Awaited<ReturnType<typeof withVersions>>[num
 
 export function toArticleProps(p: PublicArticle): ArticleProps {
   return {
-    url: `/news/article/${p.slug}`,
+    url: articlePath(p.slug),
     imageUrl: p.featuredImage?.url || FALLBACK_IMAGE_PATH,
     category: p.category,
     title: sanitizeHeadline(p.headline),
@@ -220,7 +228,7 @@ async function storySourceImage(storyId: string): Promise<FeaturedImage | null> 
 
 /**
  * Stories straight from trusted sources, stored in the LazyFounders database and read on
- * /news/source/[slug] with a courtesy link back to the original publisher. Items that
+ * /news/[slug] with a courtesy link back to the original publisher. Items that
  * already belong to a published LazyFounders story are left out so a story never shows twice.
  */
 export interface SourceHeadline {
@@ -264,7 +272,7 @@ const SOURCE_VISIBLE_WHERE = {
 /** Hex characters of the id carried in the slug; enough to find the row by primary key. */
 const SOURCE_ID_PREFIX = 8;
 
-/** "/news/source/<headline-slug>-<first 8 hex of the id>" */
+/** "/news/<headline-slug>-<first 8 hex of the id>" */
 export function sourceStoryPath(id: string, headline: string): string {
   // Whole words only, up to ~70 characters: a cut word reads as a typo in search results.
   let words = '';
@@ -272,7 +280,7 @@ export function sourceStoryPath(id: string, headline: string): string {
     if (words && words.length + w.length + 1 > 70) break;
     words = words ? `${words}-${w}` : w;
   }
-  return `/news/source/${words}-${id.slice(0, SOURCE_ID_PREFIX).toLowerCase()}`;
+  return articlePath(`${words}-${id.slice(0, SOURCE_ID_PREFIX).toLowerCase()}`);
 }
 
 function httpUrl(u: string | null | undefined): string | null {
@@ -365,7 +373,7 @@ export type SourceStoryResult =
   | null;
 
 /**
- * Id filter for a /news/source/ param: a full UUID (links made before slugs) or a slug
+ * Id filter for a syndicated-story slug: a full UUID (links made before slugs) or a slug
  * ending in the id's first 8 hex characters, matched as a primary-key range.
  */
 function sourceIdWhere(param: string) {
@@ -399,7 +407,7 @@ export async function getSourceStory(param: string): Promise<SourceStoryResult> 
     return { kind: 'published', slug: article.slug };
   }
   const path = sourceStoryPath(r.id, r.headline);
-  if (path !== `/news/source/${param}`) return { kind: 'moved', path };
+  if (path !== articlePath(param)) return { kind: 'moved', path };
   const sourceUrl = httpUrl(r.canonicalUrl) ?? httpUrl(r.finalUrl) ?? httpUrl(r.originalUrl);
   if (!sourceUrl) return null;
   // Stored text predates extraction-time cleaning: drop reporter bios and any

@@ -32,12 +32,16 @@ export const TRUST_LINKS: NavLink[] = [
   { label: 'Terms', href: '/terms' },
 ];
 
-/** Footer "Follow" column: RSS plus the profiles readers asked for. */
+const FOLLOW_ORDER = ['LinkedIn', 'Instagram', 'X'];
+
+/** Footer "Follow" row, shown as icons: the brand's profiles, then RSS. */
 export const FOLLOW_LINKS: (NavLink & { event: 'rss_select' | 'social_profile_select'; external: boolean })[] = [
+  ...SOCIAL_PROFILE_LIST.filter((p) => FOLLOW_ORDER.includes(p.label))
+    .sort((a, b) => FOLLOW_ORDER.indexOf(a.label) - FOLLOW_ORDER.indexOf(b.label))
+    .map((p) => ({
+      ...p,
+      event: 'social_profile_select' as const,
+      external: true,
+    })),
   { label: 'RSS', href: '/feed.xml', event: 'rss_select', external: false },
-  ...SOCIAL_PROFILE_LIST.filter((p) => p.label === 'Instagram' || p.label === 'LinkedIn').map((p) => ({
-    ...p,
-    event: 'social_profile_select' as const,
-    external: true,
-  })),
 ];

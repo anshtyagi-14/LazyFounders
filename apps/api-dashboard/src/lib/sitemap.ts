@@ -1,9 +1,9 @@
 import 'server-only';
 import { prisma } from '@/lib/prisma';
-import { BRAND, SITE_URL } from '@/lib/articles';
+import { BRAND, SITE_URL, articlePath } from '@/lib/articles';
 import { authorPath } from '@/lib/authors';
 import { SITE_LANG, xmlEscape } from '@/lib/seo';
-import { SITE_CATEGORIES } from '@/lib/topics';
+import { SITE_CATEGORIES, categoryForArticle, type CategorySlug } from '@/lib/topics';
 import { MIN_COMPANY_STORIES } from '@/lib/companies';
 import { companyIndex } from '@/lib/company-index';
 import { usableImageUrl } from '@/lib/images';
@@ -11,17 +11,20 @@ import { stampSitemapGenerated } from '@/lib/health';
 import { recordSiteError } from '@/lib/site-errors';
 
 /**
- * The sitemap set:
+ * The sitemap set, one file per kind of page so Search Console reports
+ * coverage for each separately:
  *
- *   /sitemap.xml                 index of the files below
- *   /sitemaps/static.xml         home, trust pages, /authors and author pages
- *   /sitemaps/news.xml           Google News: stories from the last 48 hours
- *   /sitemaps/articles-N.xml     every published story, ARTICLES_PER_FILE per file
- *   /sitemaps/companies-N.xml    company hubs with enough coverage to index
- *   /sitemaps/categories.xml     the six sections
+ *   /sitemap.xml                          index of the files below
+ *   /sitemaps/pages.xml                   home and trust pages
+ *   /sitemaps/categories.xml              the six section pages
+ *   /sitemaps/authors.xml                 /authors and each author with a story
+ *   /sitemaps/news.xml                    Google News: stories from the last 48 hours
+ *   /sitemaps/articles-<category>-N.xml   published stories in one section, ARTICLES_PER_FILE per file
+ *   /sitemaps/companies-N.xml             company hubs with enough coverage to index
  *
- * Source-story pages (/news/source/*), search, admin and API routes are never
- * listed: they are noindex or not pages at all.
+ * Every story is filed under exactly one section (categoryForArticle), so the
+ * article files never overlap. Syndicated stories, search, admin and API routes
+ * are never listed: they are noindex or not pages at all.
  */
 
 export const ARTICLES_PER_FILE = 10_000;
@@ -104,16 +107,16 @@ async function newestPublished(): Promise<Date | null> {
   return a?.updatedAt ?? null;
 }
 
-export async function staticEntries(): Promise<UrlEntry[]> {
-  const [newest, authors] = await Promise.all([newestPublished(), authorEntries()]);
-  return [...STATIC_PATHS.map((p) => ({ loc: `${SITE_URL}${p === '/' ? '/' : p}`, lastmod: p === '/' ? newest : undefined })), ...authors];
+export async function pageEntries(): Promise<UrlEntry[]> {
+  const newest = await newestPublished();
+  return STATIC_PATHS.map((p) => ({ loc: `${SITE_URL}${p}`, lastmod: p === '/' ? newest : undefined }));
 }
 
 /**
  * Author pages with at least one published story, and the
  * /authors hub that links them.
  */
-async function authorEntries(): Promise<UrlEntry[]> {
+export async function authorEntries(): Promise<UrlEntry[]> {
   const rows = await prisma.article.groupBy({ by: ['authorId'], where: { ...PUBLIC_WHERE, authorId: { not: null } }, _max: { publishedAt: true } });
   if (rows.length === 0) return [];
   const authors = await prisma.author.findMany({ where: { id: { in: rows.map((r) => r.authorId!) } }, select: { id: true, slug: true, updatedAt: true } });
@@ -125,25 +128,55 @@ async function authorEntries(): Promise<UrlEntry[]> {
   ];
 }
 
+/** Published stories per site section: the raw labels that fold into it, how many, and the newest change. */
+export interface SectionBucket {
+  slug: CategorySlug;
+  labels: string[];
+  /** Stories with no category at all file under Technology (categoryForArticle). */
+  includesNull: boolean;
+  count: number;
+  lastmod: Date | null;
+}
+
+/** Folds per-label counts into the six sections. Pure, so the bucketing is testable. */
+export function bucketByCategory(rows: { category: string | null; count: number; lastmod: Date | null }[]): SectionBucket[] {
+  const buckets = new Map<CategorySlug, SectionBucket>(
+    SITE_CATEGORIES.map((c) => [c.slug, { slug: c.slug, labels: [], includesNull: false, count: 0, lastmod: null }]),
+  );
+  for (const row of rows) {
+    const b = buckets.get(categoryForArticle(row.category).slug)!;
+    if (row.category === null) b.includesNull = true;
+    else b.labels.push(row.category);
+    b.count += row.count;
+    if (row.lastmod && (!b.lastmod || row.lastmod > b.lastmod)) b.lastmod = row.lastmod;
+  }
+  return [...buckets.values()];
+}
+
+export async function sectionBuckets(): Promise<SectionBucket[]> {
+  const rows = await prisma.article.groupBy({ by: ['category'], where: PUBLIC_WHERE, _count: { _all: true }, _max: { updatedAt: true } });
+  return bucketByCategory(rows.map((r) => ({ category: r.category, count: r._count._all, lastmod: r._max.updatedAt })));
+}
+
 export async function categoryEntries(): Promise<UrlEntry[]> {
   // Only sections that have something in them.
-  const { listCategoryFeed } = await import('@/lib/feed');
-  const out: UrlEntry[] = [];
-  for (const c of SITE_CATEGORIES) {
-    const { items, total } = await listCategoryFeed(c.slug, { perPage: 1 });
-    if (total > 0) out.push({ loc: `${SITE_URL}/news/category/${c.slug}`, lastmod: items[0]?.publishedAt });
-  }
-  return out;
+  return (await sectionBuckets())
+    .filter((b) => b.count > 0)
+    .map((b) => ({ loc: `${SITE_URL}/news/category/${b.slug}`, lastmod: b.lastmod }));
 }
 
-export async function articleFileCount(): Promise<number> {
-  const n = await prisma.article.count({ where: PUBLIC_WHERE });
-  return Math.max(1, Math.ceil(n / ARTICLES_PER_FILE));
+export function articleFileName(slug: CategorySlug, page: number): string {
+  return `articles-${slug}-${page}.xml`;
 }
 
-export async function articleEntries(page: number): Promise<UrlEntry[]> {
+export async function articleEntries(bucket: SectionBucket, page: number): Promise<UrlEntry[]> {
+  const inSection = [
+    ...(bucket.labels.length ? [{ category: { in: bucket.labels } }] : []),
+    ...(bucket.includesNull ? [{ category: null }] : []),
+  ];
+  if (inSection.length === 0) return [];
   const rows = await prisma.article.findMany({
-    where: PUBLIC_WHERE,
+    where: { ...PUBLIC_WHERE, OR: inSection },
     select: { slug: true, updatedAt: true, publishedAt: true, publishedVersionId: true },
     orderBy: [{ publishedAt: 'desc' }, { id: 'asc' }],
     skip: (page - 1) * ARTICLES_PER_FILE,
@@ -153,7 +186,7 @@ export async function articleEntries(page: number): Promise<UrlEntry[]> {
   return rows.map((r) => {
     const img = r.publishedVersionId ? images.get(r.publishedVersionId)?.url : '';
     return {
-      loc: `${SITE_URL}/news/article/${r.slug}`,
+      loc: `${SITE_URL}${articlePath(r.slug)}`,
       lastmod: r.updatedAt ?? r.publishedAt,
       images: img ? [img] : undefined,
     };
@@ -173,7 +206,7 @@ export async function newsEntries(now = Date.now()): Promise<UrlEntry[]> {
     const v = r.publishedVersionId ? versions.get(r.publishedVersionId) : undefined;
     if (!v?.headline || !r.publishedAt) continue;
     out.push({
-      loc: `${SITE_URL}/news/article/${r.slug}`,
+      loc: `${SITE_URL}${articlePath(r.slug)}`,
       news: { title: v.headline, publishedAt: r.publishedAt },
       images: v.url ? [v.url] : undefined,
     });
@@ -200,13 +233,22 @@ export async function companyEntries(page: number): Promise<UrlEntry[]> {
 }
 
 export async function sitemapIndexFiles(): Promise<{ loc: string; lastmod?: Date | null }[]> {
-  const [articleFiles, companyFiles, newest] = await Promise.all([articleFileCount(), companyFileCount(), newestPublished()]);
+  const [buckets, companyFiles, newest, authors] = await Promise.all([sectionBuckets(), companyFileCount(), newestPublished(), authorEntries()]);
+  const file = (name: string) => `${SITE_URL}/sitemaps/${name}`;
+  const withStories = buckets.filter((b) => b.count > 0);
   return [
-    { loc: `${SITE_URL}/sitemaps/static.xml` },
-    { loc: `${SITE_URL}/sitemaps/news.xml`, lastmod: newest },
-    ...Array.from({ length: articleFiles }, (_, i) => ({ loc: `${SITE_URL}/sitemaps/articles-${i + 1}.xml`, lastmod: i === 0 ? newest : undefined })),
-    ...Array.from({ length: companyFiles }, (_, i) => ({ loc: `${SITE_URL}/sitemaps/companies-${i + 1}.xml` })),
-    { loc: `${SITE_URL}/sitemaps/categories.xml`, lastmod: newest },
+    { loc: file('pages.xml'), lastmod: newest },
+    ...(withStories.length ? [{ loc: file('categories.xml'), lastmod: newest }] : []),
+    ...(authors.length ? [{ loc: file('authors.xml'), lastmod: authors[0].lastmod }] : []),
+    { loc: file('news.xml'), lastmod: newest },
+    ...withStories.flatMap((b) =>
+      Array.from({ length: Math.ceil(b.count / ARTICLES_PER_FILE) }, (_, i) => ({
+        loc: file(articleFileName(b.slug, i + 1)),
+        // Files are newest-first, so only the first page moves with each publish.
+        lastmod: i === 0 ? b.lastmod : undefined,
+      })),
+    ),
+    ...Array.from({ length: companyFiles }, (_, i) => ({ loc: file(`companies-${i + 1}.xml`) })),
   ];
 }
 

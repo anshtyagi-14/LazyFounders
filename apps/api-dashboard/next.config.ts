@@ -42,6 +42,12 @@ const nextConfig: NextConfig = {
     return [
       // The news sitemap moved under /sitemaps/ with the rest of the index.
       { source: "/news-sitemap.xml", destination: "/sitemaps/news.xml", permanent: true },
+      // Every story now lives at /news/<slug>; the old per-kind prefixes forward there.
+      { source: "/news/article/:slug", destination: "/news/:slug", permanent: true },
+      { source: "/news/source/:slug", destination: "/news/:slug", permanent: true },
+      // Sitemap files from before the per-category split, possibly still in Search Console.
+      { source: "/sitemaps/static.xml", destination: "/sitemaps/pages.xml", permanent: true },
+      { source: "/sitemaps/:file(articles-\\d+\\.xml)", destination: "/sitemap.xml", permanent: true },
     ];
   },
   async headers() {

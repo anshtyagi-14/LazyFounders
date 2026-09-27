@@ -88,11 +88,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  colorScheme: 'dark light',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#05070A' },
-  ],
+  colorScheme: 'light dark',
+  themeColor: '#ffffff',
 };
 
 /** Brand entity + site entity, emitted once for every page in the app. */
@@ -104,13 +101,13 @@ const siteSchema = {
 const themeScript = `
 (function () {
   try {
-    var saved = localStorage.getItem('lazyfounders-theme');
-    var dark = saved === 'dark' || (saved !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    // Light unless the reader chose dark with the toggle. The OS setting is
+    // deliberately ignored so the theme never changes between pages.
+    var dark = localStorage.getItem('lazyfounders-theme') === 'dark';
     document.documentElement.classList.toggle('dark', dark);
     document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
   } catch (_) {
-    document.documentElement.classList.add('dark');
-    document.documentElement.style.colorScheme = 'dark';
+    document.documentElement.style.colorScheme = 'light';
   }
 })();`;
 
@@ -119,8 +116,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // No className on <html>: the theme script owns the `dark` class. A class in
+  // JSX gets re-applied whenever React re-renders the root, which flipped
+  // light readers to dark on navigation.
   return (
-    <html lang={SITE_LANG} className="dark" suppressHydrationWarning>
+    <html lang={SITE_LANG} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <link rel="alternate" type="application/rss+xml" title={`${BRAND} — latest stories`} href="/feed.xml" />

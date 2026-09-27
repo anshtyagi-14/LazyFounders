@@ -116,7 +116,16 @@ export async function analyticsSnapshot(): Promise<AnalyticsSnapshot> {
       dateRanges: today,
       dimensions: [{ name: 'pagePath' }, { name: 'pageTitle' }],
       metrics: [{ name: 'screenPageViews' }],
-      dimensionFilter: { filter: { fieldName: 'pagePath', stringFilter: { matchType: 'BEGINS_WITH', value: '/news/article/' } } },
+      // Stories live at /news/<slug> (older hits at /news/article/ and /news/source/
+      // match too); category listings share the prefix and are left out.
+      dimensionFilter: {
+        andGroup: {
+          expressions: [
+            { filter: { fieldName: 'pagePath', stringFilter: { matchType: 'BEGINS_WITH', value: '/news/' } } },
+            { notExpression: { filter: { fieldName: 'pagePath', stringFilter: { matchType: 'BEGINS_WITH', value: '/news/category/' } } } },
+          ],
+        },
+      },
       orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
       limit: 5,
     }),

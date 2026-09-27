@@ -176,6 +176,23 @@ export function resolveCategorySlug(requested: string): SiteCategory | null {
   return BY_SLUG.get(requested) ?? categoryForLabel(requested);
 }
 
+/**
+ * The live page for an internal path written by the pipeline: /news/article/<slug> and
+ * /news/source/<slug> become /news/<slug>, and a raw pipeline category
+ * (/news/category/startup) becomes its site category (/news/category/business).
+ * Anything else is returned unchanged.
+ */
+export function canonicalSitePath(path: string): string {
+  const story = /^\/news\/(?:article|source)\/([^/?#]+)(.*)$/.exec(path);
+  if (story) return `/news/${story[1]}${story[2]}`;
+  const cat = /^\/news\/category\/([^/?#]+)(.*)$/.exec(path);
+  if (cat) {
+    const site = resolveCategorySlug(decodeURIComponent(cat[1]));
+    if (site) return `/news/category/${site.slug}${cat[2]}`;
+  }
+  return path;
+}
+
 /** Which of the given raw labels file under `slug`. Used to translate a category page back into a DB filter. */
 export function labelsForCategory(slug: CategorySlug, rawLabels: Iterable<string>): string[] {
   const out: string[] = [];

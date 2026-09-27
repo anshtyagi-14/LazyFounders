@@ -1,9 +1,11 @@
 import React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { BRAND } from "@/lib/articles";
 import { CATEGORY_LINKS, FOLLOW_LINKS, TRUST_LINKS } from "@/lib/nav";
 import { gaAttrs } from "@/lib/ga-attrs";
 import { EmailCapture } from "./EmailCapture";
+import { SocialIcon } from "./site/SocialIcon";
 import { Wordmark } from "./site/Wordmark";
 
 /**
@@ -32,6 +34,51 @@ function FooterLink({
     >
       {children}
     </Link>
+  );
+}
+
+const STICKER =
+  "inline-flex min-h-14 items-center gap-3 rounded-xl bg-white px-4 py-2.5 shadow-sm ring-1 ring-black/10 transition-transform hover:-translate-y-0.5 dark:ring-white/10";
+const STICKER_LABEL = "text-left font-display text-[0.62rem] font-bold uppercase leading-tight tracking-[0.12em] text-slate-500";
+
+/** The platform and the agency behind the site, as white stickers that read the same in both themes. */
+function PartnerStickers() {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <a
+        href="https://blogy.in"
+        target="_blank"
+        rel="noopener"
+        {...gaAttrs("partner_select", { content_id: "blogy", source_surface: "footer" })}
+        className={STICKER}
+      >
+        <span className={STICKER_LABEL}>
+          Powered
+          <br />
+          by
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Image src="/partners/blogy-mark.svg" alt="" width={28} height={28} className="size-7" />
+          <span className="font-display text-lg font-bold tracking-tight text-slate-950">Blogy</span>
+        </span>
+        <span className="sr-only"> (opens in a new tab)</span>
+      </a>
+      <a
+        href="https://gigzman.com"
+        target="_blank"
+        rel="noopener"
+        {...gaAttrs("partner_select", { content_id: "gigzman", source_surface: "footer" })}
+        className={STICKER}
+      >
+        <span className={STICKER_LABEL}>
+          Managed &amp;
+          <br />
+          developed by
+        </span>
+        <Image src="/partners/gigzman-black.png" alt="gigzman" width={112} height={28} className="h-7 w-auto" />
+        <span className="sr-only"> (opens in a new tab)</span>
+      </a>
+    </div>
   );
 }
 
@@ -70,32 +117,25 @@ export function Footer() {
 
           <nav aria-label="Follow">
             <ColumnHeading>Follow</ColumnHeading>
-            {FOLLOW_LINKS.map((l) =>
-              l.external ? (
-                <a
-                  key={l.href}
-                  href={l.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  {...gaAttrs(l.event, {
-                    content_id: l.label,
-                    source_surface: "footer",
-                  })}
-                  className="block py-1.5 text-sm text-gray-600 transition-colors hover:text-teal-700 dark:text-gray-400 dark:hover:text-teal-400"
-                >
-                  {l.label}
-                  <span className="sr-only"> (opens in a new tab)</span>
-                </a>
-              ) : (
-                <FooterLink
-                  key={l.href}
-                  href={l.href}
-                  {...gaAttrs(l.event, { source_surface: "footer" })}
-                >
-                  {l.label}
-                </FooterLink>
-              ),
-            )}
+            <ul className="flex flex-wrap gap-2.5">
+              {FOLLOW_LINKS.map((l) => (
+                <li key={l.href}>
+                  <a
+                    href={l.href}
+                    {...(l.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    {...gaAttrs(l.event, l.external ? { content_id: l.label, source_surface: "footer" } : { source_surface: "footer" })}
+                    title={l.label === "X" ? "X (Twitter)" : l.label}
+                    className="flex size-10 items-center justify-center rounded-full border border-black/10 bg-white text-gray-700 transition-colors hover:border-teal-500/60 hover:text-teal-700 dark:border-white/12 dark:bg-white/5 dark:text-gray-300 dark:hover:text-teal-400"
+                  >
+                    <SocialIcon label={l.label} />
+                    <span className="sr-only">
+                      {l.label === "X" ? "X (Twitter)" : l.label}
+                      {l.external ? " (opens in a new tab)" : " feed"}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
           </nav>
 
           <div>
@@ -122,7 +162,8 @@ export function Footer() {
         </p>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6 lg:px-8">
+      {/* Bottom padding clears the floating WhatsApp button, which would otherwise sit on the stickers. */}
+      <div className="mx-auto max-w-7xl px-4 pb-24 pt-8 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-6 text-xs text-gray-500 dark:border-white/10">
           <p>
             &copy; {new Date().getFullYear()} {BRAND}. All rights reserved.
@@ -134,28 +175,7 @@ export function Footer() {
               Sitemap
             </a>
           </p>
-          <p>
-            <p>
-              Powered by{" "}
-              <a
-                href="https://blogy.in"
-                target="_blank"
-                rel="noopener"
-                className="underline hover:text-teal-700 dark:hover:text-teal-400"
-              >
-                Blogy
-              </a>
-            </p>
-            Developed and managed by{" "}
-            <a
-              href="https://gigzman.com"
-              target="_blank"
-              rel="noopener"
-              className="underline hover:text-teal-700 dark:hover:text-teal-400"
-            >
-              gigzman.com
-            </a>
-          </p>
+          <PartnerStickers />
         </div>
       </div>
     </footer>

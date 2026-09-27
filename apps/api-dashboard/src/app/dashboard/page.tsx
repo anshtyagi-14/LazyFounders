@@ -255,7 +255,7 @@ export default function ApiDashboard() {
                     <div className="mt-4 p-4 border-t border-slate-800 bg-slate-800/50 dark:bg-[#0d1117] rounded-lg">
                       <div className="font-semibold text-xs uppercase tracking-wider text-slate-400 mb-1">Generated SEO Title</div>
                       <div className="font-bold text-lg text-white mb-4">{finalData.seoTitle}</div>
-                      <Link href={`/news/article/${finalData.slug}`} className="inline-flex items-center gap-2 px-4 py-2 bg-teal-500/20 text-teal-300 rounded-lg hover:bg-teal-500/30 transition-colors">
+                      <Link href={`/news/${finalData.slug}`} className="inline-flex items-center gap-2 px-4 py-2 bg-teal-500/20 text-teal-300 rounded-lg hover:bg-teal-500/30 transition-colors">
                         View Article <span aria-hidden="true">&rarr;</span>
                       </Link>
                     </div>

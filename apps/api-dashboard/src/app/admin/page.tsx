@@ -155,7 +155,7 @@ export default async function AdminOverview() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
               {recent.map((a) => {
-                const url = `${SITE_URL}/news/article/${a.slug}`;
+                const url = `${SITE_URL}/news/${a.slug}`;
                 return (
                   <tr key={a.id}>
                     <td className="max-w-md px-5 py-3 font-medium">
@@ -167,7 +167,7 @@ export default async function AdminOverview() {
                     <td className="whitespace-nowrap px-5 py-3">{a.status}</td>
                     <td className="whitespace-nowrap px-5 py-3">
                       <div className="flex gap-3">
-                        <a href={`/news/article/${a.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-teal-700 hover:underline dark:text-teal-400">
+                        <a href={`/news/${a.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-teal-700 hover:underline dark:text-teal-400">
                           Open
                         </a>
                         <CopyUrlButton url={url} />

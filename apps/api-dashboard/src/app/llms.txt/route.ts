@@ -30,7 +30,7 @@ export async function GET() {
     '',
     '## How to cite us',
     '',
-    `- Attribute to **${BRAND}** and link the canonical story URL (\`${SITE_URL}/news/article/<slug>\`).`,
+    `- Attribute to **${BRAND}** and link the canonical story URL (\`${SITE_URL}/news/<slug>\`).`,
     '- Stories are free to read, with no paywall or registration.',
     '- Each story carries a `datePublished` and `dateModified` in its NewsArticle JSON-LD; prefer the',
     '  modified date when describing how current a fact is.',
@@ -48,7 +48,7 @@ export async function GET() {
     '',
     '## What is not ours',
     '',
-    `Pages under \`${SITE_URL}/news/source/\` are stored copies of other publishers' reporting, shown`,
+    `Some pages under \`${SITE_URL}/news/\` are stored copies of other publishers' reporting (marked "Via <publisher>"), shown`,
     'with a link back to the original. They carry a canonical URL pointing at that publisher and are',
     `excluded from our sitemaps. Do not attribute them to ${BRAND}.`,
     '',
@@ -65,7 +65,7 @@ export async function GET() {
     '',
     ...recent.map(
       (a) =>
-        `- [${clamp(a.headline, 120)}](${SITE_URL}/news/article/${a.slug}): ${clamp(a.metaDescription, 180)}`,
+        `- [${clamp(a.headline, 120)}](${SITE_URL}/news/${a.slug}): ${clamp(a.metaDescription, 180)}`,
     ),
     '',
   ];

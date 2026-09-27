@@ -270,7 +270,7 @@ async function revalidate(articleId: string, deps: PipelineDeps): Promise<void> 
   await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${secret}` },
-    body: JSON.stringify({ paths: ['/', `/news/article/${article.slug}`, ...(article.category ? [`/news/category/${article.category}`] : [])] }),
+    body: JSON.stringify({ paths: ['/', `/news/${article.slug}`, ...(article.category ? [`/news/category/${article.category}`] : [])] }),
     signal: AbortSignal.timeout(5_000),
   });
 }

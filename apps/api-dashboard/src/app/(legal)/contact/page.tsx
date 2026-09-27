@@ -2,19 +2,22 @@ import React from 'react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Email, LegalPage } from '@/components/LegalPage';
+import { ContactForm } from '@/components/ContactForm';
 import { SITE_CONTACTS } from '@/lib/site-contacts';
 import { WhatsAppIcon, whatsAppLinkProps } from '@/components/WhatsApp';
 import { BRAND, pageMetadata } from '@/lib/seo';
 
 const PATH = '/contact';
 const TITLE = `Contact ${BRAND}`;
-const STANDFIRST = `How to reach ${BRAND} for general enquiries, corrections, partnerships and security reports.`;
+const STANDFIRST = `Work with ${BRAND}, or reach us for general enquiries, corrections, partnerships and security reports.`;
 
 export const metadata: Metadata = pageMetadata({ title: 'Contact us', description: STANDFIRST, path: PATH });
 
 export default function ContactPage() {
   return (
-    <LegalPage path={PATH} title={TITLE} standfirst={STANDFIRST} updated="2026-09-25">
+    <LegalPage path={PATH} title={TITLE} standfirst={STANDFIRST} updated="2026-09-27">
+      <ContactForm />
+
       <h2>General enquiries</h2>
       <p>
         Questions, feedback and story tips: <Email address={SITE_CONTACTS.general} />.

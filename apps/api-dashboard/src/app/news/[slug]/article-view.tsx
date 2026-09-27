@@ -1,28 +1,25 @@
 import React from "react";
 import Link from "next/link";
-// Published stories are edited rarely; /api/revalidate covers the edits.
-export const revalidate = 300;
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
-import { SafeImage } from "../../../../components/SafeImage";
-import { BrandBadge } from "../../../../components/BrandBadge";
-import { SourcesSection } from "../../../../components/SourcesSection";
-import { PoweredByBlogy } from "../../../../components/PoweredByBlogy";
-import { JsonLd } from "../../../../components/JsonLd";
-import { Breadcrumbs } from "../../../../components/Breadcrumbs";
-import { ArticleTracker } from "../../../../components/ArticleTracker";
-import { ShareBar } from "../../../../components/ShareBar";
-import { EmailCapture } from "../../../../components/EmailCapture";
-import { ContactStrip } from "../../../../components/ContactStrip";
-import { cardLinkProps } from "../../../../components/FeaturedCard";
-import { BRAND, SITE_URL, getPublishedArticle, slugifyCategory, type PublicArticle } from "@/lib/articles";
+import { SafeImage } from "@/components/SafeImage";
+import { BrandBadge } from "@/components/BrandBadge";
+import { SourcesSection } from "@/components/SourcesSection";
+import { PoweredByBlogy } from "@/components/PoweredByBlogy";
+import { JsonLd } from "@/components/JsonLd";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { ArticleTracker } from "@/components/ArticleTracker";
+import { ShareBar } from "@/components/ShareBar";
+import { EmailCapture } from "@/components/EmailCapture";
+import { ContactStrip } from "@/components/ContactStrip";
+import { cardLinkProps } from "@/components/FeaturedCard";
+import { BRAND, SITE_URL, articlePath, slugifyCategory, type PublicArticle } from "@/lib/articles";
 import { authorInitials as initialsOf, authorPath } from "@/lib/authors";
 import { listCategoryFeed } from "@/lib/feed";
-import { categoryForArticle, type SiteCategory } from "@/lib/topics";
+import { canonicalSitePath, categoryForArticle, type SiteCategory } from "@/lib/topics";
 import { imageObjectSchema, resolveImage, type ResolvedImage } from "@/lib/images";
 import { gaAttrs } from "@/lib/ga-attrs";
 import { splitBodyNearMiddle } from "@/lib/article-body";
@@ -42,17 +39,6 @@ import {
   type Crumb,
 } from "@/lib/seo";
 
-type Props = { params: Promise<{ slug: string }> };
-
-/**
- * No pages at build time (the image is built without database access), but an
- * empty list still opts the route into ISR: each story renders on its first
- * request and is then served from cache until the revalidate window passes.
- */
-export async function generateStaticParams() {
-  return [];
-}
-
 // Raw HTML is only used for the three styled summary boxes injected below; everything
 // else from the model is sanitised (no scripts, handlers, iframes or unsafe URLs).
 const sanitizeSchema = {
@@ -69,6 +55,10 @@ const sanitizeSchema = {
  */
 function bodyComponents(headline: string): Components {
   return {
+    // Internal links stored with older stories point at pre-/news/<slug> URLs or raw
+    // pipeline categories; link straight to the live page instead of via a redirect.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    a: ({ node, href, ...props }) => <a {...props} href={href ? canonicalSitePath(href) : href} />,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     img: ({ node, alt, title, ...props }) => (
       // Remote publisher images of unknown size: next/image cannot size them.
@@ -102,20 +92,18 @@ function crumbsFor(article: PublicArticle, category: SiteCategory): Crumb[] {
   return [
     { name: "Home", path: "/" },
     { name: category.label, path: `/news/category/${category.slug}` },
-    { name: clamp(article.headline, 110), path: `/news/article/${article.slug}` },
+    { name: clamp(article.headline, 110), path: articlePath(article.slug) },
   ];
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
-  const article = await getPublishedArticle(decodeURIComponent(slug));
-  if (!article) return { title: "Story not found", robots: { index: false, follow: false } };
+/** Metadata for one of our own stories, served at /news/<slug> (see page.tsx). */
+export function articleMetadata(article: PublicArticle): Metadata {
   const image = articleImage(article);
   const modified = modifiedAt(article);
   return pageMetadata({
     title: article.seoTitle,
     description: article.metaDescription,
-    path: `/news/article/${article.slug}`,
+    path: articlePath(article.slug),
     image: image.url,
     imageWidth: image.width,
     imageHeight: image.height,
@@ -130,7 +118,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 function jsonLd(article: PublicArticle, category: SiteCategory, image: ResolvedImage) {
-  const url = `${SITE_URL}/news/article/${article.slug}`;
+  const url = `${SITE_URL}${articlePath(article.slug)}`;
   const body = stripMarkdown(article.bodyMarkdown.split(/\n## Sources\n/)[0]);
   const faqs = extractFaq(article.bodyMarkdown);
   const modified = modifiedAt(article) ?? article.publishedAt;
@@ -203,18 +191,14 @@ function prepareBody(markdown: string): string {
   return body;
 }
 
-export default async function ArticlePage({ params }: Props) {
-  const { slug } = await params;
-  const article = await getPublishedArticle(decodeURIComponent(slug));
-  if (!article) notFound();
-
+export async function ArticleView({ article }: { article: PublicArticle }) {
   const category = categoryForArticle(article.category);
   const image = articleImage(article);
   const modified = modifiedAt(article);
   const related = await listCategoryFeed(category.slug, { perPage: 4, excludeId: article.id }).catch(() => ({ items: [], total: 0 }));
   const author = article.author;
   const authorInitials = author ? initialsOf(author.name) : BRAND.slice(0, 2).toUpperCase();
-  const canonical = `${SITE_URL}/news/article/${article.slug}`;
+  const canonical = `${SITE_URL}${articlePath(article.slug)}`;
   const sourceCount = article.citations.length;
   const [bodyTop, bodyBottom] = splitBodyNearMiddle(prepareBody(article.bodyMarkdown));
 
@@ -254,7 +238,6 @@ export default async function ArticlePage({ params }: Props) {
                   {author ? (
                     <div>
                       <p className="font-bold text-slate-900 dark:text-white leading-tight text-base">
-                        By{" "}
                         <Link href={authorPath(author.slug)} rel="author" className="hover:text-teal-700 dark:hover:text-teal-400 hover:underline">
                           {author.name}
                         </Link>

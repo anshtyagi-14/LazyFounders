@@ -96,7 +96,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
         <h1 className="text-2xl font-bold mt-2">{current?.headline ?? article.slug}</h1>
         <p className="text-sm text-slate-500">
           Status <b>{article.status}</b> · v{current?.version} by {current?.createdBy} · model {String(current?.generator?.model ?? '—')} ({String(current?.generator?.promptVersion ?? '—')})
-          {live && <> · live: v{live.version} (<a className="underline" href={`/news/article/${article.slug}`} target="_blank" rel="noreferrer">view</a>)</>}
+          {live && <> · live: v{live.version} (<a className="underline" href={`/news/${article.slug}`} target="_blank" rel="noreferrer">view</a>)</>}
         </p>
         {message && <p className="mt-2 text-sm text-teal-500">{message}</p>}
       </div>

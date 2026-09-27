@@ -698,12 +698,35 @@ model EmailSignup {
   @@map("email_signups")
 }
 
+/// Enquiries from the /contact form: prospective clients, partners and advertisers.
+/// Listed under Leads in the admin console; nothing is emailed.
+model Lead {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  email       String   /// lowercased and trimmed before insert
+  company     String?
+  phone       String?
+  inquiryType String   @map("inquiry_type") /// advertising | partnership | content | other
+  message     String
+  status      String   @default("new") /// new | contacted | closed
+  utmSource   String?  @map("utm_source")
+  utmMedium   String?  @map("utm_medium")
+  utmCampaign String?  @map("utm_campaign")
+  referrer    String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@map("leads")
+}
+
 /// Public-site errors (server render, client boundary, image, API, sitemap,
 /// email capture) for the admin error list. Repeats of the same error collapse
 /// into one row through the fingerprint, so a burst stays one line with a count.
 model SiteError {
   id          String    @id @default(uuid()) @db.Uuid
-  type        String    /// server_error | page_error | article_render | api_error | image_error | email_capture | sitemap
+  type        String    /// server_error | page_error | article_render | api_error | image_error | email_capture | contact_form | sitemap
   route       String
   message     String
   fingerprint String    @unique

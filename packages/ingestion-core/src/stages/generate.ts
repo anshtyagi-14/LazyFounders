@@ -239,7 +239,7 @@ async function loadContext(deps: PipelineDeps, storyId: string, facts: StoryFact
   if (facts.category) links.push({ id: `category:${facts.category}`, label: `More ${facts.category} news`, href: `/news/category/${facts.category}`, kind: 'category' });
   for (const r of related) {
     const v = byId.get(r.publishedVersionId!);
-    if (v) links.push({ id: `story:${r.slug}`, label: v.headline, href: `/news/article/${r.slug}`, kind: 'story' });
+    if (v) links.push({ id: `story:${r.slug}`, label: v.headline, href: `/news/${r.slug}`, kind: 'story' });
   }
   const background = related
     .slice(0, 3)

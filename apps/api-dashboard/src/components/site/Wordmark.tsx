@@ -29,7 +29,7 @@ export function Wordmark({
 
   // BRAND is configurable; split it so the gold lands on the second word when
   // there is one, and on nothing when the name is a single word.
-  const match = /^(Lazy)(Founders)$/i.exec(BRAND);
+  const match = /^(Lazy)(Founders?)$/i.exec(BRAND);
 
   return (
     <Link

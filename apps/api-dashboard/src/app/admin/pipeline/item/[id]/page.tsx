@@ -102,12 +102,12 @@ export default async function ItemTrace({ params }: { params: Promise<{ id: stri
             {story ? <p className="text-xs">{story.headline} · <span className="font-mono">{story.status}</span></p> : <p className="text-slate-500">Not grouped into a story yet</p>}
           </div>
           <div>
-            <h3 className="text-xs font-semibold uppercase text-slate-500 mb-1">LazyFounders article</h3>
+            <h3 className="text-xs font-semibold uppercase text-slate-500 mb-1">Lazyfounder article</h3>
             {article ? (
               <p className="text-xs">
                 <span className="font-mono">{article.status}</span> ·{' '}
                 <Link href={`/admin/editorial/${article.id}`} className="text-teal-600 dark:text-teal-400 hover:underline">editorial</Link>
-                {article.publishedVersionId && <> · <a href={`/news/article/${article.slug}`} target="_blank" rel="noreferrer" className="text-teal-600 dark:text-teal-400 hover:underline">live page ↗</a></>}
+                {article.publishedVersionId && <> · <a href={`/news/${article.slug}`} target="_blank" rel="noreferrer" className="text-teal-600 dark:text-teal-400 hover:underline">live page ↗</a></>}
               </p>
             ) : (
               <p className="text-slate-500">Not generated yet</p>

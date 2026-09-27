@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
+import { canonicalSitePath } from '@/lib/topics';
 
 /** Called by the publishing service after a publish (Authorization: Bearer $REVALIDATE_SECRET). */
 export async function POST(request: Request) {
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
   }
   const { paths } = (await request.json().catch(() => ({}))) as { paths?: unknown };
   const list = Array.isArray(paths) ? paths.filter((p): p is string => typeof p === 'string' && /^\/[\w\-/%.]*$/.test(p)).slice(0, 20) : [];
-  for (const p of list) revalidatePath(p);
+  for (const p of new Set(list.map(canonicalSitePath))) revalidatePath(p);
   revalidatePath('/sitemap.xml');
   return NextResponse.json({ success: true, revalidated: list });
 }

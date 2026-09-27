@@ -19,7 +19,7 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body style={{ margin: 0, minHeight: '100vh', background: '#09090b', color: '#fafafa', fontFamily: 'system-ui, sans-serif' }}>
-        <title>Something went wrong | LazyFounders</title>
+        <title>Something went wrong | Lazyfounder</title>
         <main style={{ maxWidth: 560, margin: '0 auto', padding: '96px 16px' }}>
           <p style={{ color: '#d4af37', fontSize: 13, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>Error</p>
           <h1 style={{ fontSize: 30, lineHeight: 1.2, margin: '12px 0 0' }}>The site failed to load</h1>

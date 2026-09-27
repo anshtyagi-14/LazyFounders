@@ -9,6 +9,7 @@ export const SITE_ERROR_TYPES = [
   'api_error',
   'image_error',
   'email_capture',
+  'contact_form',
   'sitemap',
 ] as const;
 export type SiteErrorType = (typeof SITE_ERROR_TYPES)[number];

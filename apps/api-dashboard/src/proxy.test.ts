@@ -26,13 +26,13 @@ const passedThrough = (res: Response) => res.headers.get('x-middleware-next') ==
 
 describe('proxy', () => {
   test('public pages and unknown URLs reach the router (so unknown URLs 404, not 401)', () => {
-    for (const p of ['/', '/about', '/news/article/x', '/does-not-exist', '/.well-known/security.txt', '/sitemaps/news.xml']) {
+    for (const p of ['/', '/about', '/news/x', '/does-not-exist', '/.well-known/security.txt', '/sitemaps/news.xml']) {
       expect(passedThrough(run(p)), p).toBe(true);
     }
   });
 
   test('reader-facing API routes are public', () => {
-    for (const p of ['/api/subscribe', '/api/telemetry', '/api/health', '/api/v1/scrape', '/api/revalidate']) {
+    for (const p of ['/api/subscribe', '/api/contact', '/api/telemetry', '/api/health', '/api/v1/scrape', '/api/revalidate']) {
       expect(passedThrough(run(p)), p).toBe(true);
     }
   });

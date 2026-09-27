@@ -328,8 +328,8 @@ ul { list-style: none; }
 
 /* ── Custom Prose Components (TOC & Highlights) ── */
 .table-of-contents {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  border: 1px solid rgba(212, 175, 55, 0.15);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid rgba(212, 175, 55, 0.25);
   border-radius: var(--radius-lg);
   padding: 2rem 2.5rem;
   margin: 2.5rem 0;
@@ -356,11 +356,11 @@ ul { list-style: none; }
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: var(--teal-400);
+  color: var(--teal-700);
   margin-top: 0;
   margin-bottom: 1.25rem;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -383,11 +383,14 @@ ul { list-style: none; }
   padding-left: 2.5rem;
   margin-bottom: 0.85rem;
   font-size: 1rem;
-  color: #cbd5e1;
+  color: #334155;
   line-height: 1.5;
   transition: color 0.15s;
 }
-.table-of-contents :is(ol, ul) li:hover { color: #ffffff; }
+.table-of-contents :is(ol, ul) li:hover { color: #0f172a; }
+.dark .table-of-contents h3 { color: var(--teal-400); border-bottom-color: rgba(255, 255, 255, 0.06); }
+.dark .table-of-contents :is(ol, ul) li { color: #cbd5e1; }
+.dark .table-of-contents :is(ol, ul) li:hover { color: #ffffff; }
 
 .table-of-contents :is(ol, ul) li::before {
   content: counter(toc-counter, decimal-leading-zero);
@@ -417,6 +420,9 @@ ul { list-style: none; }
   text-decoration: none !important;
 }
 .table-of-contents :is(ol, ul) li a:hover {
+  color: var(--teal-700) !important;
+}
+.dark .table-of-contents :is(ol, ul) li a:hover {
   color: var(--teal-300) !important;
 }
 

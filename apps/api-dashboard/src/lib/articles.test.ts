@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import { sanitizeHeadline, sourceStoryPath } from './articles';
-import { normalizeTopic, normalizeTopics } from './topics';
+import { canonicalSitePath, normalizeTopic, normalizeTopics } from './topics';
 import { normalizeQuery } from './search';
 
 describe('sanitizeHeadline', () => {
@@ -18,9 +18,9 @@ describe('sanitizeHeadline', () => {
 describe('sourceStoryPath', () => {
   test('is a readable slug ending in the first 8 hex of the id', () => {
     expect(sourceStoryPath('54a9bdcb-c668-450a-8f79-e87fc0430f98', 'Australia steps up response to AI after OpenAI bot breaches health system database')).toBe(
-      '/news/source/australia-steps-up-response-to-ai-after-openai-bot-breaches-health-54a9bdcb',
+      '/news/australia-steps-up-response-to-ai-after-openai-bot-breaches-health-54a9bdcb',
     );
-    expect(sourceStoryPath('ABCDEF12-0000-0000-0000-000000000000', 'Zepto &amp; Blinkit')).toBe('/news/source/zepto-blinkit-abcdef12');
+    expect(sourceStoryPath('ABCDEF12-0000-0000-0000-000000000000', 'Zepto &amp; Blinkit')).toBe('/news/zepto-blinkit-abcdef12');
   });
 });
 
@@ -73,5 +73,24 @@ describe('normalizeQuery', () => {
   test('treats a missing query as empty', () => {
     expect(normalizeQuery(undefined)).toBe('');
     expect(normalizeQuery(null)).toBe('');
+  });
+});
+
+describe('canonicalSitePath', () => {
+  test('moves old story prefixes onto /news/<slug>', () => {
+    expect(canonicalSitePath('/news/article/zepto-raises-abc123')).toBe('/news/zepto-raises-abc123');
+    expect(canonicalSitePath('/news/source/zepto-blinkit-abcdef12')).toBe('/news/zepto-blinkit-abcdef12');
+    expect(canonicalSitePath('/news/article/a-b#faq')).toBe('/news/a-b#faq');
+  });
+
+  test('folds raw pipeline categories into the site section', () => {
+    expect(canonicalSitePath('/news/category/startup')).toBe('/news/category/business');
+    expect(canonicalSitePath('/news/category/funding')).toBe('/news/category/funding');
+  });
+
+  test('leaves everything else alone', () => {
+    for (const p of ['/', '/news/a-b', '/company/zepto', '/news/category/not-a-topic', 'https://example.com/news/article/x']) {
+      expect(canonicalSitePath(p)).toBe(p);
+    }
   });
 });

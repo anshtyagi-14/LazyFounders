@@ -95,7 +95,7 @@ export default async function CompanyNewsPage({ params }: Props) {
       { name: 'Home', path: '/' },
       { name: matchedCompany, path: `/company/${slug}` },
     ],
-    entries: articles.map((a) => ({ path: `/news/article/${a.slug}`, name: a.seoTitle })),
+    entries: articles.map((a) => ({ path: `/news/${a.slug}`, name: a.seoTitle })),
     about: { '@type': 'Organization', name: matchedCompany },
   });
 
@@ -137,7 +137,7 @@ export default async function CompanyNewsPage({ params }: Props) {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {withContactStrip(articles.map((article) => (
-              <Link href={`/news/article/${article.slug}`} key={article.id} className="group">
+              <Link href={`/news/${article.slug}`} key={article.id} className="group">
                 <div className="bg-white border border-black/10 rounded-2xl overflow-hidden hover:border-teal-500/30 transition-all duration-300 h-full flex flex-col shadow-lg hover:shadow-teal-500/10 hover:-translate-y-1 dark:bg-[#0c1017] dark:border-white/5">
                   
                   {/* Article Image Placeholder */}

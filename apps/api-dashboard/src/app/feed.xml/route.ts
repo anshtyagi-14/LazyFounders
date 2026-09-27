@@ -16,7 +16,7 @@ export async function GET() {
 
   const items = articles
     .map((a) => {
-      const url = `${SITE_URL}/news/article/${a.slug}`;
+      const url = `${SITE_URL}/news/${a.slug}`;
       const summary = a.metaDescription || clamp(stripMarkdown(a.intro), 300);
       const image = a.featuredImage?.url;
       return [

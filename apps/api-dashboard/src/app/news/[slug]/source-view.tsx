@@ -1,29 +1,16 @@
 import React from "react";
 import Link from "next/link";
-// Syndicated headlines never change after they are stored.
-export const revalidate = 300;
 import type { Metadata } from "next";
-import { notFound, permanentRedirect } from "next/navigation";
-import { SafeImage } from "../../../../components/SafeImage";
-import { withContactStrip } from "../../../../components/ContactStrip";
-import { BrandBadge } from "../../../../components/BrandBadge";
-import { PoweredByBlogy } from "../../../../components/PoweredByBlogy";
-import { getSourceStory, listPublishedArticles, sourceStoryPath } from "@/lib/articles";
+import { SafeImage } from "@/components/SafeImage";
+import { withContactStrip } from "@/components/ContactStrip";
+import { BrandBadge } from "@/components/BrandBadge";
+import { PoweredByBlogy } from "@/components/PoweredByBlogy";
+import { articlePath, listPublishedArticles, sourceStoryPath, type SourceStory } from "@/lib/articles";
 import { authorInitials, authorPath } from "@/lib/authors";
 import { BRAND, pageMetadata } from "@/lib/seo";
 
-type Props = { params: Promise<{ slug: string }> };
-
-/** Empty on purpose: no build-time pages, but on-demand ISR (see the article page). */
-export async function generateStaticParams() {
-  return [];
-}
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
-  const result = await getSourceStory(decodeURIComponent(slug));
-  if (!result || result.kind !== "story") return { title: "Story not found", robots: { index: false } };
-  const { story } = result;
+/** Metadata for a syndicated story, served at /news/<slug> (see page.tsx). */
+export function sourceMetadata(story: SourceStory): Metadata {
   const image = story.imageUrl;
   return pageMetadata({
     title: story.headline,
@@ -40,14 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 }
 
-export default async function SourceStoryPage({ params }: Props) {
-  const { slug } = await params;
-  const result = await getSourceStory(decodeURIComponent(slug));
-  if (!result) notFound();
-  if (result.kind === "published") permanentRedirect(`/news/article/${result.slug}`);
-  if (result.kind === "moved") permanentRedirect(result.path);
-  const { story } = result;
-
+export async function SourceView({ story }: { story: SourceStory }) {
   const latest = await listPublishedArticles({ take: 4 });
   const publishedDate = story.publishedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const sourceHost = new URL(story.sourceUrl).hostname.replace(/^www\./, "");
@@ -152,7 +132,7 @@ export default async function SourceStoryPage({ params }: Props) {
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">Latest News</p>
                   <div className="space-y-3.5">
                     {latest.map((l) => (
-                      <a key={l.id} href={`/news/article/${l.slug}`} className="group flex gap-3 items-start">
+                      <Link key={l.id} href={articlePath(l.slug)} className="group flex gap-3 items-start">
                         <SafeImage
                           src={l.featuredImage?.url || "/fallback.webp"}
                           alt=""
@@ -163,7 +143,7 @@ export default async function SourceStoryPage({ params }: Props) {
                           <p className="text-sm font-semibold text-slate-900 dark:text-white leading-snug line-clamp-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">{l.headline}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">{l.readTime} min read</p>
                         </div>
-                      </a>
+                      </Link>
                     ))}
                   </div>
                 </section>

@@ -25,7 +25,7 @@ export interface PipelineConfig {
 export function loadPipelineConfig(env: NodeJS.ProcessEnv = process.env): PipelineConfig {
   return {
     publishLanguage: env.PUBLISH_LANGUAGE || 'en',
-    brand: env.SITE_BRAND_NAME || 'LazyFounders',
+    brand: env.SITE_BRAND_NAME || 'Lazyfounder',
     siteUrl: (env.NEXT_PUBLIC_SITE_URL || 'https://lazyfounders.com').replace(/\/$/, ''),
     autoPublishEnabled: env.AUTO_PUBLISH_ENABLED === 'true',
     dedupWindowDays: Number(env.DEDUP_WINDOW_DAYS || 7),

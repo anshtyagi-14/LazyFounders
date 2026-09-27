@@ -50,10 +50,10 @@ export function cardLinkProps(article: ArticleProps, ctx: CardContext = {}) {
       ...ga,
     };
   }
-  // Source-story pages are noindex and Disallowed in robots.txt (they carry a
-  // cross-domain canonical to the publisher). Following them from the home page
-  // spends crawl budget on URLs the crawler is then told to drop.
-  if (article.url.startsWith("/news/source/")) {
+  // Syndicated-story pages are noindex (they carry a cross-domain canonical to the
+  // publisher). Following them from the home page spends crawl budget on URLs the
+  // crawler is then told to drop.
+  if (article.origin === "wire") {
     return { href: article.url, rel: "nofollow", ...ga };
   }
   return { href: article.url, ...ga };

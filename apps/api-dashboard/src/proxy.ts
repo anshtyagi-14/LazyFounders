@@ -8,7 +8,7 @@ import { authConfigured, verifyBasicAuth } from './lib/editor-auth';
  */
 const PROTECTED_PREFIXES = ['/admin', '/dashboard', '/developers', '/tools', '/api/'];
 /** Reader-facing API routes (rate-limited in the handler) and routes that check their own credentials. */
-const PUBLIC_API = ['/api/subscribe', '/api/telemetry', '/api/health', '/api/v1/', '/api/revalidate'];
+const PUBLIC_API = ['/api/subscribe', '/api/contact', '/api/telemetry', '/api/health', '/api/v1/', '/api/revalidate'];
 /** Admin-only areas: registry changes, API keys, job replay. */
 const ADMIN_ONLY = [/^\/admin\/sources/, /^\/admin\/registry/, /^\/api\/registry\//, /^\/api\/admin\//, /^\/api\/keys/, /^\/developers/, /^\/api\/jobs\/[^/]+\/replay/];
 
@@ -45,7 +45,7 @@ export function proxy(req: NextRequest) {
     const challenge = !mode || mode === 'navigate';
     return new NextResponse('Authentication Required', {
       status: 401,
-      headers: challenge ? { 'WWW-Authenticate': 'Basic realm="LazyFounders Editorial"' } : {},
+      headers: challenge ? { 'WWW-Authenticate': 'Basic realm="Lazyfounder Editorial"' } : {},
     });
   }
   if (editor.role !== 'admin' && ADMIN_ONLY.some((re) => re.test(pathname))) {
