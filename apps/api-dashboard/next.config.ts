@@ -35,6 +35,12 @@ const nextConfig: NextConfig = {
   // The app sits behind an ALB that sets no response headers of its own, so
   // this is the only place the site gets any.
   poweredByHeader: false,
+  // deploy/deploy.sh builds into its own directory with its own tsconfig, so the
+  // pre-flight check never reads the .next/dev files a running `next dev` is rewriting.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
+  typescript: {
+    tsconfigPath: process.env.NEXT_TSCONFIG_PATH || "tsconfig.json",
+  },
   turbopack: {
     root: monorepoRoot,
   },

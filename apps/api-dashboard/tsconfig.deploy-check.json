@@ -1,0 +1,15 @@
+{
+  "//": "Used by deploy/deploy.sh's pre-flight build (distDir .next-check). Leaves out .next/, which a running `next dev` may be rewriting.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next-check/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules", ".next", ".next-check/dev"]
+}
