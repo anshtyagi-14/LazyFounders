@@ -18,10 +18,10 @@ export interface SocialProfile {
 }
 
 export const SOCIAL_PROFILE_LIST: SocialProfile[] = [
-  { label: 'X', href: 'https://x.com/lazyfounders' },
+  { label: 'X', href: 'https://x.com/lazyfounders_in' },
   { label: 'LinkedIn', href: 'https://www.linkedin.com/company/lazyfounders' },
   { label: 'Instagram', href: 'https://www.instagram.com/lazyfounders.in/' },
 ];
 
 /** The handle Twitter cards attribute to, derived from the X profile above. */
-export const DEFAULT_TWITTER_HANDLE = '@lazyfounders';
+export const DEFAULT_TWITTER_HANDLE = '@lazyfounders_in';
