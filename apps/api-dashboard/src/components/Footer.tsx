@@ -38,8 +38,8 @@ function FooterLink({
 }
 
 const STICKER =
-  "inline-flex min-h-14 items-center gap-3 rounded-xl bg-white px-4 py-2.5 shadow-sm ring-1 ring-black/10 transition-transform hover:-translate-y-0.5 dark:ring-white/10";
-const STICKER_LABEL = "text-left font-display text-[0.62rem] font-bold uppercase leading-tight tracking-[0.12em] text-slate-500";
+  "inline-flex min-h-[2.625rem] items-center gap-[0.5625rem] bg-white px-3 py-[0.47rem] shadow-sm ring-1 ring-black/10 transition-transform hover:-translate-y-0.5 dark:ring-white/10";
+const STICKER_LABEL = "text-left font-display text-[0.465rem] font-bold uppercase leading-tight tracking-[0.12em] text-slate-500";
 
 /** The platform and the agency behind the site, as white stickers that read the same in both themes. */
 function PartnerStickers() {
@@ -57,9 +57,9 @@ function PartnerStickers() {
           <br />
           by
         </span>
-        <span className="flex items-center gap-1.5">
-          <Image src="/partners/blogy-mark.svg" alt="" width={28} height={28} className="size-7" />
-          <span className="font-display text-lg font-bold tracking-tight text-slate-950">Blogy</span>
+        <span className="flex items-center gap-[0.28rem]">
+          <Image src="/partners/blogy-mark.svg" alt="" width={21} height={21} className="size-[1.3125rem]" />
+          <span className="font-display text-[0.84rem] font-bold tracking-tight text-slate-950">Blogy</span>
         </span>
         <span className="sr-only"> (opens in a new tab)</span>
       </a>
@@ -75,7 +75,7 @@ function PartnerStickers() {
           <br />
           developed by
         </span>
-        <Image src="/partners/gigzman-black.png" alt="gigzman" width={112} height={28} className="h-7 w-auto" />
+        <Image src="/partners/gigzman-black.png" alt="gigzman" width={84} height={21} className="h-[1.3125rem] w-auto" />
         <span className="sr-only"> (opens in a new tab)</span>
       </a>
     </div>
@@ -154,12 +154,13 @@ export function Footer() {
       <div className="mx-auto max-w-7xl overflow-hidden px-4 sm:px-6 lg:px-8">
         {/* Sized to bleed off the edge, clipped by the wrapper: without the clip
             this single word widens the document and the whole page scrolls sideways. */}
-        <p
+        {/* Drawn from a pseudo-element: the watermark is meant to be faint, and as
+            real text it fails every contrast audit despite being aria-hidden. */}
+        <div
           aria-hidden="true"
-          className="select-none whitespace-nowrap border-t border-black/10 pt-10 font-display text-[13vw] font-extrabold uppercase leading-[0.8] tracking-[-0.045em] text-black/5 dark:border-white/10 dark:text-white/8 lg:text-[10.5rem]"
-        >
-          {BRAND}
-        </p>
+          data-wordmark={BRAND}
+          className="select-none whitespace-nowrap border-t border-black/10 pt-10 font-display text-[13vw] font-extrabold uppercase leading-[0.8] tracking-[-0.045em] text-black/5 before:content-[attr(data-wordmark)] dark:border-white/10 dark:text-white/8 lg:text-[10.5rem]"
+        />
       </div>
 
       {/* Bottom padding clears the floating WhatsApp button, which would otherwise sit on the stickers. */}

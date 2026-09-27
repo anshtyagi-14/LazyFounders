@@ -1,4 +1,5 @@
 import Script from 'next/script';
+import { preconnect } from 'react-dom';
 import { AnalyticsClicks } from './AnalyticsClicks';
 
 /**
@@ -20,6 +21,11 @@ export function Analytics() {
     "gtag('js', new Date());",
     `gtag('config', '${GA_MEASUREMENT_ID}');`,
   ].join('\n');
+
+  // gtag's hits go to google-analytics.com; opening that connection up front
+  // takes the handshake off the first pageview beacon.
+  preconnect('https://www.googletagmanager.com');
+  preconnect('https://www.google-analytics.com');
 
   return (
     <>

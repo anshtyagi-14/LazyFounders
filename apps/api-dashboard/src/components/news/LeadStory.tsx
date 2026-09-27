@@ -31,6 +31,7 @@ export function LeadStory({
           alt=""
           width={size === 'lg' ? 1200 : 900}
           height={size === 'lg' ? 675 : 600}
+          sizes={size === 'lg' ? '(min-width: 1280px) 720px, (min-width: 1024px) 60vw, 100vw' : '(min-width: 1280px) 600px, (min-width: 640px) 50vw, 100vw'}
           priority={priority}
           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
         />

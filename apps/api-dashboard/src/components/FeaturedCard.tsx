@@ -67,6 +67,7 @@ export function FeaturedCard({ article, context }: { article: ArticleProps; cont
       <SafeImage
         src={article.imageUrl || "/fallback.webp"}
         alt=""
+        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
         className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent pointer-events-none"></div>

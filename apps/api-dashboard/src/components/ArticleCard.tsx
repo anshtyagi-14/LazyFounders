@@ -12,6 +12,7 @@ export function ArticleCard({ article, context }: { article: ArticleProps; conte
         <SafeImage
           src={article.imageUrl || '/fallback.webp'}
           alt=""
+          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
         />
         <div className="absolute top-4 left-4">

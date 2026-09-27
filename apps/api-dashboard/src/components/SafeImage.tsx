@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { preload } from 'react-dom';
+import { getImageProps } from 'next/image';
 import { reportError, track } from '@/lib/analytics';
 
 const BRAND_FALLBACK = '/fallback.webp';
@@ -24,6 +26,35 @@ interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
    * one image per page priority makes the setting meaningless.
    */
   priority?: boolean;
+  /**
+   * How wide the image renders, as an <img sizes> value. Lets the browser pick a
+   * small rendition on phones; without it the srcset is built from `width`
+   * (1x/2x) or, failing that, assumes the full viewport width.
+   */
+  sizes?: string;
+}
+
+/**
+ * Publisher images arrive as 1-2MB JPEGs at 2000px+, set cookies from their
+ * CDNs and often carry no cache headers. Routing them through the Next image
+ * optimizer serves a resized AVIF/WebP from this origin with a long cache.
+ * SVGs, data URIs and plain-http sources are passed through untouched.
+ */
+function optimizedProps(src: string, width: unknown, height: unknown, sizes: string | undefined) {
+  if (!src.startsWith('/') && !src.startsWith('https://')) return null;
+  if (src.startsWith('//') || /\.svg($|\?)/i.test(src)) return null;
+  const w = Number(width) || 0;
+  const h = Number(height) || 0;
+  try {
+    const { props } = getImageProps(
+      !sizes && w > 0
+        ? { src, alt: '', width: w, height: h || w }
+        : { src, alt: '', fill: true, sizes: sizes ?? '100vw' },
+    );
+    return { src: props.src, srcSet: props.srcSet, sizes: props.sizes };
+  } catch {
+    return null;
+  }
 }
 
 function hostOf(src: string): string {
@@ -34,12 +65,26 @@ function hostOf(src: string): string {
   }
 }
 
-export function SafeImage({ src, fallbackSrc = BRAND_FALLBACK, alt, className, priority = false, ...props }: SafeImageProps) {
+export function SafeImage({ src, fallbackSrc = BRAND_FALLBACK, alt, className, priority = false, sizes, ...props }: SafeImageProps) {
   const [imgSrc, setImgSrc] = useState(src);
   const [failed, setFailed] = useState(false);
+  // The optimizer fetches from our server, which some publishers block while
+  // still serving the reader's browser; one failure drops back to the hotlink.
+  const [skipOptimizer, setSkipOptimizer] = useState(false);
   const ref = useRef<HTMLImageElement>(null);
 
+  const optimized =
+    !skipOptimizer && typeof imgSrc === 'string' ? optimizedProps(imgSrc, props.width, props.height, sizes) : null;
+
+  if (priority && optimized) {
+    preload(optimized.src, { as: 'image', imageSrcSet: optimized.srcSet, imageSizes: optimized.sizes, fetchPriority: 'high' });
+  }
+
   function handleError() {
+    if (optimized) {
+      setSkipOptimizer(true);
+      return;
+    }
     const current = typeof imgSrc === 'string' ? imgSrc : '';
     if (current && current !== fallbackSrc) {
       // Hotlinked publisher images fail often (hotlink blocks, expired CDN paths):
@@ -82,7 +127,9 @@ export function SafeImage({ src, fallbackSrc = BRAND_FALLBACK, alt, className, p
       decoding={priority ? 'sync' : 'async'}
       {...props}
       className={className}
-      src={imgSrc}
+      src={optimized?.src ?? imgSrc}
+      srcSet={optimized?.srcSet}
+      sizes={optimized ? optimized.sizes : sizes}
       // A null from the data layer would drop the attribute entirely; empty keeps it.
       alt={alt ?? ''}
       onError={handleError}
