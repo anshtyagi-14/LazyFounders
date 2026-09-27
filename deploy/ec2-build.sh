@@ -143,7 +143,12 @@ while IFS=: read -r APP_DIR REPO; do
   if [ "\$APP_DIR" = "api-dashboard" ]; then
     EXTRA="--build-arg NEXT_PUBLIC_SITE_URL=\$SITE_URL"
   fi
-  docker build \$EXTRA -t "\$REPO:\$TAG" -f "apps/\$APP_DIR/Dockerfile" . || finish "FAILED_BUILD_\$APP_DIR"
+  # One retry: every image's builder stage runs the whole workspace build, which
+  # fetches npm packages and Google Fonts; a single network blip should not
+  # sink a 20-minute run. A real compile error fails both attempts.
+  docker build \$EXTRA -t "\$REPO:\$TAG" -f "apps/\$APP_DIR/Dockerfile" . \
+    || { echo "=== retrying \$APP_DIR ==="; sleep 20; docker build \$EXTRA -t "\$REPO:\$TAG" -f "apps/\$APP_DIR/Dockerfile" .; } \
+    || finish "FAILED_BUILD_\$APP_DIR"
   docker tag "\$REPO:\$TAG" "\$REGISTRY/\$REPO:\$TAG"
   docker tag "\$REPO:\$TAG" "\$REGISTRY/\$REPO:latest"
 done <<< "\$SERVICES"
