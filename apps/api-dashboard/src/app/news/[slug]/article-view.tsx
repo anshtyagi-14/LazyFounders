@@ -6,7 +6,6 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import { SafeImage } from "@/components/SafeImage";
-import { BrandBadge } from "@/components/BrandBadge";
 import { SourcesSection } from "@/components/SourcesSection";
 import { PoweredByBlogy } from "@/components/PoweredByBlogy";
 import { JsonLd } from "@/components/JsonLd";
@@ -20,7 +19,7 @@ import { BRAND, SITE_URL, articlePath, slugifyCategory, type PublicArticle } fro
 import { authorInitials as initialsOf, authorPath } from "@/lib/authors";
 import { listCategoryFeed } from "@/lib/feed";
 import { canonicalSitePath, categoryForArticle, type SiteCategory } from "@/lib/topics";
-import { imageObjectSchema, resolveImage, type ResolvedImage } from "@/lib/images";
+import { coverImage, imageObjectSchema, type ResolvedImage } from "@/lib/images";
 import { gaAttrs } from "@/lib/ga-attrs";
 import { splitBodyNearMiddle } from "@/lib/article-body";
 import {
@@ -68,15 +67,12 @@ function bodyComponents(headline: string): Components {
   };
 }
 
-/** One image for the hero, og:image, twitter:image and NewsArticle.image. */
+/**
+ * One image for the hero, og:image, twitter:image and NewsArticle.image: our own
+ * cover card. The publisher's photo is never reused (rights, and their logo on it).
+ */
 function articleImage(article: PublicArticle): ResolvedImage {
-  return resolveImage(
-    [
-      { url: article.featuredImage?.url, credit: article.featuredImage?.credit ?? article.featuredImage?.publisher, creditUrl: article.featuredImage?.sourceUrl },
-      { url: article.sourceImage?.url, credit: article.sourceImage?.credit ?? article.sourceImage?.publisher, creditUrl: article.sourceImage?.sourceUrl },
-    ],
-    article.headline,
-  );
+  return coverImage(article.slug, article.headline);
 }
 
 /**
@@ -284,37 +280,10 @@ export async function ArticleView({ article }: { article: PublicArticle }) {
               </aside>
 
               <figure className="rounded-2xl overflow-hidden mb-10 bg-slate-100 ring-1 ring-slate-200 dark:bg-[#121820] dark:ring-white/10">
-                <div className="aspect-video relative">
-                  <SafeImage
-                    src={image.displayUrl}
-                    alt={image.isFallback ? "" : article.headline}
-                    width={image.width ?? 1200}
-                    height={image.height ?? 675}
-                    priority
-                    className="w-full h-full object-cover"
-                  />
-                  <BrandBadge size="md" />
+                <div className="aspect-[40/21] relative">
+                  {/* Decorative: the headline is the H1 right above it. */}
+                  <SafeImage src={image.displayUrl} alt="" width={image.width} height={image.height} priority className="w-full h-full object-cover" />
                 </div>
-                {image.credit ? (
-                  <figcaption className="px-4 py-2 text-xs text-slate-600 dark:text-slate-400">
-                    Image: {image.credit}
-                    {image.creditUrl ? (
-                      <>
-                        {" "}
-                        via{" "}
-                        <a
-                          href={image.creditUrl}
-                          target="_blank"
-                          rel="noopener noreferrer nofollow"
-                          {...gaAttrs("source_select", { content_id: article.id, source_surface: "image_credit" })}
-                          className="underline"
-                        >
-                          source
-                        </a>
-                      </>
-                    ) : null}
-                  </figcaption>
-                ) : null}
               </figure>
 
               <div className="prose-custom max-w-none" data-article-body>
@@ -390,7 +359,7 @@ export async function ArticleView({ article }: { article: PublicArticle }) {
                           className="group flex gap-3 items-start"
                         >
                           <SafeImage
-                            src={r.props.imageUrl || "/fallback.webp"}
+                            src={r.props.imageUrl}
                             alt=""
                             width={64}
                             height={64}

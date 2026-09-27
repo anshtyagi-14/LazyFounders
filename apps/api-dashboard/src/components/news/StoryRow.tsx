@@ -18,7 +18,7 @@ export function StoryRow({ item, showThumb = false, context }: { item: FeedItem;
       {showThumb ? (
         <div className="relative h-16 w-24 shrink-0 overflow-hidden bg-gray-100 dark:bg-[#16161a]">
           <SafeImage
-            src={item.hasImage ? props.imageUrl : '/fallback.webp'}
+            src={props.imageUrl}
             alt=""
             width={96}
             height={64}

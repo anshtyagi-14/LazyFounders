@@ -32,6 +32,7 @@ export interface FeedItem {
   /** Normalised topic labels. The first is the one shown on the card. */
   topics: string[];
   publishedAt: Date;
+  /** Always true now that every story has its own cover (lib/covers); kept for the layout pickers. */
   hasImage: boolean;
   /** True for our own published reporting, false for a stored source story. */
   isOwn: boolean;
@@ -58,7 +59,7 @@ export function ownToFeedItem(a: PublicArticle): FeedItem {
     props: { ...props, category: topics[0] ?? props.category },
     topics,
     publishedAt: a.publishedAt,
-    hasImage: Boolean(a.featuredImage?.url),
+    hasImage: true,
     isOwn: true,
     citationCount: a.citations.length,
   };
@@ -74,7 +75,7 @@ export function sourceToFeedItem(h: SourceHeadline): FeedItem {
     props: { ...props, category: topics[0] ?? h.publisher },
     topics,
     publishedAt: h.publishedAt,
-    hasImage: Boolean(h.imageUrl),
+    hasImage: true,
     isOwn: false,
     citationCount: 0,
   };

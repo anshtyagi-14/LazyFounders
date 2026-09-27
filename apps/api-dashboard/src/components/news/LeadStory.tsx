@@ -27,8 +27,8 @@ export function LeadStory({
     <a {...cardLinkProps(props, context)} className="group block">
       <div className={'relative overflow-hidden bg-gray-100 dark:bg-[#16161a] ' + frame}>
         <SafeImage
-          src={item.hasImage ? props.imageUrl : '/fallback.webp'}
-          alt={item.hasImage ? props.title : ''}
+          src={props.imageUrl}
+          alt=""
           width={size === 'lg' ? 1200 : 900}
           height={size === 'lg' ? 675 : 600}
           priority={priority}

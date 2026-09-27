@@ -3,20 +3,23 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { SafeImage } from "@/components/SafeImage";
 import { withContactStrip } from "@/components/ContactStrip";
-import { BrandBadge } from "@/components/BrandBadge";
 import { PoweredByBlogy } from "@/components/PoweredByBlogy";
 import { articlePath, listPublishedArticles, sourceStoryPath, type SourceStory } from "@/lib/articles";
+import { COVER_HEIGHT, COVER_WIDTH, coverPath, coverPathForStoryUrl } from "@/lib/covers";
 import { authorInitials, authorPath } from "@/lib/authors";
 import { BRAND, pageMetadata } from "@/lib/seo";
 
 /** Metadata for a syndicated story, served at /news/<slug> (see page.tsx). */
 export function sourceMetadata(story: SourceStory): Metadata {
-  const image = story.imageUrl;
+  const path = sourceStoryPath(story.id, story.headline);
   return pageMetadata({
     title: story.headline,
     description: story.excerpt,
-    path: sourceStoryPath(story.id, story.headline),
-    image,
+    path,
+    // Our cover card, never the publisher's photo.
+    image: coverPathForStoryUrl(path, "social"),
+    imageWidth: COVER_WIDTH,
+    imageHeight: COVER_HEIGHT,
     imageAlt: story.headline,
     type: "article",
     publishedTime: story.publishedAt.toISOString(),
@@ -86,17 +89,12 @@ export async function SourceView({ story }: { story: SourceStory }) {
                 </div>
               </div>
 
-              {story.imageUrl ? (
-                <figure className="rounded-2xl overflow-hidden mb-10 bg-slate-100 ring-1 ring-slate-200 dark:bg-[#121820] dark:ring-white/10">
-                  <div className="aspect-video relative">
-                    <SafeImage src={story.imageUrl} alt={story.headline} className="w-full h-full object-cover" />
-                    <BrandBadge size="md" />
-                  </div>
-                  <figcaption className="px-4 py-2 text-xs text-slate-500 dark:text-slate-400">
-                    Image: {story.imageCredit ?? story.publisher}
-                  </figcaption>
-                </figure>
-              ) : null}
+              <figure className="rounded-2xl overflow-hidden mb-10 bg-slate-100 ring-1 ring-slate-200 dark:bg-[#121820] dark:ring-white/10">
+                <div className="aspect-[40/21] relative">
+                  {/* Decorative: the headline is the H1 right above it. */}
+                  <SafeImage src={story.imageUrl} alt="" width={COVER_WIDTH} height={COVER_HEIGHT} className="w-full h-full object-cover" />
+                </div>
+              </figure>
 
               <div className="prose-custom max-w-none">
                 {withContactStrip(
@@ -134,7 +132,7 @@ export async function SourceView({ story }: { story: SourceStory }) {
                     {latest.map((l) => (
                       <Link key={l.id} href={articlePath(l.slug)} className="group flex gap-3 items-start">
                         <SafeImage
-                          src={l.featuredImage?.url || "/fallback.webp"}
+                          src={coverPath(l.slug, "art")}
                           alt=""
                           className="w-16 h-16 rounded-lg object-cover bg-slate-100 dark:bg-[#121820] shrink-0 ring-1 ring-slate-200 dark:ring-white/10"
                           loading="lazy"

@@ -1,6 +1,5 @@
 import React from "react";
 import { SafeImage } from "./SafeImage";
-import { BrandBadge } from "./BrandBadge";
 import { gaAttrs, publishAgeBucket, type ArticleOrigin } from "@/lib/ga-attrs";
 
 export interface ArticleProps {
@@ -67,10 +66,9 @@ export function FeaturedCard({ article, context }: { article: ArticleProps; cont
     >
       <SafeImage
         src={article.imageUrl || "/fallback.webp"}
-        alt={article.title}
+        alt=""
         className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
       />
-      <BrandBadge position="top-right" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 right-0 p-5 z-10">
         <h3 className="text-lg sm:text-xl font-bold text-white mb-3 leading-snug line-clamp-3">

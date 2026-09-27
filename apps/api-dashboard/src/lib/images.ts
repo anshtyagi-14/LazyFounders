@@ -1,12 +1,12 @@
 import { DEFAULT_IMAGE, FALLBACK_IMAGE_PATH, OWNED_IMAGE_RIGHTS, absoluteUrl } from '@/lib/seo';
+import { COVER_HEIGHT, COVER_WIDTH, coverPath } from '@/lib/covers';
 
 /**
  * One image decision per story, shared by the hero, og:image, twitter:image and
  * NewsArticle.image so they can never disagree.
  *
- * Order: the story's own image (the scraped lead image the pipeline attached,
- * already filtered by the source's image policy) → another cited source's lead
- * image → the static brand card.
+ * Stories use coverImage(): our own card, never a publisher's photo. resolveImage()
+ * remains for pages whose image is a URL we own or the static brand card.
  */
 
 export interface ImageCandidate {
@@ -28,6 +28,8 @@ export interface ResolvedImage {
   credit: string | null;
   creditUrl: string | null;
   isFallback: boolean;
+  /** Our own image (a story cover card): carries our rights, not a publisher's. */
+  owned?: boolean;
 }
 
 /**
@@ -46,6 +48,21 @@ export function usableImageUrl(url: string | null | undefined): string | null {
   } catch {
     return null;
   }
+}
+
+/** A story's own cover card: the one image the hero, og:image and NewsArticle.image share. */
+export function coverImage(slug: string, alt: string): ResolvedImage {
+  return {
+    url: absoluteUrl(coverPath(slug, 'social')),
+    displayUrl: coverPath(slug, 'art'),
+    width: COVER_WIDTH,
+    height: COVER_HEIGHT,
+    alt,
+    credit: null,
+    creditUrl: null,
+    isFallback: false,
+    owned: true,
+  };
 }
 
 export function resolveImage(candidates: ImageCandidate[], alt: string): ResolvedImage {
@@ -89,6 +106,7 @@ export function imageObjectSchema(image: ResolvedImage, caption: string): Record
     ...(image.width && image.height ? { width: image.width, height: image.height } : {}),
   };
   if (image.isFallback) return { ...base, ...OWNED_IMAGE_RIGHTS };
+  if (image.owned) return { ...base, caption, ...OWNED_IMAGE_RIGHTS };
 
   const origin = safeOrigin(image.creditUrl);
   const owner = image.credit?.trim() || (origin ? new URL(origin).hostname.replace(/^www\./, '') : null);

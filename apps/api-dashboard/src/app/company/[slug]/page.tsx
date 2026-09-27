@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { listPublishedArticles } from '@/lib/articles';
 import Link from 'next/link';
 import { SafeImage } from '../../../components/SafeImage';
-import { BrandBadge } from '../../../components/BrandBadge';
+import { coverPath } from '@/lib/covers';
 import { JsonLd } from '../../../components/JsonLd';
 import { withContactStrip } from '../../../components/ContactStrip';
 import { BRAND, collectionPageSchema, pageMetadata } from '@/lib/seo';
@@ -56,7 +56,7 @@ async function loadCompany(params: Props['params']) {
     articles = published.map((a) => ({
       id: a.id,
       slug: a.slug,
-      headerImage: a.featuredImage?.url ?? null,
+      headerImage: coverPath(a.slug, 'art'),
       seoTitle: a.headline,
       metaDescription: a.metaDescription,
       createdAt: a.publishedAt,
@@ -144,8 +144,7 @@ export default async function CompanyNewsPage({ params }: Props) {
                   <div className="h-48 bg-slate-100 w-full relative overflow-hidden border-b border-black/10 dark:bg-slate-900 dark:border-white/5">
                     {article.headerImage ? (
                       <>
-                        <SafeImage src={article.headerImage} alt={article.seoTitle} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
-                        <BrandBadge />
+                        <SafeImage src={article.headerImage} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
                       </>
                     ) : (
                       <div className="absolute inset-0 bg-gradient-to-br from-teal-900/40 to-slate-900 flex items-center justify-center">

@@ -6,7 +6,7 @@ import { SITE_LANG, xmlEscape } from '@/lib/seo';
 import { SITE_CATEGORIES, categoryForArticle, type CategorySlug } from '@/lib/topics';
 import { MIN_COMPANY_STORIES } from '@/lib/companies';
 import { companyIndex } from '@/lib/company-index';
-import { usableImageUrl } from '@/lib/images';
+import { coverPath } from '@/lib/covers';
 import { stampSitemapGenerated } from '@/lib/health';
 import { recordSiteError } from '@/lib/site-errors';
 
@@ -87,19 +87,16 @@ ${body}
 
 // --- data --------------------------------------------------------------------
 
-/** Lead image per published version, only when it is a URL we would actually show. */
-async function imagesByVersion(versionIds: string[]): Promise<Map<string, { url: string; headline: string }>> {
+/** Headline per published version (Google News needs it). */
+async function headlinesByVersion(versionIds: string[]): Promise<Map<string, string>> {
   if (versionIds.length === 0) return new Map();
-  const versions = await prisma.articleVersion.findMany({
-    where: { id: { in: versionIds } },
-    select: { id: true, featuredImage: true, headline: true },
-  });
-  return new Map(
-    versions.map((v) => {
-      const url = usableImageUrl((v.featuredImage as { url?: string } | null)?.url);
-      return [v.id, { url: url && /^https:/.test(url) ? url : '', headline: v.headline }];
-    }),
-  );
+  const versions = await prisma.articleVersion.findMany({ where: { id: { in: versionIds } }, select: { id: true, headline: true } });
+  return new Map(versions.map((v) => [v.id, v.headline]));
+}
+
+/** Every story's image is our own cover card, never the publisher's photo. */
+function coverUrl(slug: string): string {
+  return `${SITE_URL}${coverPath(slug)}`;
 }
 
 async function newestPublished(): Promise<Date | null> {
@@ -177,20 +174,16 @@ export async function articleEntries(bucket: SectionBucket, page: number): Promi
   if (inSection.length === 0) return [];
   const rows = await prisma.article.findMany({
     where: { ...PUBLIC_WHERE, OR: inSection },
-    select: { slug: true, updatedAt: true, publishedAt: true, publishedVersionId: true },
+    select: { slug: true, updatedAt: true, publishedAt: true },
     orderBy: [{ publishedAt: 'desc' }, { id: 'asc' }],
     skip: (page - 1) * ARTICLES_PER_FILE,
     take: ARTICLES_PER_FILE,
   });
-  const images = await imagesByVersion(rows.map((r) => r.publishedVersionId).filter((x): x is string => Boolean(x)));
-  return rows.map((r) => {
-    const img = r.publishedVersionId ? images.get(r.publishedVersionId)?.url : '';
-    return {
-      loc: `${SITE_URL}${articlePath(r.slug)}`,
-      lastmod: r.updatedAt ?? r.publishedAt,
-      images: img ? [img] : undefined,
-    };
-  });
+  return rows.map((r) => ({
+    loc: `${SITE_URL}${articlePath(r.slug)}`,
+    lastmod: r.updatedAt ?? r.publishedAt,
+    images: [coverUrl(r.slug)],
+  }));
 }
 
 export async function newsEntries(now = Date.now()): Promise<UrlEntry[]> {
@@ -200,15 +193,15 @@ export async function newsEntries(now = Date.now()): Promise<UrlEntry[]> {
     orderBy: { publishedAt: 'desc' },
     take: NEWS_MAX,
   });
-  const versions = await imagesByVersion(rows.map((r) => r.publishedVersionId).filter((x): x is string => Boolean(x)));
+  const headlines = await headlinesByVersion(rows.map((r) => r.publishedVersionId).filter((x): x is string => Boolean(x)));
   const out: UrlEntry[] = [];
   for (const r of rows) {
-    const v = r.publishedVersionId ? versions.get(r.publishedVersionId) : undefined;
-    if (!v?.headline || !r.publishedAt) continue;
+    const headline = r.publishedVersionId ? headlines.get(r.publishedVersionId) : undefined;
+    if (!headline || !r.publishedAt) continue;
     out.push({
       loc: `${SITE_URL}${articlePath(r.slug)}`,
-      news: { title: v.headline, publishedAt: r.publishedAt },
-      images: v.url ? [v.url] : undefined,
+      news: { title: headline, publishedAt: r.publishedAt },
+      images: [coverUrl(r.slug)],
     });
   }
   return out;

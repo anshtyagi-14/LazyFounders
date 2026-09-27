@@ -1,7 +1,6 @@
 import React from 'react';
 import { cardLinkProps, type ArticleProps, type CardContext } from './FeaturedCard';
 import { SafeImage } from './SafeImage';
-import { BrandBadge } from './BrandBadge';
 
 export function ArticleCard({ article, context }: { article: ArticleProps; context?: CardContext }) {
   return (
@@ -12,10 +11,9 @@ export function ArticleCard({ article, context }: { article: ArticleProps; conte
       <div className="relative h-48 overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0">
         <SafeImage
           src={article.imageUrl || '/fallback.webp'}
-          alt={article.title}
+          alt=""
           className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
         />
-        <BrandBadge />
         <div className="absolute top-4 left-4">
           <div className="flex items-center space-x-1 bg-white dark:bg-gray-900 px-3 py-1 rounded-full text-xs font-medium shadow-lg">
             <svg

@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { scrubForeignContacts, slugify, stripAuthorBio } from '@lazyfounders/ingestion-core/editorial';
 import { authorInitials, authorPath, defaultAuthor, loadAuthors, type PublicAuthor } from '@/lib/authors';
 import type { ArticleProps } from '../components/FeaturedCard';
+import { coverPath, coverPathForStoryUrl } from '@/lib/covers';
 
 /**
  * Public read model. Only versions that an editor (or the auto-publish policy) published
@@ -52,12 +53,8 @@ export interface PublicArticle {
   metaDescription: string;
   intro: string;
   bodyMarkdown: string;
+  /** The publisher's lead image the pipeline stored. Never shown: every story uses its own cover (lib/covers). */
   featuredImage: FeaturedImage | null;
-  /**
-   * Second step of the image chain: another cited source's lead image, used
-   * when the story has none of its own. Only loaded for the article page.
-   */
-  sourceImage?: FeaturedImage | null;
   citations: PublicCitation[];
   readTime: number;
   isLegacy: boolean;
@@ -150,7 +147,7 @@ function toPublic({ a, v, author }: Awaited<ReturnType<typeof withVersions>>[num
 export function toArticleProps(p: PublicArticle): ArticleProps {
   return {
     url: articlePath(p.slug),
-    imageUrl: p.featuredImage?.url || FALLBACK_IMAGE_PATH,
+    imageUrl: coverPath(p.slug, 'art'),
     category: p.category,
     title: sanitizeHeadline(p.headline),
     description: sanitizeHeadline(p.metaDescription),
@@ -205,25 +202,7 @@ export async function getPublishedArticle(slug: string): Promise<PublicArticle |
   if (!a) return null;
   const [row] = await withVersions([a]);
   if (!row) return null;
-  const article = toPublic(row);
-  if (!article.featuredImage?.url && a.storyId) article.sourceImage = await storySourceImage(a.storyId);
-  return article;
-}
-
-/**
- * The first lead image among a story's sources whose image policy allows showing
- * it (the same rule the pipeline applies to the primary source).
- */
-async function storySourceImage(storyId: string): Promise<FeaturedImage | null> {
-  const rows = await prisma.storySource.findMany({
-    where: { storyId, sourceArticle: { leadImage: { not: null }, source: { imagePolicy: { not: 'none' } } } },
-    orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
-    take: 1,
-    select: { sourceArticle: { select: { leadImage: true, imageCredit: true, publisher: true, canonicalUrl: true, finalUrl: true } } },
-  });
-  const s = rows[0]?.sourceArticle;
-  if (!s?.leadImage) return null;
-  return { url: s.leadImage, credit: s.imageCredit ?? s.publisher, publisher: s.publisher, sourceUrl: s.canonicalUrl ?? s.finalUrl };
+  return toPublic(row);
 }
 
 /**
@@ -237,7 +216,8 @@ export interface SourceHeadline {
   sourceUrl: string;
   headline: string;
   excerpt: string;
-  imageUrl: string | null;
+  /** Our cover art for the story (lib/covers), never the publisher's photo. */
+  imageUrl: string;
   publisher: string;
   publishedAt: Date;
   /** Raw publisher category labels. Normalise with normalizeTopics() before display. */
@@ -252,7 +232,6 @@ export interface SourceHeadline {
 
 export interface SourceStory extends SourceHeadline {
   subheadline: string | null;
-  imageCredit: string | null;
   language: string | null;
   paragraphs: string[];
 }
@@ -322,9 +301,8 @@ export async function listSourceHeadlines(opts: { take?: number; categories?: st
     take: take * 3,
     select: {
       id: true, canonicalFingerprint: true, headline: true, subheadline: true, bodyText: true,
-      leadImage: true, publisher: true, publishedAt: true, fetchedAt: true,
+      publisher: true, publishedAt: true, fetchedAt: true,
       canonicalUrl: true, finalUrl: true, originalUrl: true, categories: true, tags: true,
-      source: { select: { imagePolicy: true } },
     },
   });
   const editor = await editorP;
@@ -339,8 +317,7 @@ export async function listSourceHeadlines(opts: { take?: number; categories?: st
       sourceUrl: url,
       headline: sanitizeHeadline(r.headline),
       excerpt: excerptOf(sanitizeHeadline(scrubForeignContacts(r.subheadline || r.bodyText || '').text)),
-      // A source that has not licensed its images for display gets the brand card.
-      imageUrl: r.source.imagePolicy === 'none' ? null : httpUrl(r.leadImage),
+      imageUrl: coverPathForStoryUrl(sourceStoryPath(r.id, r.headline), 'art'),
       publisher: r.publisher,
       publishedAt: r.publishedAt ?? r.fetchedAt,
       // Categories only: tags are entities ("Meta", "OpenAI", "TechCrunch Disrupt"),
@@ -393,10 +370,9 @@ export async function getSourceStory(param: string): Promise<SourceStoryResult> 
     take: 5,
     select: {
       id: true, headline: true, subheadline: true, author: true, bodyText: true,
-      leadImage: true, imageCredit: true, publisher: true, language: true,
+      publisher: true, language: true,
       publishedAt: true, fetchedAt: true, canonicalUrl: true, finalUrl: true, originalUrl: true, categories: true, tags: true,
       storySource: { select: { story: { select: { article: { select: { slug: true, publishedVersionId: true, status: true } } } } } },
-      source: { select: { imagePolicy: true } },
     },
   });
   // Two ids sharing 8 hex characters is rare; the one whose headline matches the slug wins.
@@ -423,8 +399,7 @@ export async function getSourceStory(param: string): Promise<SourceStoryResult> 
       subheadline: sanitizeHeadline(scrubForeignContacts(r.subheadline ?? '').text) || null,
       excerpt: excerptOf(sanitizeHeadline(r.subheadline || bodyText)),
       editor: await editorP,
-      imageUrl: r.source.imagePolicy === 'none' ? null : httpUrl(r.leadImage),
-      imageCredit: r.imageCredit,
+      imageUrl: coverPathForStoryUrl(sourceStoryPath(r.id, r.headline), 'art'),
       publisher: r.publisher,
       language: r.language,
       publishedAt: r.publishedAt ?? r.fetchedAt,
@@ -440,7 +415,7 @@ export async function getSourceStory(param: string): Promise<SourceStoryResult> 
 export function headlineToArticleProps(h: SourceHeadline): ArticleProps {
   return {
     url: sourceStoryPath(h.id, h.headline),
-    imageUrl: h.imageUrl || FALLBACK_IMAGE_PATH,
+    imageUrl: h.imageUrl,
     category: h.publisher,
     title: sanitizeHeadline(h.headline),
     description: sanitizeHeadline(h.excerpt),

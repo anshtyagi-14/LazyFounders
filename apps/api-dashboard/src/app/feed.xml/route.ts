@@ -1,5 +1,6 @@
 import { listPublishedArticles } from '@/lib/articles';
 import { BRAND, SITE_DESCRIPTION, SITE_LANG, SITE_LOGO, SITE_URL, stripMarkdown, clamp, xmlEscape } from '@/lib/seo';
+import { coverPath } from '@/lib/covers';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -18,7 +19,7 @@ export async function GET() {
     .map((a) => {
       const url = `${SITE_URL}/news/${a.slug}`;
       const summary = a.metaDescription || clamp(stripMarkdown(a.intro), 300);
-      const image = a.featuredImage?.url;
+      const image = `${SITE_URL}${coverPath(a.slug)}`;
       return [
         '    <item>',
         `      <title>${xmlEscape(a.headline)}</title>`,
@@ -27,7 +28,7 @@ export async function GET() {
         `      <pubDate>${a.publishedAt.toUTCString()}</pubDate>`,
         `      <category>${xmlEscape(a.category)}</category>`,
         `      <description>${xmlEscape(summary)}</description>`,
-        image ? `      <enclosure url="${xmlEscape(image)}" type="image/jpeg" />` : '',
+        `      <enclosure url="${xmlEscape(image)}" type="image/png" length="0" />`,
         '    </item>',
       ]
         .filter(Boolean)
