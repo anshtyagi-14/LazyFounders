@@ -732,12 +732,51 @@ model Lead {
   @@map("leads")
 }
 
+/// "Talk to founder" conversations started from the public site's chat widget.
+/// Answered from the admin console (Founder chat); the visitor reads replies in the widget.
+model FounderChat {
+  id              String               @id @default(uuid()) @db.Uuid
+  name            String
+  email           String /// lowercased and trimmed before insert
+  status          String               @default("open") /// open | closed
+  /// sha256 of the visitor's secret; the secret itself only lives in their browser.
+  tokenHash       String               @map("token_hash")
+  pagePath        String?              @map("page_path")
+  utmSource       String?              @map("utm_source")
+  utmMedium       String?              @map("utm_medium")
+  utmCampaign     String?              @map("utm_campaign")
+  referrer        String?
+  unreadByAdmin   Int                  @default(0) @map("unread_by_admin")
+  unreadByVisitor Int                  @default(0) @map("unread_by_visitor")
+  lastMessageAt   DateTime             @default(now()) @map("last_message_at")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+  messages        FounderChatMessage[]
+
+  @@index([status, lastMessageAt])
+  @@map("founder_chats")
+}
+
+model FounderChatMessage {
+  id        String      @id @default(uuid()) @db.Uuid
+  chatId    String      @map("chat_id") @db.Uuid
+  chat      FounderChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  author    String /// visitor | founder
+  /// The editor login that sent a founder reply.
+  editor    String?
+  body      String
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@index([chatId, createdAt])
+  @@map("founder_chat_messages")
+}
+
 /// Public-site errors (server render, client boundary, image, API, sitemap,
 /// email capture) for the admin error list. Repeats of the same error collapse
 /// into one row through the fingerprint, so a burst stays one line with a count.
 model SiteError {
   id          String    @id @default(uuid()) @db.Uuid
-  type        String    /// server_error | page_error | article_render | api_error | image_error | email_capture | contact_form | sitemap
+  type        String    /// server_error | page_error | article_render | api_error | image_error | email_capture | contact_form | founder_chat | sitemap
   route       String
   message     String
   fingerprint String    @unique

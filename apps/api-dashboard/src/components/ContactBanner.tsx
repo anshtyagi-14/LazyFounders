@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { gaAttrs } from '@/lib/ga-attrs';
 import { SITE_CONTACTS } from '@/lib/site-contacts';
-import { WhatsAppIcon, whatsAppLinkProps } from './WhatsApp';
+import { ChatIcon, TalkToFounderButton } from './TalkToFounderButton';
 
 /**
  * "Get in touch" strip rendered once in the root layout, just above the footer,
@@ -45,17 +45,17 @@ export function ContactBanner() {
               >
                 {SITE_CONTACTS.general}
               </a>
-              {' '}or message us on WhatsApp. We read every message.
+              {' '}or talk to the founder directly. We read every message.
             </p>
           </div>
           <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-            <a
-              {...whatsAppLinkProps('contact_banner')}
-              className="inline-flex min-h-11 items-center justify-center gap-2 bg-[#25D366] px-6 py-3 font-display text-sm font-bold uppercase tracking-[0.08em] text-black transition-colors hover:bg-[#1ebe5a]"
+            <TalkToFounderButton
+              surface="contact_banner"
+              className="inline-flex min-h-11 items-center justify-center gap-2 bg-[#0B0B0E] px-6 py-3 font-display text-sm font-bold uppercase tracking-[0.08em] text-teal-500 ring-1 ring-teal-500/60 transition-colors hover:bg-black dark:bg-black"
             >
-              <WhatsAppIcon className="h-5 w-5" />
-              WhatsApp us
-            </a>
+              <ChatIcon className="h-5 w-5" />
+              Talk to founder
+            </TalkToFounderButton>
             <Link
               href="/contact"
               {...gaAttrs('contact_click', { source_surface: 'contact_banner', content_id: 'contact_page' })}

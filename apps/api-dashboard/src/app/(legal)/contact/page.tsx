@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { Email, LegalPage } from '@/components/LegalPage';
 import { ContactForm } from '@/components/ContactForm';
 import { SITE_CONTACTS } from '@/lib/site-contacts';
-import { WhatsAppIcon, whatsAppLinkProps } from '@/components/WhatsApp';
+import { ChatIcon, TalkToFounderButton } from '@/components/TalkToFounderButton';
 import { BRAND, pageMetadata } from '@/lib/seo';
 
 const PATH = '/contact';
@@ -23,14 +23,14 @@ export default function ContactPage() {
         Questions, feedback and story tips: <Email address={SITE_CONTACTS.general} />.
       </p>
 
-      <h2>WhatsApp</h2>
+      <h2>Talk to the founder</h2>
       <p>
-        Prefer to message?{' '}
-        <a {...whatsAppLinkProps('contact_page')} className="inline-flex items-center gap-1.5">
-          <WhatsAppIcon className="h-4 w-4" />
-          Chat with us on WhatsApp
-        </a>
-        .
+        Prefer to chat?{' '}
+        <TalkToFounderButton surface="contact_page" className="inline-flex items-center gap-1.5 font-medium text-teal-700 underline underline-offset-2 hover:text-teal-600 dark:text-teal-400">
+          <ChatIcon className="h-4 w-4" />
+          Message the founder directly
+        </TalkToFounderButton>
+        . Replies appear in the same chat window.
       </p>
 
       <h2>Corrections and editorial</h2>

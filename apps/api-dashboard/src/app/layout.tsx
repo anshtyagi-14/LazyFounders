@@ -3,7 +3,7 @@ import { Archivo, Newsreader, Outfit } from 'next/font/google';
 import './globals.css';
 import { Footer } from '../components/Footer';
 import { ContactBanner } from '../components/ContactBanner';
-import { WhatsAppFloat } from '../components/WhatsAppFloat';
+import { FounderChat } from '../components/FounderChat';
 import { SiteHeader } from '../components/site/SiteHeader';
 import { JsonLd } from '../components/JsonLd';
 import { Analytics } from '../components/Analytics';
@@ -144,7 +144,7 @@ export default function RootLayout({
         </div>
         <ContactBanner />
         <Footer />
-        <WhatsAppFloat />
+        <FounderChat />
         <Analytics />
         <WebVitals />
       </body>

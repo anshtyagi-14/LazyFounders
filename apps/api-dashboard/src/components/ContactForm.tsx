@@ -138,7 +138,7 @@ export function ContactForm() {
         </div>
         <div>
           <label htmlFor={`${id}-phone`} className={labelClass}>
-            Phone or WhatsApp
+            Phone
           </label>
           <input id={`${id}-phone`} name="phone" type="tel" maxLength={40} autoComplete="tel" inputMode="tel" className={fieldClass} />
         </div>

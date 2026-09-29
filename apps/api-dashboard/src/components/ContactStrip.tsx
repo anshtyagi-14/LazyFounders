@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { gaAttrs } from '@/lib/ga-attrs';
-import { WhatsAppIcon, whatsAppLinkProps } from './WhatsApp';
+import { ChatIcon, TalkToFounderButton } from './TalkToFounderButton';
 
 /**
  * Slim (50px) contact strip placed inline, roughly halfway down each public
@@ -18,14 +18,13 @@ export function ContactStrip({ surface, className = '' }: { surface: string; cla
         <span className="font-semibold text-gray-900 dark:text-white">Got a story tip or partnership idea?</span>
         <span className="hidden md:inline"> We read every message.</span>
       </p>
-      <a
-        {...whatsAppLinkProps('contact_strip')}
-        aria-label="Chat with us on WhatsApp"
-        className="inline-flex shrink-0 items-center gap-1.5 bg-[#25D366] px-3 py-1.5 font-display text-xs font-bold uppercase tracking-[0.08em] text-black! no-underline! transition-colors hover:bg-[#1ebe5a]"
+      <TalkToFounderButton
+        surface={`contact_strip_${surface}`}
+        className="inline-flex shrink-0 items-center gap-1.5 bg-[#0B0B0E] px-3 py-1.5 font-display text-xs font-bold uppercase tracking-[0.08em] text-teal-500 ring-1 ring-teal-500/60 transition-colors hover:bg-black"
       >
-        <WhatsAppIcon className="h-4 w-4" />
-        <span className="hidden sm:inline">WhatsApp</span>
-      </a>
+        <ChatIcon className="h-4 w-4" />
+        <span className="sr-only sm:not-sr-only">Talk to founder</span>
+      </TalkToFounderButton>
       <Link
         href="/contact"
         {...gaAttrs('contact_click', { source_surface: 'contact_strip', content_id: surface })}

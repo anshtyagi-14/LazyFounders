@@ -10,6 +10,7 @@ export const SITE_ERROR_TYPES = [
   'image_error',
   'email_capture',
   'contact_form',
+  'founder_chat',
   'sitemap',
 ] as const;
 export type SiteErrorType = (typeof SITE_ERROR_TYPES)[number];
