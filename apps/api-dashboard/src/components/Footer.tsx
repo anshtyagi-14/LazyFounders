@@ -41,7 +41,7 @@ const STICKER =
   "inline-flex min-h-[2.625rem] items-center gap-[0.5625rem] bg-white px-3 py-[0.47rem] shadow-sm ring-1 ring-black/10 transition-transform hover:-translate-y-0.5 dark:ring-white/10";
 const STICKER_LABEL = "text-left font-display text-[0.465rem] font-bold uppercase leading-tight tracking-[0.12em] text-slate-500";
 
-/** The platform and the agency behind the site, as white stickers that read the same in both themes. */
+/** The platform, the agency and the leads partner behind the site, as white stickers that read the same in both themes. */
 function PartnerStickers() {
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -76,6 +76,21 @@ function PartnerStickers() {
           developed by
         </span>
         <Image src="/partners/gigzman-black.png" alt="gigzman" width={84} height={21} className="h-[1.3125rem] w-auto" />
+        <span className="sr-only"> (opens in a new tab)</span>
+      </a>
+      <a
+        href="https://mantisai.in"
+        target="_blank"
+        rel="noopener"
+        {...gaAttrs("partner_select", { content_id: "mantis", source_surface: "footer" })}
+        className={STICKER}
+      >
+        <span className={STICKER_LABEL}>
+          Leads
+          <br />
+          partner
+        </span>
+        <Image src="/partners/mantis-wordmark.png" alt="Mantis" width={87} height={21} className="h-[1.3125rem] w-auto" />
         <span className="sr-only"> (opens in a new tab)</span>
       </a>
     </div>
@@ -163,7 +178,7 @@ export function Footer() {
         />
       </div>
 
-      {/* Bottom padding clears the floating WhatsApp button, which would otherwise sit on the stickers. */}
+      {/* Bottom padding clears the floating "Talk to founder" button, which would otherwise sit on the stickers. */}
       <div className="mx-auto max-w-7xl px-4 pb-24 pt-8 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-6 text-xs text-gray-500 dark:border-white/10">
           <p>
