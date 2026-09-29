@@ -13,6 +13,12 @@ describe('sanitizeHeadline', () => {
     expect(sanitizeHeadline('A &amp; B <strong>headline</strong>')).toBe('A & B headline');
     expect(sanitizeHeadline('  &nbsp;  Hello&nbsp;world  ')).toBe('Hello world');
   });
+
+  test('drops markdown emphasis the drafter or the publisher left in plain-text fields', () => {
+    expect(sanitizeHeadline('*WIRED* has released its 2026 gift guide')).toBe('WIRED has released its 2026 gift guide');
+    expect(sanitizeHeadline('Tiny Health raises **$33M**')).toBe('Tiny Health raises $33M');
+    expect(sanitizeHeadline('the user_id field, 5 * 3')).toBe('the user_id field, 5 * 3');
+  });
 });
 
 describe('sourceStoryPath', () => {

@@ -4,6 +4,9 @@ import { Readability } from '@mozilla/readability';
 import type { SourceAdapter } from '../registry/adapters';
 import { htmlToText, sanitizeArticleHtml } from './sanitize';
 import { cleanAuthor } from './author';
+import { stripInlineMarkdown } from './plain-text';
+
+const plain = (s: string | null | undefined): string | null => (s ? stripInlineMarkdown(s) || null : null);
 
 export interface ExtractedArticle {
   canonicalUrl: string | null;
@@ -181,7 +184,8 @@ export function extractArticle(rawHtml: string, url: string, adapter?: SourceAda
   return {
     canonicalUrl: canonical ? safeAbs(canonical, url) : null,
     headline: fromAdapter.headline ?? str(ld?.headline) ?? meta($, 'og:title', 'twitter:title') ?? ($('h1').first().text().trim() || null),
-    subheadline: fromAdapter.subheadline ?? str(ld?.alternativeHeadline) ?? str(ld?.description) ?? meta($, 'og:description', 'description'),
+    // Some publishers' descriptions come from a markdown CMS (*WIRED*); the dek is plain text.
+    subheadline: plain(fromAdapter.subheadline ?? str(ld?.alternativeHeadline) ?? str(ld?.description) ?? meta($, 'og:description', 'description')),
     author: cleanAuthor(fromAdapter.author ?? str(ld?.author) ?? meta($, 'author', 'article:author'), str(ld?.publisher) ?? meta($, 'og:site_name')),
     publishedAt: toDate(fromAdapter.publishedAt) ?? toDate(ld?.datePublished) ?? toDate(meta($, 'article:published_time')) ?? toDate($('time[datetime]').first().attr('datetime')),
     modifiedAt: toDate(fromAdapter.modifiedAt) ?? toDate(ld?.dateModified) ?? toDate(meta($, 'article:modified_time', 'og:updated_time')),

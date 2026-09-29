@@ -8,7 +8,7 @@
 export const PROMPT_VERSIONS = {
   extract: 'extract.v1',
   translate: 'translate.v1',
-  generate: 'generate.v3',
+  generate: 'generate.v4',
 } as const;
 
 export interface PromptPair {
@@ -126,6 +126,7 @@ export function generatePrompt(input: GeneratePromptInput): PromptPair {
       `category must be one of: ${input.categories.join(', ')}.`,
       'internalLinkIds: choose only ids from the provided candidates that are genuinely relevant; an empty list is fine.',
       'Do not write a sources section, links or calls to action; the system adds them.',
+      'headline, seoTitle, metaDescription, intro and socialSummary are plain text shown as-is: no markdown at all (no *, **, _, #, backticks or [links]). Write publication names such as WIRED or The Hindu without italics or quotes.',
       'Never include an email address, phone number or "contact the reporter" line from any source. Reporter bios and press contacts are not part of the story.',
     ].join('\n'),
     user: JSON.stringify(

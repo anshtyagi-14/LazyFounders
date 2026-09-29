@@ -10,6 +10,7 @@ import {
   type LlmClient,
 } from '@lazyfounders/llm';
 import { scrubForeignContacts } from '../content/contacts';
+import { stripInlineMarkdown } from '../content/plain-text';
 import { renderArticleMarkdown, slugify, versionContentHash, type Citation, type InternalLink } from '../editorial/render';
 import { TerminalError } from '../errors';
 import type { StageHandler } from '../jobs/execute';
@@ -50,7 +51,18 @@ export async function generateVersion(llm: LlmClient, ctx: GenerationContext, co
   });
   const res = await llm.structured({ task: 'generate', promptVersion: prompt.version, system: prompt.system, user: prompt.user, schema: GeneratedArticleSchema });
   // Facts can carry a quoted press contact; no third-party address is ever published.
-  const article = { ...res.data, intro: scrubForeignContacts(res.data.intro).text, slug: slugify(res.data.slug || res.data.headline) };
+  // The plain-text fields lose any markdown the model slipped in anyway (*WIRED*), which
+  // every surface outside the body would otherwise print as literal asterisks.
+  const d = res.data;
+  const article = {
+    ...d,
+    headline: stripInlineMarkdown(d.headline),
+    seoTitle: stripInlineMarkdown(d.seoTitle),
+    metaDescription: stripInlineMarkdown(d.metaDescription),
+    intro: stripInlineMarkdown(scrubForeignContacts(d.intro).text),
+    socialSummary: stripInlineMarkdown(d.socialSummary),
+    slug: slugify(d.slug || d.headline),
+  };
   const bodyMarkdown = scrubForeignContacts(renderArticleMarkdown(article, { brand: config.brand, citations: ctx.citations, links: ctx.links })).text;
   return {
     article,

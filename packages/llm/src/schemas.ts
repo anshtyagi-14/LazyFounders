@@ -107,7 +107,7 @@ export type Extraction = z.infer<typeof ExtractionSchema>;
 export type ExtractedClaim = z.infer<typeof ClaimSchema>;
 
 export const TranslationSchema = z.object({
-  headline: z.string(),
+  headline: z.string().describe('plain text, no markdown'),
   summary: z.string(),
   keyFacts: z.array(z.string()),
   claims: z.array(z.object({ index: z.number(), text: z.string() })),
@@ -122,10 +122,10 @@ const SectionSchema = z.object({
 
 export const GeneratedArticleSchema = z.object({
   headline: z.string(),
-  seoTitle: z.string().describe('<= 60 characters'),
-  metaDescription: z.string().describe('120-160 characters'),
+  seoTitle: z.string().describe('<= 60 characters, plain text, no markdown'),
+  metaDescription: z.string().describe('120-160 characters, plain text, no markdown'),
   slug: z.string().describe('lowercase-hyphenated, no dates'),
-  intro: z.string().describe('2-3 sentence introduction'),
+  intro: z.string().describe('2-3 sentence introduction, plain text, no markdown'),
   summary30s: z.array(z.string()).describe('3-5 bullets for the 30 SEC SUMMARY box'),
   keyHighlights: z.array(z.string()).describe('3-6 factual highlights'),
   sections: z.array(SectionSchema),
@@ -134,7 +134,7 @@ export const GeneratedArticleSchema = z.object({
   faq: z.array(z.object({ question: z.string(), answer: z.string() })),
   category: z.enum(CATEGORIES),
   tags: z.array(z.string()),
-  socialSummary: z.string().describe('<= 280 characters'),
+  socialSummary: z.string().describe('<= 280 characters, plain text, no markdown'),
   internalLinkIds: z.array(z.string()).describe('Only ids from the provided internal link candidates'),
 });
 export type GeneratedArticle = z.infer<typeof GeneratedArticleSchema>;

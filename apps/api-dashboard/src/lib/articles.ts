@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { scrubForeignContacts, slugify, stripAuthorBio } from '@lazyfounders/ingestion-core/editorial';
+import { scrubForeignContacts, slugify, stripAuthorBio, stripInlineMarkdown } from '@lazyfounders/ingestion-core/editorial';
 import { authorInitials, authorPath, defaultAuthor, loadAuthors, type PublicAuthor } from '@/lib/authors';
 import type { ArticleProps } from '../components/FeaturedCard';
 import { coverPath, coverPathForStoryUrl } from '@/lib/covers';
@@ -108,7 +108,9 @@ export function sanitizeHeadline(value: string | null | undefined): string {
     decoded = next;
   }
 
-  return decoded.replace(/\s+/g, ' ').trim();
+  // These fields print as text, so emphasis the model or the publisher wrote as markdown
+  // (*WIRED*, **$33M**) would show up as literal asterisks.
+  return stripInlineMarkdown(decoded.replace(/\s+/g, ' ').trim()).trim();
 }
 
 type ArticleRow = Awaited<ReturnType<typeof prisma.article.findMany>>[number];

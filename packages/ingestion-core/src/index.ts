@@ -19,6 +19,7 @@ export * from './jobs/outbox';
 export * from './jobs/dlq';
 export * from './jobs/inline-runner';
 export * from './content/sanitize';
+export * from './content/plain-text';
 export * from './content/language';
 export * from './content/extract';
 export * from './content/paywall';
