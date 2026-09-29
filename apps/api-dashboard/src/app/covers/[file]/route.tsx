@@ -86,7 +86,22 @@ function Wordmark({ mark, size }: { mark: string; size: number }) {
   );
 }
 
-/** With the headline: what social networks and search engines show for the story. */
+/** The gold LAZYFOUNDER pill that marks a share card as ours. */
+function Badge({ mark }: { mark: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', backgroundColor: GOLD, color: '#0B0B0E', padding: '10px 26px 10px 12px', borderRadius: 999 }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={mark} width={44} height={44} alt="" style={{ borderRadius: 12, marginRight: 14 }} />
+      <div style={{ display: 'flex', fontFamily: 'Archivo', fontSize: 28, letterSpacing: 3 }}>LAZYFOUNDER</div>
+    </div>
+  );
+}
+
+/**
+ * With the headline: what social networks and search engines show for the story.
+ * Everything is centred: WhatsApp and other chat apps crop small previews to the
+ * middle square (x 285-915), and the badge and headline have to survive that.
+ */
 function SocialCard({ story, mark, slug }: { story: { headline: string; section: string; accent: string }; mark: string; slug: string }) {
   const { fontSize, text } = headlineStyle(sanitizeHeadline(story.headline));
   const [x] = seeded(slug);
@@ -97,21 +112,20 @@ function SocialCard({ story, mark, slug }: { story: { headline: string; section:
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '64px 72px 56px',
+        padding: '52px 72px 48px',
         backgroundColor: '#0B0B0E',
-        backgroundImage: `radial-gradient(circle at ${70 + x * 30}% 0%, ${story.accent}40 0%, rgba(11,11,14,0) 55%)`,
+        backgroundImage: `radial-gradient(circle at ${35 + x * 30}% 0%, ${story.accent}40 0%, rgba(11,11,14,0) 60%)`,
         color: '#FFFFFF',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <div style={{ width: 44, height: 6, backgroundColor: story.accent, marginRight: 18 }} />
-        <div style={{ fontFamily: 'Archivo', fontSize: 26, letterSpacing: 4, color: story.accent, textTransform: 'uppercase' }}>{story.section}</div>
-      </div>
-      <div style={{ display: 'flex', fontFamily: 'Newsreader', fontSize, lineHeight: 1.12, letterSpacing: -0.5, maxWidth: 1040 }}>{text}</div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '2px solid rgba(255,255,255,0.12)', paddingTop: 28 }}>
-        <Wordmark mark={mark} size={34} />
-        <div style={{ fontFamily: 'Outfit', fontSize: 24, color: 'rgba(255,255,255,0.6)' }}>lazyfounder.in</div>
+      <Badge mark={mark} />
+      <div style={{ display: 'flex', fontFamily: 'Newsreader', fontSize, lineHeight: 1.12, letterSpacing: -0.5, maxWidth: 1040, textAlign: 'center', justifyContent: 'center' }}>{text}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', borderTop: '2px solid rgba(255,255,255,0.12)', paddingTop: 24 }}>
+        <div style={{ display: 'flex', fontFamily: 'Archivo', fontSize: 22, letterSpacing: 4, color: story.accent, textTransform: 'uppercase' }}>{story.section}</div>
+        <div style={{ display: 'flex', width: 8, height: 8, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.35)', margin: '0 18px' }} />
+        <div style={{ display: 'flex', fontFamily: 'Outfit', fontSize: 24, color: 'rgba(255,255,255,0.7)' }}>lazyfounder.in</div>
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ import { PoweredByBlogy } from "@/components/PoweredByBlogy";
 import { AdSlot } from "@/components/AdSlot";
 import { AD_SLOTS } from "@/lib/ads";
 import { articlePath, listPublishedArticles, sourceStoryPath, type SourceStory } from "@/lib/articles";
-import { COVER_HEIGHT, COVER_WIDTH, coverPath, coverPathForStoryUrl } from "@/lib/covers";
+import { COVER_HEIGHT, COVER_WIDTH, coverPath, shareCoverPath, storySlug } from "@/lib/covers";
 import { currentStoryImageMode } from "@/lib/site-settings";
 import { authorInitials, authorPath } from "@/lib/authors";
 import { BRAND, pageMetadata } from "@/lib/seo";
@@ -19,10 +19,10 @@ export function sourceMetadata(story: SourceStory): Metadata {
     title: story.headline,
     description: story.excerpt,
     path,
-    // Our cover card, or in "publisher" mode the publisher's photo (sizes unknown).
-    ...(currentStoryImageMode() === "covers"
-      ? { image: coverPathForStoryUrl(path, "social"), imageWidth: COVER_WIDTH, imageHeight: COVER_HEIGHT }
-      : { image: story.publisherImageUrl ?? undefined }),
+    // Always our cover card, even in "publisher" mode: shares need a known size and our brand.
+    image: shareCoverPath(storySlug(path)),
+    imageWidth: COVER_WIDTH,
+    imageHeight: COVER_HEIGHT,
     imageAlt: story.headline,
     type: "article",
     publishedTime: story.publishedAt.toISOString(),

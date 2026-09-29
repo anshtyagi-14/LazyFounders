@@ -130,6 +130,9 @@ export function pageMetadata(input: PageMetaInput): Metadata {
       : input.imageWidth && input.imageHeight
         ? { width: input.imageWidth, height: input.imageHeight }
         : {};
+  // Our own cards are always PNG; stating it saves scrapers (WhatsApp, LinkedIn) a guess.
+  const owned = image === SITE_OG_IMAGE || image.startsWith(`${SITE_URL}/covers/`);
+  const imageMeta = { url: image, ...size, ...(owned ? { type: 'image/png', secureUrl: image } : {}), alt: input.imageAlt || title };
   const index = input.index !== false;
 
   return {
@@ -151,7 +154,7 @@ export function pageMetadata(input: PageMetaInput): Metadata {
       description,
       siteName: BRAND,
       locale: SITE_LOCALE,
-      images: [{ url: image, ...size, alt: input.imageAlt || title }],
+      images: [imageMeta],
       ...(input.type === 'article'
         ? {
             publishedTime: input.publishedTime,

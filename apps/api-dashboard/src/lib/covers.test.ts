@@ -23,7 +23,7 @@ describe('cover paths', () => {
 describe('coverImage', () => {
   test('og uses the headline card, the page shows the art, and the rights are ours', () => {
     const img = coverImage('a-b', 'Headline');
-    expect(img.url).toMatch(/\/covers\/a-b\.png$/);
+    expect(img.url).toMatch(/\/covers\/a-b\.png\?v=\d+$/);
     expect(img.displayUrl).toBe('/covers/a-b.art.png');
     expect([img.width, img.height]).toEqual([1200, 630]);
     const schema = imageObjectSchema(img, 'Headline');

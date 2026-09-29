@@ -71,9 +71,9 @@ function bodyComponents(headline: string): Components {
 }
 
 /**
- * One image for the hero, og:image, twitter:image and NewsArticle.image. The
- * story_images setting (/admin/settings) picks our own cover card, or the
- * publisher's photo with credit (then another cited source's, then the brand card).
+ * The hero and NewsArticle.image. The story_images setting (/admin/settings) picks our
+ * own cover card, or the publisher's photo with credit (then another cited source's,
+ * then the brand card). og:image and twitter:image are always the cover card.
  */
 function articleImage(article: PublicArticle): ResolvedImage {
   if (currentStoryImageMode() === "covers") return coverImage(article.slug, article.headline);
@@ -105,7 +105,9 @@ function crumbsFor(article: PublicArticle, category: SiteCategory): Crumb[] {
 
 /** Metadata for one of our own stories, served at /news/<slug> (see page.tsx). */
 export function articleMetadata(article: PublicArticle): Metadata {
-  const image = articleImage(article);
+  // Shares always get our own card, whatever the page shows: a hotlinked publisher
+  // photo has no known size, can be blocked or stale, and carries no brand.
+  const image = coverImage(article.slug, article.headline);
   const modified = modifiedAt(article);
   return pageMetadata({
     title: article.seoTitle,

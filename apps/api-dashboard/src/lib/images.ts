@@ -1,5 +1,5 @@
 import { DEFAULT_IMAGE, FALLBACK_IMAGE_PATH, OWNED_IMAGE_RIGHTS, absoluteUrl } from '@/lib/seo';
-import { COVER_HEIGHT, COVER_WIDTH, coverPath } from '@/lib/covers';
+import { COVER_HEIGHT, COVER_WIDTH, coverPath, shareCoverPath } from '@/lib/covers';
 
 /**
  * One image decision per story, shared by the hero, og:image, twitter:image and
@@ -53,7 +53,7 @@ export function usableImageUrl(url: string | null | undefined): string | null {
 /** A story's own cover card: the one image the hero, og:image and NewsArticle.image share. */
 export function coverImage(slug: string, alt: string): ResolvedImage {
   return {
-    url: absoluteUrl(coverPath(slug, 'social')),
+    url: absoluteUrl(shareCoverPath(slug)),
     displayUrl: coverPath(slug, 'art'),
     width: COVER_WIDTH,
     height: COVER_HEIGHT,

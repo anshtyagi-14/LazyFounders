@@ -22,9 +22,25 @@ export function coverPath(slug: string, variant: CoverVariant = 'social'): strin
   return `/covers/${slug}${variant === 'art' ? '.art' : ''}.png`;
 }
 
+/**
+ * Bumped whenever the social card's design changes. Facebook, LinkedIn and WhatsApp
+ * cache a preview by image URL, so a new query string is what makes them fetch the new card.
+ */
+export const COVER_VERSION = 2;
+
+/** The social card as og:image / twitter:image reference it: versioned for scraper caches. */
+export function shareCoverPath(slug: string): string {
+  return `${coverPath(slug, 'social')}?v=${COVER_VERSION}`;
+}
+
 /** The cover for a story URL such as /news/<slug> (ours or syndicated). */
 export function coverPathForStoryUrl(storyUrl: string, variant: CoverVariant = 'social'): string {
-  return coverPath(storyUrl.split(/[?#]/)[0].split('/').filter(Boolean).pop() ?? '', variant);
+  return coverPath(storySlug(storyUrl), variant);
+}
+
+/** The slug of a story URL such as /news/<slug>. */
+export function storySlug(storyUrl: string): string {
+  return storyUrl.split(/[?#]/)[0].split('/').filter(Boolean).pop() ?? '';
 }
 
 /** What a /covers/<file> request asks for, or null when it is not a cover file name. */
