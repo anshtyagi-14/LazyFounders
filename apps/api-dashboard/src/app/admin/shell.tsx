@@ -12,7 +12,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     { name: 'Pipeline Monitor', href: '/admin/pipeline', icon: '🛰️' },
     { name: 'Editorial Review', href: '/admin/editorial', icon: '✍️' },
     { name: 'Leads', href: '/admin/leads', icon: '📥' },
-    { name: 'Founder chat', href: '/admin/chat', icon: '💬' },
     { name: 'Trusted Sources', href: '/admin/registry', icon: '🌍' },
     { name: 'Jobs & Dead Letters', href: '/admin/jobs', icon: '🧯' },
     { name: 'Sources & Cron (legacy)', href: '/admin/sources', icon: '📡' },
@@ -38,7 +37,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href === '/admin/chat' && pathname.startsWith('/admin/chat/'));
+            const isActive = pathname === item.href;
             return (
               <Link
                 key={item.href}

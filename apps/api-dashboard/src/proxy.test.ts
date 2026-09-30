@@ -32,7 +32,7 @@ describe('proxy', () => {
   });
 
   test('reader-facing API routes are public', () => {
-    for (const p of ['/api/subscribe', '/api/contact', '/api/chat', '/api/chat/0f3cde00-0000-4000-8000-000000000001', '/api/telemetry', '/api/health', '/api/v1/scrape', '/api/revalidate']) {
+    for (const p of ['/api/subscribe', '/api/contact','/api/telemetry', '/api/health', '/api/v1/scrape', '/api/revalidate']) {
       expect(passedThrough(run(p)), p).toBe(true);
     }
   });

@@ -3,7 +3,7 @@ import { Archivo, Newsreader, Outfit } from 'next/font/google';
 import './globals.css';
 import { Footer } from '../components/Footer';
 import { ContactBanner } from '../components/ContactBanner';
-import { FounderChat } from '../components/FounderChat';
+import { MantisWidget } from '../components/MantisWidget';
 import { SiteHeader } from '../components/site/SiteHeader';
 import { JsonLd } from '../components/JsonLd';
 import { Analytics } from '../components/Analytics';
@@ -144,7 +144,7 @@ export default function RootLayout({
         </div>
         <ContactBanner />
         <Footer />
-        <FounderChat />
+        <MantisWidget />
         <Analytics />
         <WebVitals />
       </body>

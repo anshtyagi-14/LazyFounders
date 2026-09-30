@@ -14,14 +14,15 @@ const isDev = process.env.NODE_ENV !== "production";
 // A static policy rather than a per-request nonce: a nonce forces every page to
 // render dynamically, which would throw away the ISR caching on the public
 // pages. Inline scripts (theme bootstrap, JSON-LD, gtag init) therefore need
-// 'unsafe-inline'; everything else is pinned to this origin, Google Analytics and
-// AdSense (whose units render in iframes, hence frame-src).
+// 'unsafe-inline'; everything else is pinned to this origin, Google Analytics,
+// AdSense (whose units render in iframes, hence frame-src) and the Mantis
+// "Talk to founder" widget (a loader script plus an iframed panel).
 // Article images are hotlinked from publishers, hence img-src https:.
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://www.googletagmanager.com https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.adtrafficquality.google https://adservice.google.com https://www.google.com`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://www.googletagmanager.com https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.adtrafficquality.google https://adservice.google.com https://www.google.com https://mantisai.in`,
   "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.adtrafficquality.google https://*.doubleclick.net https://www.google.com",
-  "frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://*.googlesyndication.com https://*.adtrafficquality.google https://www.google.com",
+  "frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://*.googlesyndication.com https://*.adtrafficquality.google https://www.google.com https://mantisai.in",
   "img-src 'self' data: blob: https:",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",

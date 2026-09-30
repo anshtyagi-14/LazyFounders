@@ -1,12 +1,29 @@
 'use client';
 
 import React from 'react';
+import { track } from '@/lib/analytics';
+import { MANTIS_HOST } from './MantisWidget';
 
-/** Window event the <FounderChat /> widget listens for; `detail.surface` names the button for GA. */
-export const OPEN_FOUNDER_CHAT = 'lf:open-founder-chat';
+const WAIT_MS = 5000;
+const STEP_MS = 200;
 
+/**
+ * Opens the Mantis panel by pressing its own launcher: widget.js has no JS API, but its
+ * shadow root is open. The script loads lazily, so an early click waits for it to mount.
+ */
 export function openFounderChat(surface: string): void {
-  window.dispatchEvent(new CustomEvent(OPEN_FOUNDER_CHAT, { detail: { surface } }));
+  track('founder_chat_open', { source_surface: surface });
+  const started = Date.now();
+  const tryOpen = () => {
+    const launcher = document.querySelector(MANTIS_HOST)?.shadowRoot?.querySelector<HTMLButtonElement>('button.btn');
+    if (launcher) {
+      // The launcher hides while the panel is open; pressing it then would close the panel.
+      if (launcher.getClientRects().length > 0) launcher.click();
+    } else if (Date.now() - started < WAIT_MS) {
+      window.setTimeout(tryOpen, STEP_MS);
+    }
+  };
+  tryOpen();
 }
 
 export function ChatIcon({ className = 'h-5 w-5' }: { className?: string }) {
@@ -20,7 +37,7 @@ export function ChatIcon({ className = 'h-5 w-5' }: { className?: string }) {
 
 /**
  * A "Talk to founder" button for server-rendered surfaces (contact banner, strip, contact
- * page): it opens the chat widget that the root layout mounts, instead of navigating.
+ * page): it opens the Mantis chat widget that the root layout mounts, instead of navigating.
  */
 export function TalkToFounderButton({ surface, className, children }: { surface: string; className?: string; children: React.ReactNode }) {
   return (
