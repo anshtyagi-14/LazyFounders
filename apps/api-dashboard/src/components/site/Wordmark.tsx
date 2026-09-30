@@ -55,7 +55,8 @@ export function Wordmark({
         {match ? (
           <>
             {match[1]}
-            <span className="text-teal-500">{match[2]}</span>
+            {/* The brand gold in both themes: a logo, so not darkened by the light-mode text-contrast rule in globals.css. */}
+            <span className="text-(--gold-500)">{match[2]}</span>
           </>
         ) : (
           BRAND
