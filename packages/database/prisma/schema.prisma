@@ -446,6 +446,10 @@ model SourceArticle {
   outboundLinks        Json?     @map("outbound_links")
   extractionMethod     String?   @map("extraction_method")
   contentHash          String?   @map("content_hash")
+  /// Public URL slug (/news/<slug>): plain words from the headline, unique across
+  /// stories and articles. Set by a database trigger on insert (see migration
+  /// 20260930000000_clean_story_slugs) and never changed after, so links stay stable.
+  slug                 String?   @unique
   paywalled            Boolean   @default(false)
   fetchedAt            DateTime  @default(now()) @map("fetched_at")
   createdAt            DateTime  @default(now()) @map("created_at")
@@ -572,6 +576,8 @@ model Article {
   id                 String    @id @default(uuid()) @db.Uuid
   storyId            String?   @unique @map("story_id") @db.Uuid
   slug               String    @unique
+  /// Slugs this article was served under before; each one 301s to the current slug.
+  previousSlugs      String[]  @default([]) @map("previous_slugs")
   status             String    @default("GENERATED") /// GENERATED | VALIDATED | DRAFT | NEEDS_REVIEW | APPROVED | PUBLISHED | REJECTED | ARCHIVED
   currentVersionId   String?   @map("current_version_id") @db.Uuid
   publishedVersionId String?   @map("published_version_id") @db.Uuid

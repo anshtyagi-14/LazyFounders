@@ -74,6 +74,22 @@ export async function generateVersion(llm: LlmClient, ctx: GenerationContext, co
 }
 
 /** The configured byline; null (credited to the default at render time) if the row is missing. */
+/**
+ * The URL slug for a new article: plain words, with -2, -3... only when another story
+ * already has it. A syndicated copy from this same story does not count: once the
+ * article is published, that copy's page redirects here anyway.
+ */
+export async function freeStorySlug(tx: Prisma.TransactionClient, base: string, storyId: string): Promise<string> {
+  for (let n = 1; ; n += 1) {
+    const slug = n === 1 ? base : `${base}-${n}`;
+    const [article, sources] = await Promise.all([
+      tx.article.findFirst({ where: { OR: [{ slug }, { previousSlugs: { has: slug } }] }, select: { id: true } }),
+      tx.sourceArticle.findMany({ where: { slug }, select: { storySource: { select: { storyId: true } } } }),
+    ]);
+    if (!article && sources.every((s) => s.storySource?.storyId === storyId)) return slug;
+  }
+}
+
 async function defaultAuthorId(tx: Prisma.TransactionClient, slug: string): Promise<string | null> {
   const author = await tx.author.findUnique({ where: { slug }, select: { id: true } });
   return author?.id ?? null;
@@ -144,7 +160,9 @@ export function generateHandler(deps: PipelineDeps): StageHandler<{ storyId: str
       if (!(err instanceof LlmOutputError || err instanceof LlmRefusalError)) throw err;
       deps.metrics?.llmValidationFailures.inc({ task: 'generate' });
       await deps.prisma.$transaction(async (tx) => {
-        const article = story.article ?? (await tx.article.create({ data: { storyId: story.id, slug: `${slugify(story.headline)}-${story.id.slice(0, 6)}`, status: 'NEEDS_REVIEW', authorId: await defaultAuthorId(tx, deps.config.defaultAuthorSlug) } }));
+        const article =
+          story.article ??
+          (await tx.article.create({ data: { storyId: story.id, slug: await freeStorySlug(tx, slugify(story.headline), story.id), status: 'NEEDS_REVIEW', authorId: await defaultAuthorId(tx, deps.config.defaultAuthorSlug) } }));
         await tx.article.update({ where: { id: article.id }, data: { status: 'NEEDS_REVIEW' } });
         await tx.editorialAction.create({
           data: { articleId: article.id, actor: 'pipeline', action: 'generate_failed', fromStatus: article.status, toStatus: 'NEEDS_REVIEW', note: err.message.slice(0, 500) },
@@ -163,8 +181,7 @@ export function generateHandler(deps: PipelineDeps): StageHandler<{ storyId: str
     await deps.prisma.$transaction(async (tx) => {
       let article = story.article;
       if (!article) {
-        let slug = `${generated.article.slug}-${story.id.slice(0, 6)}`;
-        if (await tx.article.findUnique({ where: { slug } })) slug = `${slug}-${Date.now().toString(36)}`;
+        const slug = await freeStorySlug(tx, generated.article.slug, story.id);
         article = await tx.article.create({ data: { storyId: story.id, slug, status: 'GENERATED', authorId: await defaultAuthorId(tx, deps.config.defaultAuthorSlug) } });
       }
       const dup = await tx.articleVersion.findUnique({ where: { articleId_contentHash: { articleId: article.id, contentHash: generated.contentHash } } });

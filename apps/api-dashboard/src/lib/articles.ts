@@ -16,8 +16,9 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3
 export const BRAND = process.env.SITE_BRAND_NAME || 'Lazyfounder';
 
 /**
- * Every story, ours or syndicated, lives at /news/<slug>. Our slugs end in 6 hex
- * characters and syndicated ones in 8 (see sourceStoryPath), so one route serves both.
+ * Every story, ours or syndicated, lives at /news/<slug>: plain words from the headline,
+ * unique across both kinds (see migration 20260930000000_clean_story_slugs). Our
+ * articles are looked up first, then syndicated stories.
  */
 export function articlePath(slug: string): string {
   return `/news/${slug}`;
@@ -228,6 +229,12 @@ export async function getPublishedArticle(slug: string): Promise<PublicArticle |
   return article;
 }
 
+/** The current slug of a published article that used to live at `slug`, for a 301. */
+export async function movedArticleSlug(slug: string): Promise<string | null> {
+  const a = await prisma.article.findFirst({ where: { previousSlugs: { has: slug }, ...PUBLIC_WHERE }, select: { slug: true } });
+  return a?.slug ?? null;
+}
+
 /**
  * The first lead image among a story's sources whose image policy allows showing
  * it (the same rule the pipeline applies to the primary source).
@@ -251,6 +258,8 @@ async function storySourceImage(storyId: string): Promise<FeaturedImage | null> 
  */
 export interface SourceHeadline {
   id: string;
+  /** Stored URL slug; null only on rows written before slugs existed (see sourceStoryPath). */
+  slug: string | null;
   /** Original publisher URL (shown in the courtesy section). */
   sourceUrl: string;
   headline: string;
@@ -290,18 +299,23 @@ const SOURCE_VISIBLE_WHERE = {
   language: 'en',
 };
 
-/** Hex characters of the id carried in the slug; enough to find the row by primary key. */
+/** Hex characters of the id that the old URL format carried; still resolved, then 301'd. */
 const SOURCE_ID_PREFIX = 8;
 
-/** "/news/<headline-slug>-<first 8 hex of the id>" */
-export function sourceStoryPath(id: string, headline: string): string {
+/**
+ * "/news/<slug>" from the stored slug. A row without one (written before the slug
+ * column, or before its headline arrived) falls back to the old
+ * "<headline words>-<first 8 hex of the id>" form, which still resolves.
+ */
+export function sourceStoryPath(story: { id: string; headline: string; slug?: string | null }): string {
+  if (story.slug) return articlePath(story.slug);
   // Whole words only, up to ~70 characters: a cut word reads as a typo in search results.
   let words = '';
-  for (const w of slugify(sanitizeHeadline(headline)).split('-')) {
+  for (const w of slugify(sanitizeHeadline(story.headline)).split('-')) {
     if (words && words.length + w.length + 1 > 70) break;
     words = words ? `${words}-${w}` : w;
   }
-  return articlePath(`${words}-${id.slice(0, SOURCE_ID_PREFIX).toLowerCase()}`);
+  return articlePath(`${words}-${story.id.slice(0, SOURCE_ID_PREFIX).toLowerCase()}`);
 }
 
 function httpUrl(u: string | null | undefined): string | null {
@@ -343,7 +357,7 @@ export async function listSourceHeadlines(opts: { take?: number; categories?: st
     orderBy: [{ publishedAt: { sort: 'desc', nulls: 'last' } }, { fetchedAt: 'desc' }],
     take: take * 3,
     select: {
-      id: true, canonicalFingerprint: true, headline: true, subheadline: true, bodyText: true,
+      id: true, slug: true, canonicalFingerprint: true, headline: true, subheadline: true, bodyText: true,
       leadImage: true, publisher: true, publishedAt: true, fetchedAt: true,
       canonicalUrl: true, finalUrl: true, originalUrl: true, categories: true, tags: true,
       source: { select: { imagePolicy: true } },
@@ -360,10 +374,11 @@ export async function listSourceHeadlines(opts: { take?: number; categories?: st
     const publisherImageUrl = r.source.imagePolicy === 'none' ? null : httpUrl(r.leadImage);
     out.push({
       id: r.id,
+      slug: r.slug,
       sourceUrl: url,
       headline: sanitizeHeadline(r.headline),
       excerpt: excerptOf(sanitizeHeadline(scrubForeignContacts(r.subheadline || r.bodyText || '').text)),
-      imageUrl: mode === 'covers' ? coverPathForStoryUrl(sourceStoryPath(r.id, r.headline), 'art') : publisherImageUrl ?? FALLBACK_IMAGE_PATH,
+      imageUrl: mode === 'covers' ? coverPathForStoryUrl(sourceStoryPath({ id: r.id, slug: r.slug, headline: r.headline }), 'art') : publisherImageUrl ?? FALLBACK_IMAGE_PATH,
       publisherImageUrl,
       publisher: r.publisher,
       publishedAt: r.publishedAt ?? r.fetchedAt,
@@ -397,8 +412,8 @@ export type SourceStoryResult =
   | null;
 
 /**
- * Id filter for a syndicated-story slug: a full UUID (links made before slugs) or a slug
- * ending in the id's first 8 hex characters, matched as a primary-key range.
+ * Id filter for an old-format syndicated-story URL: a full UUID (links made before slugs)
+ * or a slug ending in the id's first 8 hex characters, matched as a primary-key range.
  */
 function sourceIdWhere(param: string) {
   if (UUID_RE.test(param)) return { id: param.toLowerCase() };
@@ -408,30 +423,32 @@ function sourceIdWhere(param: string) {
   return { id: { gte: `${hex}-0000-0000-0000-000000000000`, lte: `${hex}-ffff-ffff-ffff-ffffffffffff` } };
 }
 
+const SOURCE_STORY_SELECT = {
+  id: true, slug: true, headline: true, subheadline: true, author: true, bodyText: true,
+  leadImage: true, imageCredit: true, publisher: true, language: true,
+  publishedAt: true, fetchedAt: true, canonicalUrl: true, finalUrl: true, originalUrl: true, categories: true, tags: true,
+  storySource: { select: { story: { select: { article: { select: { slug: true, publishedVersionId: true, status: true } } } } } },
+  source: { select: { imagePolicy: true } },
+} as const;
+
 export async function getSourceStory(param: string): Promise<SourceStoryResult> {
-  const idWhere = sourceIdWhere(param);
-  if (!idWhere) return null;
   const editorP = defaultAuthor();
   const mode = await loadStoryImageMode();
-  const candidates = await prisma.sourceArticle.findMany({
-    where: { ...idWhere, ...SOURCE_VISIBLE_WHERE },
-    take: 5,
-    select: {
-      id: true, headline: true, subheadline: true, author: true, bodyText: true,
-      leadImage: true, imageCredit: true, publisher: true, language: true,
-      publishedAt: true, fetchedAt: true, canonicalUrl: true, finalUrl: true, originalUrl: true, categories: true, tags: true,
-      storySource: { select: { story: { select: { article: { select: { slug: true, publishedVersionId: true, status: true } } } } } },
-      source: { select: { imagePolicy: true } },
-    },
-  });
-  // Two ids sharing 8 hex characters is rare; the one whose headline matches the slug wins.
-  const r = candidates.find((c) => c.headline && param === sourceStoryPath(c.id, c.headline).split('/').pop()) ?? candidates[0];
+  // The stored slug first; then the old "-<8 hex of the id>" and bare-UUID forms, which 301.
+  let candidates = await prisma.sourceArticle.findMany({ where: { slug: param, ...SOURCE_VISIBLE_WHERE }, take: 1, select: SOURCE_STORY_SELECT });
+  if (!candidates.length) {
+    const idWhere = sourceIdWhere(param);
+    if (!idWhere) return null;
+    candidates = await prisma.sourceArticle.findMany({ where: { ...idWhere, ...SOURCE_VISIBLE_WHERE }, take: 5, select: SOURCE_STORY_SELECT });
+  }
+  // Two ids sharing 8 hex characters is rare; the one whose headline matches the old slug wins.
+  const r = candidates.find((c) => c.headline && param === sourceStoryPath({ id: c.id, headline: c.headline }).split('/').pop()) ?? candidates[0];
   if (!r || !r.headline) return null;
   const article = r.storySource?.story?.article;
   if (article?.publishedVersionId && !['ARCHIVED', 'REJECTED'].includes(article.status)) {
     return { kind: 'published', slug: article.slug };
   }
-  const path = sourceStoryPath(r.id, r.headline);
+  const path = sourceStoryPath({ id: r.id, slug: r.slug, headline: r.headline });
   if (path !== articlePath(param)) return { kind: 'moved', path };
   const sourceUrl = httpUrl(r.canonicalUrl) ?? httpUrl(r.finalUrl) ?? httpUrl(r.originalUrl);
   if (!sourceUrl) return null;
@@ -444,12 +461,13 @@ export async function getSourceStory(param: string): Promise<SourceStoryResult> 
     kind: 'story',
     story: {
       id: r.id,
+      slug: r.slug,
       sourceUrl,
       headline: sanitizeHeadline(r.headline),
       subheadline: sanitizeHeadline(scrubForeignContacts(r.subheadline ?? '').text) || null,
       excerpt: excerptOf(sanitizeHeadline(r.subheadline || bodyText)),
       editor: await editorP,
-      imageUrl: mode === 'covers' ? coverPathForStoryUrl(sourceStoryPath(r.id, r.headline), 'art') : publisherImageUrl ?? FALLBACK_IMAGE_PATH,
+      imageUrl: mode === 'covers' ? coverPathForStoryUrl(path, 'art') : publisherImageUrl ?? FALLBACK_IMAGE_PATH,
       publisherImageUrl,
       imageCredit: r.imageCredit,
       publisher: r.publisher,
@@ -466,7 +484,7 @@ export async function getSourceStory(param: string): Promise<SourceStoryResult> 
 
 export function headlineToArticleProps(h: SourceHeadline): ArticleProps {
   return {
-    url: sourceStoryPath(h.id, h.headline),
+    url: sourceStoryPath(h),
     imageUrl: h.imageUrl,
     category: h.publisher,
     title: sanitizeHeadline(h.headline),

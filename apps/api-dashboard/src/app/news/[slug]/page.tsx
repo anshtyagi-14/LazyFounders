@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
-import { articlePath, getPublishedArticle, getSourceStory, type PublicArticle, type SourceStoryResult } from "@/lib/articles";
+import { articlePath, getPublishedArticle, getSourceStory, movedArticleSlug, type PublicArticle, type SourceStoryResult } from "@/lib/articles";
 import { ArticleView, articleMetadata } from "./article-view";
 import { SourceView, sourceMetadata } from "./source-view";
 
@@ -21,13 +21,15 @@ export async function generateStaticParams() {
 type Resolved = { kind: "article"; article: PublicArticle } | SourceStoryResult;
 
 /**
- * One URL space for every story. Our own articles win; anything else is tried as a
- * syndicated story, whose slug ends in the first 8 hex characters of its id.
+ * One URL space for every story. Our own articles win, then an article's old slug
+ * (301 to the current one), then syndicated stories (old id-suffixed URLs 301 too).
  */
 async function resolve(param: string): Promise<Resolved> {
   const slug = decodeURIComponent(param);
   const article = await getPublishedArticle(slug);
   if (article) return { kind: "article", article };
+  const moved = await movedArticleSlug(slug);
+  if (moved) return { kind: "moved", path: articlePath(moved) };
   return getSourceStory(slug);
 }
 

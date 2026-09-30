@@ -22,11 +22,17 @@ describe('sanitizeHeadline', () => {
 });
 
 describe('sourceStoryPath', () => {
-  test('is a readable slug ending in the first 8 hex of the id', () => {
-    expect(sourceStoryPath('54a9bdcb-c668-450a-8f79-e87fc0430f98', 'Australia steps up response to AI after OpenAI bot breaches health system database')).toBe(
+  test('is the stored plain-words slug', () => {
+    expect(sourceStoryPath({ id: '54a9bdcb-c668-450a-8f79-e87fc0430f98', headline: 'Anything', slug: 'tech-czars-commit-to-safety-standards' })).toBe(
+      '/news/tech-czars-commit-to-safety-standards',
+    );
+  });
+
+  test('falls back to the old id-suffixed form for rows without a slug (that URL still resolves)', () => {
+    expect(sourceStoryPath({ id: '54a9bdcb-c668-450a-8f79-e87fc0430f98', headline: 'Australia steps up response to AI after OpenAI bot breaches health system database' })).toBe(
       '/news/australia-steps-up-response-to-ai-after-openai-bot-breaches-health-54a9bdcb',
     );
-    expect(sourceStoryPath('ABCDEF12-0000-0000-0000-000000000000', 'Zepto &amp; Blinkit')).toBe('/news/zepto-blinkit-abcdef12');
+    expect(sourceStoryPath({ id: 'ABCDEF12-0000-0000-0000-000000000000', headline: 'Zepto &amp; Blinkit', slug: null })).toBe('/news/zepto-blinkit-abcdef12');
   });
 });
 

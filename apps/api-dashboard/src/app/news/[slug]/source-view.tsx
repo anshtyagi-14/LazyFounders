@@ -14,7 +14,7 @@ import { BRAND, pageMetadata } from "@/lib/seo";
 
 /** Metadata for a syndicated story, served at /news/<slug> (see page.tsx). */
 export function sourceMetadata(story: SourceStory): Metadata {
-  const path = sourceStoryPath(story.id, story.headline);
+  const path = sourceStoryPath(story);
   return pageMetadata({
     title: story.headline,
     description: story.excerpt,
@@ -78,9 +78,9 @@ export async function SourceView({ story }: { story: SourceStory }) {
                     {/* Our editor curated this; the words are the publisher's, credited below. */}
                     <p className="font-bold text-slate-900 dark:text-white leading-tight text-base">
                       {story.editor ? (
-                        <>Curated by <Link href={authorPath(story.editor.slug)} className="hover:underline">{story.editor.name}</Link></>
+                        <Link href={authorPath(story.editor.slug)} className="hover:underline">{story.editor.name}</Link>
                       ) : (
-                        <>Curated by {BRAND}</>
+                        BRAND
                       )}
                     </p>
                     <p className="text-sm text-slate-500 dark:text-slate-400">Via {story.publisher}</p>

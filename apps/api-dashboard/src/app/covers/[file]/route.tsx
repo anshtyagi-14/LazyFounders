@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
-import { getPublishedArticle, getSourceStory, sanitizeHeadline } from '@/lib/articles';
-import { COVER_HEIGHT, COVER_WIDTH, parseCoverFile } from '@/lib/covers';
+import { getPublishedArticle, getSourceStory, movedArticleSlug, sanitizeHeadline } from '@/lib/articles';
+import { COVER_HEIGHT, COVER_WIDTH, parseCoverFile, storySlug } from '@/lib/covers';
 import { categoryForArticle, categoryForLabel, type CategorySlug } from '@/lib/topics';
 
 // A story's cover changes only when its headline does; /api/revalidate refreshes edits.
@@ -61,13 +61,19 @@ function seeded(slug: string): [number, number, number] {
   return [r(0), r(8), r(16)];
 }
 
-async function storyFor(slug: string): Promise<{ headline: string; section: string; accent: string } | null> {
+async function storyFor(slug: string, followMoves = true): Promise<{ headline: string; section: string; accent: string } | null> {
   const article = await getPublishedArticle(slug);
   if (article) {
     const c = categoryForArticle(article.category);
     return { headline: article.headline, section: c.label, accent: ACCENTS[c.slug] };
   }
+  // Covers already shared under a story's old slug keep rendering.
+  const moved = followMoves ? await movedArticleSlug(slug) : null;
+  if (moved) return storyFor(moved, false);
   const result = await getSourceStory(slug);
+  if (followMoves && (result?.kind === 'moved' || result?.kind === 'published')) {
+    return storyFor(result.kind === 'moved' ? storySlug(result.path) : result.slug, false);
+  }
   if (result?.kind !== 'story') return null;
   const c = (result.story.categories ?? []).map((raw) => categoryForLabel(raw)).find(Boolean);
   return { headline: result.story.headline, section: c?.label ?? 'News', accent: ACCENTS[c?.slug ?? 'news'] };
